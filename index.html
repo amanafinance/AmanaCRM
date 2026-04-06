@@ -473,6 +473,19 @@
 
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbzF_KfeBNjkCNK0YsX9P2t1WkbS5haCx_CMmF8nJtu4avfI5-4zpRivQZtig9-JJppq/exec';
+
+// CORS-safe fetch wrapper
+function callAPI(params) {
+  return fetch(API + params, { redirect: 'follow' }).then(r => r.json());
+}
+
+function postAPI(data) {
+  return fetch(API + '?action=' + data.action, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    redirect: 'follow'
+  }).then(r => r.json());
+}
 let allClients = [];
 let currentFilter = 'all';
 let currentClientId = null;
@@ -480,8 +493,7 @@ let currentClientId = null;
 // ═══ LOGIN ═══
 function doLogin(e) {
   const pass = document.getElementById('loginPass').value;
-  fetch(API + '?action=login&pass=' + encodeURIComponent(pass))
-    .then(r => r.json())
+  callAPI('?action=login&pass=' + encodeURIComponent(pass))
     .then(data => {
       if (data.ok) {
         document.getElementById('loginScreen').style.display = 'none';
@@ -519,8 +531,7 @@ function showPage(page) {
 
 // ═══ DASHBOARD ═══
 function loadDashboard() {
-  fetch(API + '?action=dashboard')
-    .then(r => r.json())
+  callAPI('?action=dashboard')
     .then(data => {
       renderStats(data);
       renderOverdue(data.overdueClients || []);
@@ -607,8 +618,7 @@ function renderUpcoming(list) {
 // ═══ CLIENTS ═══
 function loadClients() {
   document.getElementById('clientsList').innerHTML = '<div class="loading"><div class="spinner"></div> Загрузка...</div>';
-  fetch(API + '?action=clients')
-    .then(r => r.json())
+  callAPI('?action=clients')
     .then(data => {
       allClients = data;
       filterClients();
@@ -689,8 +699,7 @@ function openClient(id) {
   document.getElementById('nav-clients').classList.add('active');
   document.getElementById('nav-client') && document.getElementById('nav-client').classList.remove('active');
   
-  fetch(API + '?action=client&id=' + encodeURIComponent(id))
-    .then(r => r.json())
+  callAPI('?action=client&id=' + encodeURIComponent(id))
     .then(data => renderClientDetail(data))
     .catch(() => showToast('Ошибка загрузки', 'error'));
 }
@@ -830,8 +839,7 @@ function renderPaymentRow(p, i, contractId, clientName) {
 // ═══ PAYMENTS HISTORY ═══
 function loadPayments() {
   document.getElementById('paymentsList').innerHTML = '<div class="loading"><div class="spinner"></div> Загрузка...</div>';
-  fetch(API + '?action=payments')
-    .then(r => r.json())
+  callAPI('?action=payments')
     .then(data => renderPayments(data))
     .catch(() => showToast('Ошибка загрузки', 'error'));
 }
@@ -926,8 +934,7 @@ function submitAddClient() {
     showToast('Заполните все обязательные поля', 'error'); return;
   }
   
-  fetch(API, { method:'POST', body: JSON.stringify(data) })
-    .then(r => r.json())
+  postAPI(data)
     .then(res => {
       if (res.ok) {
         closeModal('modalAddClient');
@@ -958,8 +965,7 @@ function submitPayment() {
   const data = { action:'addPayment', contractId, amount, payType };
   if (monthIndex !== '') data.monthIndex = parseInt(monthIndex);
   
-  fetch(API, { method:'POST', body: JSON.stringify(data) })
-    .then(r => r.json())
+  postAPI(data)
     .then(res => {
       if (res.ok) {
         closeModal('modalPayment');
@@ -987,8 +993,7 @@ function submitDeferral() {
     comment: document.getElementById('def_comment').value
   };
   
-  fetch(API, { method:'POST', body: JSON.stringify(data) })
-    .then(r => r.json())
+  postAPI(data)
     .then(res => {
       if (res.ok) {
         closeModal('modalDeferral');
@@ -1001,7 +1006,7 @@ function submitDeferral() {
 // ═══ CLOSE CONTRACT ═══
 function closeContractConfirm(contractId) {
   if (!confirm('Закрыть договор №' + contractId + '? Это действие нельзя отменить.')) return;
-  fetch(API, { method:'POST', body: JSON.stringify({ action:'closeContract', contractId }) })
+  postAPI({ action:'closeContract', contractId })
     .then(r => r.json())
     .then(res => {
       if (res.ok) { showToast('Договор закрыт', 'success'); showPage('clients'); }
