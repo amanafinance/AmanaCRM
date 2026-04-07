@@ -205,6 +205,65 @@
     .add-item-row .f-input{margin-bottom:0;flex:1;}
     /* SECTION DIVIDER */
     .section-div{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border2);}
+
+    /* ═══ MOBILE ═══ */
+    @media (max-width: 768px) {
+      .sidebar { 
+        width: 100%; height: 56px; min-height: unset;
+        flex-direction: row; align-items: center;
+        padding: 0; bottom: 0; top: auto;
+        border-right: none; border-top: 1px solid var(--border2);
+        justify-content: space-around;
+      }
+      .sidebar > div:first-child { display: flex; flex-direction: row; align-items: center; width: 100%; justify-content: space-around; }
+      .sidebar-logo, .sidebar-name, .nav-group, .sidebar-footer { display: none !important; }
+      .nav-item { 
+        flex-direction: column; gap: 3px; padding: 6px 8px;
+        font-size: 9px; margin-bottom: 0; border-radius: 8px;
+        min-width: 60px; align-items: center; justify-content: center;
+      }
+      .nav-item svg, .nav-item span:first-child { font-size: 18px; }
+      .main { margin-left: 0; padding: 16px 14px 80px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+      .stat-card { padding: 14px 16px; }
+      .stat-value { font-size: 18px; }
+      .page-header { flex-direction: column; gap: 12px; margin-bottom: 20px; align-items: flex-start; }
+      .page-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+      .page-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 10px 12px; }
+      .page-title { font-size: 18px; }
+      .card { padding: 16px; }
+      /* Dashboard grid */
+      #page-dashboard > div:last-child { grid-template-columns: 1fr; }
+      /* Client detail */
+      #clientDetail > div:last-child { grid-template-columns: 1fr !important; }
+      .info-grid { grid-template-columns: 1fr; }
+      /* Table */
+      .tbl th, .tbl td { padding: 10px 8px; font-size: 12px; }
+      .tbl th:nth-child(4), .tbl td:nth-child(4),
+      .tbl th:nth-child(7), .tbl td:nth-child(7) { display: none; }
+      /* Modal */
+      .modal { padding: 24px 20px; border-radius: 16px 16px 0 0; width: 100% !important; max-width: 100% !important; margin-top: auto; max-height: 95vh; }
+      .modal-overlay { align-items: flex-end; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-full { grid-column: 1; }
+      /* Pay item */
+      .pay-item { flex-wrap: wrap; gap: 8px; padding: 12px; }
+      .pay-actions { width: 100%; justify-content: flex-end; }
+      .pay-month { width: auto; }
+      /* Search */
+      .search-bar { flex-direction: column; }
+      .filter-tabs { gap: 6px; }
+      .filter-tab { padding: 6px 12px; font-size: 11px; }
+      /* Settings */
+      #page-settings > div { grid-template-columns: 1fr !important; }
+      /* Overdue/today lists */
+      .overdue-item, .today-item, .upcoming-item { padding: 10px 14px; }
+    }
+    @media (max-width: 400px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .nav-item { min-width: 50px; font-size: 8px; }
+    }
+
   </style>
 </head>
 <body>
@@ -228,14 +287,12 @@
       <div class="sidebar-logo">AMANA FINANCE</div>
       <div class="sidebar-name">CRM</div>
       <div class="nav-group">Главная</div>
-      <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">◈ Дашборд</button>
+      <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')"><span style="font-size:18px">◈</span><span>Дашборд</span></button>
       <div class="nav-group">Работа</div>
-      <button class="nav-item" id="nav-clients" onclick="showPage('clients')">
-        ◉ Клиенты <span class="nav-badge" id="overdueCount" style="display:none">0</span>
-      </button>
-      <button class="nav-item" id="nav-payments" onclick="showPage('payments')">◎ Платежи</button>
+      <button class="nav-item" id="nav-clients" onclick="showPage('clients')"><span style="font-size:18px">◉</span><span>Клиенты <span class="nav-badge" id="overdueCount" style="display:none">0</span></span></button>
+      <button class="nav-item" id="nav-payments" onclick="showPage('payments')"><span style="font-size:18px">◎</span><span>Платежи</span></button>
       <div class="nav-group">Система</div>
-      <button class="nav-item" id="nav-settings" onclick="showPage('settings')">⚙ Настройки</button>
+      <button class="nav-item" id="nav-settings" onclick="showPage('settings')"><span style="font-size:18px">⚙</span><span>Настройки</span></button>
     </div>
     <div class="sidebar-footer">Amana Finance © 2025</div>
   </aside>
@@ -276,7 +333,7 @@
         <button class="filter-tab active" onclick="setFilter('all',this)">Все</button>
         <button class="filter-tab" onclick="setFilter('active',this)">Активные</button>
         <button class="filter-tab" onclick="setFilter('overdue',this)">Просрочники</button>
-        <button class="filter-tab" onclick="setFilter('closed',this)">Закрытые</button>
+        <button class="filter-tab" onclick="setFilter('closed',this)">Завершёные</button>
       </div>
       <div class="card" style="padding:0;overflow:hidden"><div id="clientsList"><div class="loading"><div class="spinner"></div></div></div></div>
     </div>
@@ -531,7 +588,7 @@ function renderDashboard(){
   let totalDebt=0,totalOverdue=0,activeCount=0,closedCount=0;
   const overdueClients=[],todayPayments=[],upcomingClients=[];
   C.clients.forEach(c=>{
-    if(c.status==='закрыт'){closedCount++;return;}
+    if(c.status==='завершён'){closedCount++;return;}
     activeCount++;
     const payments=C.calcPayments(c);
     const balance=C.calcBalance(c);
@@ -546,7 +603,7 @@ function renderDashboard(){
   const badge=document.getElementById('overdueCount');
   badge.textContent=overdueClients.length; badge.style.display=overdueClients.length?'inline':'none';
   document.getElementById('dashStats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value v-green">${activeCount}</div><div class="stat-sub">Закрытых: ${closedCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value v-green">${activeCount}</div><div class="stat-sub">Завершёных: ${closedCount}</div></div>
     <div class="stat-card"><div class="stat-label">Общий долг</div><div class="stat-value">${C.fmt(totalDebt)} ₽</div></div>
     <div class="stat-card"><div class="stat-label">Просрочка</div><div class="stat-value v-red">${C.fmt(totalOverdue)} ₽</div><div class="stat-sub">${overdueClients.length} клиентов</div></div>
     <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value v-yellow">${todayPayments.length}</div><div class="stat-sub">платежей</div></div>`;
@@ -568,9 +625,9 @@ function renderClients(){
   const C=window.CRM;
   const q=(document.getElementById('searchInput').value||'').toLowerCase();
   let list=C.clients.map(c=>({...c,overdue:C.calcOverdue(C.calcPayments(c)),balance:C.calcBalance(c)}));
-  if(C.filter==='active') list=list.filter(c=>c.status!=='закрыт');
-  else if(C.filter==='overdue') list=list.filter(c=>c.overdue>0&&c.status!=='закрыт');
-  else if(C.filter==='closed') list=list.filter(c=>c.status==='закрыт');
+  if(C.filter==='active') list=list.filter(c=>c.status!=='завершён');
+  else if(C.filter==='overdue') list=list.filter(c=>c.overdue>0&&c.status!=='завершён');
+  else if(C.filter==='closed') list=list.filter(c=>c.status==='завершён');
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.contractId||'').includes(q)||(c.product||'').toLowerCase().includes(q)||(c.phones||[]).join(' ').includes(q));
   document.getElementById('clientsCount').textContent=list.length+' клиентов';
   if(!list.length){document.getElementById('clientsList').innerHTML='<div class="empty">Ничего не найдено</div>';return;}
@@ -582,7 +639,7 @@ function renderClients(){
       <td style="color:var(--text2)">${c.product||'—'}</td>
       <td><span class="amount">${C.fmt(c.balance)} ₽</span></td>
       <td>${c.overdue>0?`<span class="amount v-red">${C.fmt(c.overdue)} ₽</span>`:'<span style="color:var(--text3)">—</span>'}</td>
-      <td>${c.status==='закрыт'?'<span class="badge b-closed">Закрыт</span>':c.overdue>0?'<span class="badge b-overdue">Просрочка</span>':'<span class="badge b-active">Активный</span>'}</td>
+      <td>${c.status==='завершён'?'<span class="badge b-closed">Завершён</span>':c.overdue>0?'<span class="badge b-overdue">Просрочка</span>':'<span class="badge b-active">Активный</span>'}</td>
     </tr>`).join('')}
   </tbody></table>`;
 }
@@ -609,12 +666,12 @@ function renderClientDetail(c){
       <div>
         <div style="font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;margin-bottom:8px">${c.name}</div>
         <div style="font-size:13px;color:var(--text2)">📱 ${phones} &nbsp;·&nbsp; 📋 №${c.contractId||'—'} &nbsp;·&nbsp; 📅 ${c.date||'—'} &nbsp;
-          ${c.status==='закрыт'?'<span class="badge b-closed" style="font-size:10px">Закрыт</span>':'<span class="badge b-active" style="font-size:10px">Активный</span>'}
+          ${c.status==='завершён'?'<span class="badge b-closed" style="font-size:10px">Завершён</span>':'<span class="badge b-active" style="font-size:10px">Активный</span>'}
         </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="openPayModal('${c.id}','${c.name.replace(/'/g,"\\'")}')">+ Оплата</button>
-        ${c.status!=='закрыт'?`<button class="btn btn-danger btn-sm" onclick="closeClientContract('${c.id}')">Закрыть</button>`:''}
+        ${c.status!=='завершён'?`<button class="btn btn-danger btn-sm" onclick="completeClientContract('${c.id}')">Завершёнь</button>`:''}
       </div>
     </div>
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
@@ -808,11 +865,11 @@ async function submitDeferral(){
 }
 
 // ═══ CLOSE CONTRACT ═══
-async function closeClientContract(id){
-  if(!confirm('Закрыть договор?')) return;
+async function completeClientContract(id){
+  if(!confirm('Завершёнь договор?')) return;
   const C=window.CRM;
-  await C.updateDoc(C.doc(C.db,'clients',id),{status:'закрыт'});
-  showToast('Договор закрыт','success');
+  await C.updateDoc(C.doc(C.db,'clients',id),{status:'завершён'});
+  showToast('Договор завершён','success');
   showPage('clients');
 }
 
@@ -866,6 +923,108 @@ async function removeCard(i){
   C.cards.splice(i,1);
   await C.setDoc(C.doc(C.db,'settings','cards'),{list:C.cards});
   renderSettings(); updatePayTypeSelect();
+}
+
+// ═══ DELETE CLIENT ═══
+async function deleteClient(id){
+  if(!confirm('Удалить договор? Это действие нельзя отменить!')) return;
+  const C=window.CRM;
+  await C.deleteDoc(C.doc(C.db,'clients',id));
+  showToast('Договор удалён','success');
+  showPage('clients');
+}
+
+// ═══ EDIT CLIENT ═══
+function openEditClient(id){
+  const C=window.CRM;
+  const c=C.clients.find(x=>x.id===id);
+  if(!c) return;
+  _cid=id;
+  
+  // Fill form with existing data
+  document.getElementById('f_date').value=c.date||'';
+  document.getElementById('f_name').value=c.name||'';
+  document.getElementById('f_guarantor').value=c.guarantor||'';
+  document.getElementById('f_address').value=c.address||'';
+  document.getElementById('f_guarantorAddress').value=c.guarantorAddress||'';
+  document.getElementById('f_product').value=c.product||'';
+  document.getElementById('f_cost').value=c.cost||'';
+  document.getElementById('f_price').value=c.price||'';
+  document.getElementById('f_prepay').value=c.prepay||'';
+  document.getElementById('f_months').value=c.months||3;
+  
+  updatePartnerSelect();
+  document.getElementById('f_partner').value=c.partner||'';
+
+  // Fill phones
+  const phones=c.phones||[''];
+  document.getElementById('f_phones').innerHTML=phones.map((p,i)=>`<div class="phone-row"><input class="f-input no-mb" type="tel" value="${p}" placeholder="89001234567"/>${i===0?`<button class="btn-icon btn-add" onclick="addPhone('f_phones')">+</button>`:`<button class="btn-icon btn-del" onclick="this.parentElement.remove()">×</button>`}</div>`).join('');
+  
+  const gphones=c.gphones||[''];
+  document.getElementById('f_gphones').innerHTML=gphones.map((p,i)=>`<div class="phone-row"><input class="f-input no-mb" type="tel" value="${p}" placeholder="89001234567"/>${i===0?`<button class="btn-icon btn-add" onclick="addPhone('f_gphones')">+</button>`:`<button class="btn-icon btn-del" onclick="this.parentElement.remove()">×</button>`}</div>`).join('');
+
+  // Fill schedule
+  const months=parseInt(c.months)||3;
+  const tbody=document.getElementById('scheduleBody');
+  tbody.innerHTML='';
+  for(let m=0;m<months;m++){
+    const dateStr=c['дата'+(m+1)]||'';
+    let dateVal='';
+    if(dateStr){ const p=dateStr.split('.'); if(p.length===3) dateVal=`${p[2]}-${p[1]}-${p[0]}`; }
+    tbody.innerHTML+=`<tr>
+      <td style="font-size:13px;font-weight:700;color:var(--text3)">${m+1}</td>
+      <td><input class="sched-input sz-input" type="number" value="${c['размер'+(m+1)]||0}"/></td>
+      <td><input class="sched-input dt-input" type="date" value="${dateVal}"/></td>
+    </tr>`;
+  }
+
+  // Change modal title and button
+  document.querySelector('#modalClient .modal-title').textContent='Редактировать договор';
+  document.querySelector('#modalClient .modal-footer .btn-primary').textContent='Сохранить изменения';
+  document.querySelector('#modalClient .modal-footer .btn-primary').onclick=submitEditClient;
+  document.getElementById('modalClient').classList.add('show');
+}
+
+async function submitEditClient(){
+  const C=window.CRM;
+  const months=parseInt(document.getElementById('f_months').value);
+  const price=parseFloat(document.getElementById('f_price').value)||0;
+  const name=document.getElementById('f_name').value.trim();
+  if(!name||!price){showToast('Заполните обязательные поля','error');return;}
+
+  const phones=[...document.querySelectorAll('#f_phones input')].map(i=>i.value.trim()).filter(Boolean);
+  const gphones=[...document.querySelectorAll('#f_gphones input')].map(i=>i.value.trim()).filter(Boolean);
+  const rows=document.querySelectorAll('#scheduleBody tr');
+
+  const data={
+    date:document.getElementById('f_date').value,
+    name, phones, gphones,
+    guarantor:document.getElementById('f_guarantor').value,
+    address:document.getElementById('f_address').value,
+    guarantorAddress:document.getElementById('f_guarantorAddress').value,
+    product:document.getElementById('f_product').value,
+    partner:document.getElementById('f_partner').value,
+    cost:parseFloat(document.getElementById('f_cost').value)||0,
+    price, prepay:parseFloat(document.getElementById('f_prepay').value)||0,
+    months
+  };
+
+  for(let m=0;m<12;m++){
+    if(m<months&&rows[m]){
+      data['размер'+(m+1)]=parseFloat(rows[m].querySelector('.sz-input').value)||0;
+      const dtVal=rows[m].querySelector('.dt-input').value;
+      if(dtVal){ const d=new Date(dtVal); data['дата'+(m+1)]=C.formatDate(d); }
+      else data['дата'+(m+1)]='';
+    } else { data['размер'+(m+1)]=0; data['дата'+(m+1)]=''; }
+  }
+
+  await C.updateDoc(C.doc(C.db,'clients',_cid),data);
+  closeModal('modalClient');
+  showToast('Договор обновлён!','success');
+  // Reset modal
+  document.querySelector('#modalClient .modal-title').textContent='Новый договор';
+  document.querySelector('#modalClient .modal-footer .btn-primary').textContent='Сохранить договор';
+  document.querySelector('#modalClient .modal-footer .btn-primary').onclick=submitClient;
 }
 
 // ═══ EXPORT EXCEL ═══
