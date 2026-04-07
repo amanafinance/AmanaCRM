@@ -5,286 +5,236 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Amana CRM</title>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getFirestore, collection, doc, addDoc, updateDoc, getDocs, getDoc, query, orderBy, where, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCZZCJiPUfZ2OqAa2CaQXKeHGh5MGR9uuo",
+      authDomain: "amana-crm-16033.firebaseapp.com",
+      projectId: "amana-crm-16033",
+      storageBucket: "amana-crm-16033.firebasestorage.app",
+      messagingSenderId: "21151729250",
+      appId: "1:21151729250:web:06fe4021102a8ac8c9333b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const CRM_PASSWORD = 'amana2025';
+
+    // ═══ УТИЛИТЫ ═══
+    function fmt(n) { return (parseFloat(n)||0).toLocaleString('ru-RU'); }
+    function today() { const d=new Date(); d.setHours(0,0,0,0); return d; }
+    function parseDate(s) { if(!s) return null; const [d,m,y]=s.split('.'); return new Date(y,m-1,d); }
+    function formatDate(d) { if(!d) return ''; const dt=d instanceof Date?d:d.toDate?d.toDate():new Date(d); return ('0'+dt.getDate()).slice(-2)+'.'+('0'+(dt.getMonth()+1)).slice(-2)+'.'+dt.getFullYear(); }
+
+    function calcPayments(client) {
+      const t = today();
+      const payments = [];
+      const months = parseInt(client.months)||0;
+      let totalPaid = 0;
+      for(let m=0;m<12;m++) totalPaid += parseFloat(client['взнос'+(m+1)])||0;
+      let remaining = totalPaid;
+
+      for(let m=0;m<months;m++) {
+        const dateStr = client['дата'+(m+1)];
+        const size = parseFloat(client['размер'+(m+1)])||0;
+        if(!dateStr||!size) break;
+        const d = parseDate(dateStr);
+        const diff = Math.round((d-t)/86400000);
+        let paid, status;
+        if(remaining>=size) { paid=size; remaining-=size; status='paid'; }
+        else if(remaining>0) { paid=remaining; remaining=0; status=d<=t?'partial':'partial_future'; }
+        else { paid=0; status=d<=t?'overdue':diff<=1?'warning':'upcoming'; }
+        payments.push({month:m+1,date:dateStr,size,paid,status,diff});
+      }
+      return payments;
+    }
+
+    function calcOverdue(payments) {
+      return payments.filter(p=>p.status==='overdue'||p.status==='partial').reduce((s,p)=>s+(p.size-p.paid),0);
+    }
+
+    function calcBalance(client) {
+      const price = parseFloat(client.price)||0;
+      const prepay = parseFloat(client.prepay)||0;
+      let paid=0; for(let m=0;m<12;m++) paid+=parseFloat(client['взнос'+(m+1)])||0;
+      return Math.max(0, price-prepay-paid);
+    }
+
+    // ═══ ГЛОБАЛЬНОЕ СОСТОЯНИЕ ═══
+    window.CRM = {
+      db, collection, doc, addDoc, updateDoc, getDocs, getDoc, query, orderBy, where, setDoc, onSnapshot,
+      fmt, today, parseDate, formatDate, calcPayments, calcOverdue, calcBalance,
+      clients: [], payments: [], currentClientId: null, filter: 'all'
+    };
+
+    window.dispatchEvent(new Event('firebaseReady'));
+  </script>
   <style>
     :root {
-      --bg: #0a0f0c;
-      --bg2: #111812;
-      --bg3: #1a2520;
-      --card: #141f1a;
-      --card2: #1e2d26;
-      --green: #95c11f;
-      --green-dark: #115c30;
-      --green-mid: #1e7a42;
-      --text: #e8f0eb;
-      --text2: #8fa898;
-      --text3: #5a7066;
-      --red: #ff4757;
-      --yellow: #ffa502;
-      --border: rgba(149,193,31,0.12);
-      --border2: rgba(149,193,31,0.06);
-      --shadow: 0 8px 32px rgba(0,0,0,0.4);
-      --radius: 16px;
-      --radius-sm: 10px;
+      --bg:#0a0f0c; --bg2:#111812; --bg3:#1a2520; --card:#141f1a; --card2:#1e2d26;
+      --green:#95c11f; --green-dark:#115c30; --text:#e8f0eb; --text2:#8fa898; --text3:#5a7066;
+      --red:#ff4757; --yellow:#ffa502; --blue:#6495ed;
+      --border:rgba(149,193,31,0.12); --border2:rgba(149,193,31,0.06);
+      --shadow:0 8px 32px rgba(0,0,0,0.4); --radius:16px; --radius-sm:10px;
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
-
-    /* ── LOGIN ── */
-    .login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background: radial-gradient(ellipse at 30% 50%, rgba(17,92,48,0.3) 0%, transparent 60%), radial-gradient(ellipse at 70% 20%, rgba(149,193,31,0.08) 0%, transparent 50%), var(--bg); }
-    .login-box { width:360px; padding:48px 40px; background:var(--card); border:1px solid var(--border); border-radius:24px; box-shadow:var(--shadow); }
-    .login-logo { font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; color:var(--green); letter-spacing:3px; margin-bottom:8px; }
-    .login-title { font-family:'Unbounded',sans-serif; font-size:28px; font-weight:900; color:var(--text); line-height:1.2; margin-bottom:32px; }
-    .login-title span { color:var(--green); }
-    .login-field { margin-bottom:16px; }
-    .login-label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; display:block; }
-    .login-input { width:100%; padding:14px 18px; background:var(--bg3); border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:'Manrope',sans-serif; font-size:15px; color:var(--text); outline:none; transition:all .2s; }
-    .login-input:focus { border-color:var(--green); background:var(--bg2); }
-    .login-btn { width:100%; padding:15px; margin-top:8px; background:var(--green); color:#0a0f0c; border:none; border-radius:var(--radius-sm); font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; cursor:pointer; transition:all .2s; }
-    .login-btn:hover { background:#aad422; transform:translateY(-1px); }
-    .login-err { color:var(--red); font-size:13px; margin-top:10px; text-align:center; display:none; }
-    .login-err.show { display:block; }
-
-    /* ── LAYOUT ── */
-    .app { display:none; }
-    .app.visible { display:flex; min-height:100vh; }
-    .sidebar { width:240px; min-height:100vh; background:var(--card); border-right:1px solid var(--border2); padding:28px 20px; display:flex; flex-direction:column; position:fixed; left:0; top:0; bottom:0; z-index:100; }
-    .main { margin-left:240px; flex:1; padding:32px 36px; min-height:100vh; }
-    
-    /* ── SIDEBAR ── */
-    .sidebar-logo { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:700; color:var(--green); letter-spacing:3px; margin-bottom:4px; }
-    .sidebar-name { font-family:'Unbounded',sans-serif; font-size:18px; font-weight:900; color:var(--text); margin-bottom:36px; }
-    .nav-group { font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; margin-top:20px; }
-    .nav-item { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:var(--radius-sm); cursor:pointer; color:var(--text2); font-size:14px; font-weight:600; margin-bottom:4px; transition:all .2s; border:none; background:none; width:100%; text-align:left; }
-    .nav-item:hover { background:var(--bg3); color:var(--text); }
-    .nav-item.active { background:linear-gradient(135deg, rgba(149,193,31,0.15), rgba(17,92,48,0.2)); color:var(--green); border:1px solid rgba(149,193,31,0.2); }
-    .nav-icon { font-size:16px; width:20px; text-align:center; }
-    .nav-badge { margin-left:auto; background:var(--red); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
-    .sidebar-footer { margin-top:auto; padding-top:20px; border-top:1px solid var(--border2); }
-    .sidebar-footer-text { font-size:11px; color:var(--text3); }
-
-    /* ── PAGE HEADER ── */
-    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; }
-    .page-title { font-family:'Unbounded',sans-serif; font-size:22px; font-weight:900; color:var(--text); }
-    .page-sub { font-size:13px; color:var(--text3); margin-top:4px; }
-    .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:var(--radius-sm); font-family:'Manrope',sans-serif; font-size:13px; font-weight:700; cursor:pointer; border:none; transition:all .2s; }
-    .btn-primary { background:var(--green); color:#0a0f0c; }
-    .btn-primary:hover { background:#aad422; transform:translateY(-1px); }
-    .btn-ghost { background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
-    .btn-ghost:hover { color:var(--text); border-color:var(--green); }
-    .btn-danger { background:rgba(255,71,87,0.15); color:var(--red); border:1px solid rgba(255,71,87,0.3); }
-
-    /* ── STAT CARDS ── */
-    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
-    .stat-card { background:var(--card); border:1px solid var(--border2); border-radius:var(--radius); padding:22px 24px; position:relative; overflow:hidden; }
-    .stat-card::before { content:''; position:absolute; top:0; right:0; width:80px; height:80px; border-radius:50%; background:radial-gradient(circle, rgba(149,193,31,0.08) 0%, transparent 70%); }
-    .stat-card.alert::before { background:radial-gradient(circle, rgba(255,71,87,0.1) 0%, transparent 70%); }
-    .stat-card.warn::before { background:radial-gradient(circle, rgba(255,165,2,0.1) 0%, transparent 70%); }
-    .stat-label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; }
-    .stat-value { font-family:'Unbounded',sans-serif; font-size:24px; font-weight:900; color:var(--text); }
-    .stat-card.alert .stat-value { color:var(--red); }
-    .stat-card.warn .stat-value { color:var(--yellow); }
-    .stat-card.good .stat-value { color:var(--green); }
-    .stat-sub { font-size:11px; color:var(--text3); margin-top:6px; }
-
-    /* ── CARDS ── */
-    .card { background:var(--card); border:1px solid var(--border2); border-radius:var(--radius); padding:24px; margin-bottom:20px; }
-    .card-title { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
-
-    /* ── CLIENT LIST ── */
-    .search-bar { display:flex; gap:12px; margin-bottom:20px; }
-    .search-input { flex:1; padding:12px 18px; background:var(--card); border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:'Manrope',sans-serif; font-size:14px; color:var(--text); outline:none; transition:all .2s; }
-    .search-input:focus { border-color:var(--green); }
-    .filter-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
-    .filter-tab { padding:8px 16px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid var(--border); background:transparent; color:var(--text2); transition:all .2s; }
-    .filter-tab.active { background:var(--green); color:#0a0f0c; border-color:var(--green); }
-    
-    .client-table { width:100%; border-collapse:collapse; }
-    .client-table th { padding:10px 14px; text-align:left; font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; border-bottom:1px solid var(--border2); }
-    .client-table td { padding:14px; border-bottom:1px solid var(--border2); font-size:13px; vertical-align:middle; }
-    .client-table tr:hover td { background:var(--bg3); cursor:pointer; }
-    .client-table tr:last-child td { border-bottom:none; }
-    .badge { display:inline-flex; align-items:center; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
-    .badge-active { background:rgba(149,193,31,0.15); color:var(--green); }
-    .badge-overdue { background:rgba(255,71,87,0.15); color:var(--red); }
-    .badge-closed { background:rgba(90,112,102,0.2); color:var(--text3); }
-    .badge-warn { background:rgba(255,165,2,0.15); color:var(--yellow); }
-    .amount { font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; }
-    .amount-red { color:var(--red); }
-    .amount-green { color:var(--green); }
-
-    /* ── CLIENT CARD ── */
-    .client-header { display:grid; grid-template-columns:1fr auto; gap:24px; margin-bottom:28px; }
-    .client-name { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:900; color:var(--text); margin-bottom:6px; }
-    .client-meta { font-size:13px; color:var(--text2); }
-    .client-meta span { margin-right:16px; }
-    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
-    .info-item { background:var(--bg3); border-radius:var(--radius-sm); padding:14px 18px; }
-    .info-label { font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; }
-    .info-value { font-size:14px; font-weight:600; color:var(--text); }
-
-    /* ── PAYMENT SCHEDULE ── */
-    .payments-list { display:flex; flex-direction:column; gap:10px; }
-    .payment-item { display:flex; align-items:center; gap:14px; padding:14px 18px; background:var(--bg3); border-radius:var(--radius-sm); border:1px solid transparent; transition:all .2s; }
-    .payment-item.paid { border-color:rgba(149,193,31,0.2); }
-    .payment-item.overdue { border-color:rgba(255,71,87,0.3); background:rgba(255,71,87,0.05); }
-    .payment-item.warning { border-color:rgba(255,165,2,0.3); background:rgba(255,165,2,0.05); }
-    .payment-item.deferred { border-color:rgba(100,149,237,0.3); background:rgba(100,149,237,0.05); }
-    .payment-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-    .dot-paid { background:var(--green); }
-    .dot-overdue { background:var(--red); }
-    .dot-warning { background:var(--yellow); }
-    .dot-partial { background:var(--yellow); }
-    .dot-upcoming { background:var(--text3); }
-    .dot-deferred { background:#6495ed; }
-    .payment-month { font-size:12px; font-weight:700; color:var(--text3); width:60px; }
-    .payment-date { font-size:13px; color:var(--text2); flex:1; }
-    .payment-size { font-family:'Unbounded',sans-serif; font-size:14px; font-weight:700; color:var(--text); }
-    .payment-status { font-size:11px; font-weight:700; margin-left:12px; }
-    .status-paid { color:var(--green); }
-    .status-overdue { color:var(--red); }
-    .status-warning { color:var(--yellow); }
-    .status-upcoming { color:var(--text3); }
-    .status-partial { color:var(--yellow); }
-    .status-deferred { color:#6495ed; }
-    .payment-actions { display:flex; gap:8px; margin-left:auto; }
-    .btn-sm { padding:6px 12px; font-size:11px; border-radius:6px; }
-
-    /* ── MODAL ── */
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; display:none; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
-    .modal-overlay.show { display:flex; }
-    .modal { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:36px; width:600px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); }
-    .modal.modal-sm { width:420px; }
-    .modal-title { font-family:'Unbounded',sans-serif; font-size:18px; font-weight:900; color:var(--text); margin-bottom:28px; }
-    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    .form-full { grid-column:1/-1; }
-    .form-group { display:flex; flex-direction:column; gap:8px; }
-    .form-label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; }
-    .form-input { padding:12px 16px; background:var(--bg3); border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:'Manrope',sans-serif; font-size:14px; color:var(--text); outline:none; transition:all .2s; }
-    .form-input:focus { border-color:var(--green); background:var(--bg2); }
-    .form-select { appearance:none; cursor:pointer; }
-    .modal-footer { display:flex; gap:12px; justify-content:flex-end; margin-top:28px; padding-top:20px; border-top:1px solid var(--border2); }
-
-    /* ── PAYMENTS HISTORY ── */
-    .payments-table { width:100%; border-collapse:collapse; }
-    .payments-table th { padding:10px 14px; text-align:left; font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; border-bottom:1px solid var(--border2); }
-    .payments-table td { padding:13px 14px; border-bottom:1px solid var(--border2); font-size:13px; }
-    .cash-badge { background:rgba(149,193,31,0.12); color:var(--green); }
-    .bank-badge { background:rgba(100,149,237,0.12); color:#6495ed; }
-
-    /* ── OVERDUE LIST ── */
-    .overdue-item { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:rgba(255,71,87,0.05); border:1px solid rgba(255,71,87,0.15); border-radius:var(--radius-sm); margin-bottom:8px; }
-    .overdue-name { font-size:14px; font-weight:600; color:var(--text); }
-    .overdue-meta { font-size:12px; color:var(--text2); margin-top:2px; }
-    .overdue-amount { font-family:'Unbounded',sans-serif; font-size:16px; font-weight:900; color:var(--red); }
-    
-    /* ── TODAY PAYMENTS ── */
-    .today-item { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:rgba(255,165,2,0.05); border:1px solid rgba(255,165,2,0.15); border-radius:var(--radius-sm); margin-bottom:8px; }
-    
-    /* ── UPCOMING ── */
-    .upcoming-item { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; background:var(--bg3); border-radius:var(--radius-sm); margin-bottom:8px; }
-
-    /* ── LOADING ── */
-    .loading { display:flex; align-items:center; justify-content:center; padding:60px; color:var(--text3); font-size:13px; gap:10px; }
-    .spinner { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    
-    /* ── EMPTY ── */
-    .empty { text-align:center; padding:60px 20px; color:var(--text3); }
-    .empty-icon { font-size:40px; margin-bottom:12px; }
-    .empty-text { font-size:14px; }
-
-    /* ── PROGRESS BAR ── */
-    .progress-bar { height:4px; background:var(--bg3); border-radius:2px; margin-top:8px; }
-    .progress-fill { height:100%; border-radius:2px; background:var(--green); transition:width .4s; }
-
-    /* ── TOAST ── */
-    .toast { position:fixed; bottom:24px; right:24px; padding:14px 20px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); font-size:14px; font-weight:600; box-shadow:var(--shadow); z-index:9999; transform:translateY(100px); opacity:0; transition:all .3s; }
-    .toast.show { transform:translateY(0); opacity:1; }
-    .toast.success { border-color:var(--green); color:var(--green); }
-    .toast.error { border-color:var(--red); color:var(--red); }
-
-    /* ── BACK BTN ── */
-    .back-btn { display:inline-flex; align-items:center; gap:8px; color:var(--text2); font-size:13px; font-weight:600; cursor:pointer; margin-bottom:20px; transition:color .2s; border:none; background:none; }
-    .back-btn:hover { color:var(--green); }
-
-    /* ── PAYMENT SIZE INPUTS ── */
-    .sizes-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:8px; }
-    .size-input-wrap { display:flex; flex-direction:column; gap:4px; }
-    .size-label { font-size:10px; color:var(--text3); font-weight:600; }
-
-    @media (max-width:1200px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:900px) { .sidebar { width:200px; } .main { margin-left:200px; padding:20px; } }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+    /* LOGIN */
+    .login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.3),transparent 60%),var(--bg);}
+    .login-box{width:360px;padding:48px 40px;background:var(--card);border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);}
+    .login-logo{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:var(--green);letter-spacing:3px;margin-bottom:8px;}
+    .login-title{font-family:'Unbounded',sans-serif;font-size:28px;font-weight:900;margin-bottom:32px;}
+    .login-title span{color:var(--green);}
+    .f-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;display:block;}
+    .f-input{width:100%;padding:14px 18px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-size:15px;color:var(--text);outline:none;transition:all .2s;margin-bottom:16px;}
+    .f-input:focus{border-color:var(--green);}
+    .f-select{appearance:none;cursor:pointer;}
+    .login-btn{width:100%;padding:15px;background:var(--green);color:#0a0f0c;border:none;border-radius:var(--radius-sm);font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+    .login-btn:hover{background:#aad422;}
+    .login-err{color:var(--red);font-size:13px;margin-top:10px;text-align:center;display:none;}
+    .login-err.show{display:block;}
+    /* LAYOUT */
+    .app{display:none;min-height:100vh;}
+    .app.visible{display:flex;}
+    .sidebar{width:240px;min-height:100vh;background:var(--card);border-right:1px solid var(--border2);padding:28px 20px;display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;}
+    .main{margin-left:240px;flex:1;padding:32px 36px;min-height:100vh;}
+    .sidebar-logo{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:var(--green);letter-spacing:3px;margin-bottom:4px;}
+    .sidebar-name{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;margin-bottom:36px;}
+    .nav-group{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;margin-top:20px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-size:14px;font-weight:600;margin-bottom:4px;transition:all .2s;border:none;background:none;width:100%;text-align:left;}
+    .nav-item:hover{background:var(--bg3);color:var(--text);}
+    .nav-item.active{background:linear-gradient(135deg,rgba(149,193,31,0.15),rgba(17,92,48,0.2));color:var(--green);border:1px solid rgba(149,193,31,0.2);}
+    .nav-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+    .sidebar-footer{margin-top:auto;padding-top:20px;border-top:1px solid var(--border2);font-size:11px;color:var(--text3);}
+    /* COMPONENTS */
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
+    .page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;}
+    .page-sub{font-size:13px;color:var(--text3);margin-top:4px;}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
+    .btn-primary{background:var(--green);color:#0a0f0c;}
+    .btn-primary:hover{background:#aad422;transform:translateY(-1px);}
+    .btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+    .btn-ghost:hover{color:var(--text);border-color:var(--green);}
+    .btn-sm{padding:6px 12px;font-size:11px;border-radius:6px;}
+    .btn-danger{background:rgba(255,71,87,0.15);color:var(--red);border:1px solid rgba(255,71,87,0.3);}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+    .stat-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:22px 24px;}
+    .stat-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;}
+    .stat-value{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:900;}
+    .stat-sub{font-size:11px;color:var(--text3);margin-top:6px;}
+    .v-red{color:var(--red);} .v-green{color:var(--green);} .v-yellow{color:var(--yellow);}
+    .card{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:24px;margin-bottom:20px;}
+    .card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:18px;}
+    .search-bar{display:flex;gap:12px;margin-bottom:20px;}
+    .search-input{flex:1;padding:12px 18px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-size:14px;color:var(--text);outline:none;transition:all .2s;}
+    .search-input:focus{border-color:var(--green);}
+    .filter-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+    .filter-tab{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text2);transition:all .2s;}
+    .filter-tab.active{background:var(--green);color:#0a0f0c;border-color:var(--green);}
+    .tbl{width:100%;border-collapse:collapse;}
+    .tbl th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border2);}
+    .tbl td{padding:14px;border-bottom:1px solid var(--border2);font-size:13px;vertical-align:middle;}
+    .tbl tr:hover td{background:var(--bg3);cursor:pointer;}
+    .tbl tr:last-child td{border-bottom:none;}
+    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+    .b-active{background:rgba(149,193,31,0.15);color:var(--green);}
+    .b-overdue{background:rgba(255,71,87,0.15);color:var(--red);}
+    .b-closed{background:rgba(90,112,102,0.2);color:var(--text3);}
+    .amount{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;}
+    /* CLIENT DETAIL */
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+    .info-item{background:var(--bg3);border-radius:var(--radius-sm);padding:14px 18px;}
+    .info-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
+    .info-value{font-size:14px;font-weight:600;}
+    .payments-list{display:flex;flex-direction:column;gap:10px;}
+    .pay-item{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid transparent;}
+    .pay-item.paid{border-color:rgba(149,193,31,0.2);}
+    .pay-item.overdue{border-color:rgba(255,71,87,0.3);background:rgba(255,71,87,0.05);}
+    .pay-item.warning{border-color:rgba(255,165,2,0.3);background:rgba(255,165,2,0.05);}
+    .pay-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .d-paid{background:var(--green);} .d-overdue{background:var(--red);} .d-warning{background:var(--yellow);}
+    .d-partial{background:var(--yellow);} .d-upcoming{background:var(--text3);}
+    .pay-month{font-size:12px;font-weight:700;color:var(--text3);width:60px;}
+    .pay-date{font-size:13px;color:var(--text2);flex:1;}
+    .pay-size{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;}
+    .pay-status{font-size:11px;font-weight:700;margin-left:12px;}
+    .s-paid{color:var(--green);} .s-overdue{color:var(--red);} .s-warning{color:var(--yellow);}
+    .s-partial{color:var(--yellow);} .s-upcoming{color:var(--text3);}
+    .pay-actions{display:flex;gap:8px;margin-left:auto;}
+    .progress-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:8px;}
+    .progress-fill{height:100%;border-radius:2px;background:var(--green);}
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+    .modal-overlay.show{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
+    .modal-sm{width:420px;}
+    .modal-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;margin-bottom:28px;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .form-full{grid-column:1/-1;}
+    .form-group{display:flex;flex-direction:column;gap:8px;}
+    .form-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;}
+    .modal-footer{display:flex;gap:12px;justify-content:flex-end;margin-top:28px;padding-top:20px;border-top:1px solid var(--border2);}
+    .sizes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px;}
+    /* MISC */
+    .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text3);font-size:13px;gap:10px;}
+    .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .empty{text-align:center;padding:60px 20px;color:var(--text3);}
+    .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;box-shadow:var(--shadow);z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;}
+    .toast.show{transform:translateY(0);opacity:1;}
+    .toast.success{border-color:var(--green);color:var(--green);}
+    .toast.error{border-color:var(--red);color:var(--red);}
+    .back-btn{display:inline-flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:20px;border:none;background:none;}
+    .back-btn:hover{color:var(--green);}
+    .overdue-item{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,71,87,0.05);border:1px solid rgba(255,71,87,0.15);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;}
+    .today-item{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:rgba(255,165,2,0.05);border:1px solid rgba(255,165,2,0.15);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;}
+    .upcoming-item{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;}
   </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen" class="login-screen">
   <div class="login-box">
     <div class="login-logo">AMANA FINANCE</div>
     <div class="login-title">CRM<br><span>Система</span></div>
-    <div class="login-field">
-      <label class="login-label">Пароль</label>
-      <input class="login-input" type="password" id="loginPass" placeholder="Введите пароль" onkeydown="if(e.key==='Enter')doLogin(event)"/>
-    </div>
+    <label class="f-label">Пароль</label>
+    <input class="f-input" type="password" id="loginPass" placeholder="Введите пароль"/>
     <button class="login-btn" onclick="doLogin()">Войти →</button>
     <div class="login-err" id="loginErr">Неверный пароль</div>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app" class="app">
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div>
       <div class="sidebar-logo">AMANA FINANCE</div>
       <div class="sidebar-name">CRM</div>
       <div class="nav-group">Главная</div>
-      <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
-        <span class="nav-icon">◈</span> Дашборд
-      </button>
+      <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">◈ Дашборд</button>
       <div class="nav-group">Работа</div>
       <button class="nav-item" id="nav-clients" onclick="showPage('clients')">
-        <span class="nav-icon">◉</span> Клиенты
-        <span class="nav-badge" id="overdueCount" style="display:none">0</span>
+        ◉ Клиенты <span class="nav-badge" id="overdueCount" style="display:none">0</span>
       </button>
-      <button class="nav-item" id="nav-payments" onclick="showPage('payments')">
-        <span class="nav-icon">◎</span> Платежи
-      </button>
+      <button class="nav-item" id="nav-payments" onclick="showPage('payments')">◎ Платежи</button>
     </div>
-    <div class="sidebar-footer">
-      <div class="sidebar-footer-text">Amana Finance © 2025</div>
-    </div>
+    <div class="sidebar-footer">Amana Finance © 2025</div>
   </aside>
 
-  <!-- MAIN -->
-  <main class="main" id="mainContent">
+  <main class="main">
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page">
       <div class="page-header">
-        <div>
-          <div class="page-title">Дашборд</div>
-          <div class="page-sub" id="dashDate"></div>
-        </div>
-        <button class="btn btn-primary" onclick="openAddClient()">+ Новый договор</button>
+        <div><div class="page-title">Дашборд</div><div class="page-sub" id="dashDate"></div></div>
+        <button class="btn btn-primary" onclick="openModal('modalClient')">+ Новый договор</button>
       </div>
-      <div id="dashStats" class="stats-grid">
-        <div class="loading"><div class="spinner"></div> Загрузка...</div>
-      </div>
+      <div id="dashStats" class="stats-grid"><div class="loading"><div class="spinner"></div> Загрузка...</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <div class="card">
-          <div class="card-title">🔴 Просрочники</div>
-          <div id="overdueList"><div class="loading"><div class="spinner"></div></div></div>
-        </div>
+        <div class="card"><div class="card-title">🔴 Просрочники</div><div id="overdueList"><div class="loading"><div class="spinner"></div></div></div></div>
         <div>
-          <div class="card">
-            <div class="card-title">🟡 Платежи сегодня</div>
-            <div id="todayList"><div class="loading"><div class="spinner"></div></div></div>
-          </div>
-          <div class="card">
-            <div class="card-title">⏰ Ближайшие 3 дня</div>
-            <div id="upcomingList"><div class="loading"><div class="spinner"></div></div></div>
-          </div>
+          <div class="card"><div class="card-title">🟡 Платежи сегодня</div><div id="todayList"></div></div>
+          <div class="card"><div class="card-title">⏰ Ближайшие 3 дня</div><div id="upcomingList"></div></div>
         </div>
       </div>
     </div>
@@ -292,153 +242,84 @@
     <!-- CLIENTS -->
     <div id="page-clients" class="page" style="display:none">
       <div class="page-header">
-        <div>
-          <div class="page-title">Клиенты</div>
-          <div class="page-sub" id="clientsCount"></div>
-        </div>
-        <button class="btn btn-primary" onclick="openAddClient()">+ Новый договор</button>
+        <div><div class="page-title">Клиенты</div><div class="page-sub" id="clientsCount"></div></div>
+        <button class="btn btn-primary" onclick="openModal('modalClient')">+ Новый договор</button>
       </div>
       <div class="search-bar">
-        <input class="search-input" id="searchInput" placeholder="🔍  Поиск по ФИО, договору, товару..." oninput="filterClients()"/>
+        <input class="search-input" id="searchInput" placeholder="🔍  Поиск по ФИО, договору, товару..." oninput="renderClients()"/>
       </div>
       <div class="filter-tabs">
         <button class="filter-tab active" onclick="setFilter('all',this)">Все</button>
-        <button class="filter-tab" onclick="setFilter('активный',this)">Активные</button>
+        <button class="filter-tab" onclick="setFilter('active',this)">Активные</button>
         <button class="filter-tab" onclick="setFilter('overdue',this)">Просрочники</button>
-        <button class="filter-tab" onclick="setFilter('закрыт',this)">Закрытые</button>
+        <button class="filter-tab" onclick="setFilter('closed',this)">Закрытые</button>
       </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <div id="clientsList"><div class="loading"><div class="spinner"></div> Загрузка...</div></div>
-      </div>
+      <div class="card" style="padding:0;overflow:hidden"><div id="clientsList"><div class="loading"><div class="spinner"></div></div></div></div>
     </div>
 
     <!-- CLIENT DETAIL -->
     <div id="page-client" class="page" style="display:none">
-      <button class="back-btn" onclick="showPage('clients')">← Назад к клиентам</button>
+      <button class="back-btn" onclick="showPage('clients')">← Назад</button>
       <div id="clientDetail"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <!-- PAYMENTS -->
     <div id="page-payments" class="page" style="display:none">
-      <div class="page-header">
-        <div class="page-title">История платежей</div>
-      </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <div id="paymentsList"><div class="loading"><div class="spinner"></div> Загрузка...</div></div>
-      </div>
+      <div class="page-header"><div class="page-title">История платежей</div></div>
+      <div class="card" style="padding:0;overflow:hidden"><div id="paymentsList"><div class="loading"><div class="spinner"></div></div></div></div>
     </div>
   </main>
 </div>
 
 <!-- MODAL: ADD CLIENT -->
-<div class="modal-overlay" id="modalAddClient">
+<div class="modal-overlay" id="modalClient">
   <div class="modal">
     <div class="modal-title">Новый договор</div>
     <div class="form-grid">
-      <div class="form-group form-full">
-        <label class="form-label">Дата оформления</label>
-        <input class="form-input" type="date" id="f_date"/>
+      <div class="form-group form-full"><label class="form-label">Дата оформления</label><input class="f-input" type="date" id="f_date"/></div>
+      <div class="form-group"><label class="form-label">ФИО клиента *</label><input class="f-input" type="text" id="f_name" placeholder="Иванов Иван Иванович"/></div>
+      <div class="form-group"><label class="form-label">Телефон клиента *</label><input class="f-input" type="tel" id="f_phone" placeholder="89001234567"/></div>
+      <div class="form-group"><label class="form-label">ФИО поручителя</label><input class="f-input" type="text" id="f_guarantor"/></div>
+      <div class="form-group"><label class="form-label">Тел. поручителя</label><input class="f-input" type="tel" id="f_guarantorPhone"/></div>
+      <div class="form-group"><label class="form-label">Наименование товара *</label><input class="f-input" type="text" id="f_product"/></div>
+      <div class="form-group"><label class="form-label">Партнёр</label>
+        <select class="f-input f-select" id="f_partner"><option>Хайр Строй</option><option>Иса кирпич</option><option>Прочий</option></select>
       </div>
-      <div class="form-group">
-        <label class="form-label">ФИО клиента</label>
-        <input class="form-input" type="text" id="f_name" placeholder="Иванов Иван Иванович"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Телефон клиента</label>
-        <input class="form-input" type="tel" id="f_phone" placeholder="89001234567"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">ФИО поручителя</label>
-        <input class="form-input" type="text" id="f_guarantor" placeholder="Петров Пётр Петрович"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Телефон поручителя</label>
-        <input class="form-input" type="tel" id="f_guarantorPhone" placeholder="89001234567"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Наименование товара</label>
-        <input class="form-input" type="text" id="f_product" placeholder="Айфон 16 Pro Max"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Партнёр</label>
-        <select class="form-input form-select" id="f_partner">
-          <option>Хайр Строй</option>
-          <option>Иса кирпич</option>
-          <option>Прочий</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Себестоимость (₽)</label>
-        <input class="form-input" type="number" id="f_cost" placeholder="100000"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Цена продажи (₽)</label>
-        <input class="form-input" type="number" id="f_price" placeholder="137500"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Предоплата (₽)</label>
-        <input class="form-input" type="number" id="f_prepay" placeholder="27500" oninput="calcPaymentSizes()"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Кол-во месяцев</label>
-        <select class="form-input form-select" id="f_months" onchange="calcPaymentSizes()">
+      <div class="form-group"><label class="form-label">Себестоимость (₽)</label><input class="f-input" type="number" id="f_cost"/></div>
+      <div class="form-group"><label class="form-label">Цена продажи (₽) *</label><input class="f-input" type="number" id="f_price" oninput="calcSizes()"/></div>
+      <div class="form-group"><label class="form-label">Предоплата (₽)</label><input class="f-input" type="number" id="f_prepay" oninput="calcSizes()"/></div>
+      <div class="form-group"><label class="form-label">Кол-во месяцев *</label>
+        <select class="f-input f-select" id="f_months" onchange="calcSizes()">
           <option>3</option><option>4</option><option>5</option><option>6</option>
-          <option>7</option><option>8</option><option>9</option><option>10</option>
-          <option>11</option><option>12</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label">Число оплаты (день месяца)</label>
-        <input class="form-input" type="number" id="f_payDay" min="1" max="28" placeholder="15"/>
+      <div class="form-group"><label class="form-label">Число оплаты (день) *</label><input class="f-input" type="number" id="f_payDay" min="1" max="28"/></div>
+      <div class="form-group form-full"><label class="form-label">Адрес проживания</label><input class="f-input" type="text" id="f_address"/></div>
+      <div class="form-group form-full"><label class="form-label">Способ оплаты предоплаты</label>
+        <select class="f-input f-select" id="f_payType"><option value="Нал">Наличные</option><option value="Безнал">Безналичные</option><option value="Т-Банк">Т-Банк</option><option value="Сбер">Сбер</option></select>
       </div>
       <div class="form-group form-full">
-        <label class="form-label">Адрес проживания</label>
-        <input class="form-input" type="text" id="f_address" placeholder="г. Грозный, ул. Примерная, 1"/>
-      </div>
-      <div class="form-group form-full">
-        <label class="form-label">Способ оплаты предоплаты</label>
-        <select class="form-input form-select" id="f_payType">
-          <option value="Нал">Наличные</option>
-          <option value="Безнал">Безналичные</option>
-          <option value="Т-Банк Б">Т-Банк</option>
-          <option value="Сбер Б">Сбер</option>
-        </select>
-      </div>
-      <div class="form-group form-full">
-        <label class="form-label">Размеры платежей по месяцам (₽)</label>
+        <label class="form-label">Размеры платежей (₽)</label>
         <div class="sizes-grid" id="sizesGrid"></div>
-        <div style="font-size:11px;color:var(--text3);margin-top:6px">Автоматически рассчитано. Измените если нужны разные суммы.</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">Измените если суммы разные по месяцам</div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modalAddClient')">Отмена</button>
-      <button class="btn btn-primary" onclick="submitAddClient()">Сохранить договор</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalClient')">Отмена</button>
+      <button class="btn btn-primary" onclick="submitClient()">Сохранить</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: ADD PAYMENT -->
+<!-- MODAL: PAYMENT -->
 <div class="modal-overlay" id="modalPayment">
   <div class="modal modal-sm">
     <div class="modal-title">Внести оплату</div>
-    <input type="hidden" id="pm_contractId"/>
-    <input type="hidden" id="pm_monthIndex"/>
-    <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">Клиент</label>
-      <div id="pm_clientName" style="font-size:15px;font-weight:600;color:var(--text)"></div>
-    </div>
-    <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">Сумма (₽)</label>
-      <input class="form-input" type="number" id="pm_amount" placeholder="20000"/>
-    </div>
-    <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">Способ оплаты</label>
-      <select class="form-input form-select" id="pm_payType">
-        <option value="Нал">Наличные</option>
-        <option value="Безнал">Безналичные</option>
-        <option value="Т-Банк Б">Т-Банк</option>
-        <option value="Сбер Б">Сбер</option>
-      </select>
+    <div style="font-size:15px;font-weight:600;margin-bottom:20px" id="pm_name"></div>
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Сумма (₽) *</label><input class="f-input" type="number" id="pm_amount"/></div>
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Способ оплаты</label>
+      <select class="f-input f-select" id="pm_payType"><option value="Нал">Наличные</option><option value="Безнал">Безналичные</option><option value="Т-Банк">Т-Банк</option><option value="Сбер">Сбер</option></select>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalPayment')">Отмена</button>
@@ -451,16 +332,8 @@
 <div class="modal-overlay" id="modalDeferral">
   <div class="modal modal-sm">
     <div class="modal-title">Отсрочка платежа</div>
-    <input type="hidden" id="def_contractId"/>
-    <input type="hidden" id="def_monthIndex"/>
-    <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">Новая дата платежа</label>
-      <input class="form-input" type="date" id="def_date"/>
-    </div>
-    <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">Комментарий</label>
-      <input class="form-input" type="text" id="def_comment" placeholder="Обещал оплатить 15 числа..."/>
-    </div>
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Новая дата</label><input class="f-input" type="date" id="def_date"/></div>
+    <div class="form-group" style="margin-bottom:16px"><label class="form-label">Комментарий</label><input class="f-input" type="text" id="def_comment" placeholder="Обещал оплатить..."/></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalDeferral')">Отмена</button>
       <button class="btn btn-primary" onclick="submitDeferral()">Сохранить</button>
@@ -468,595 +341,419 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbwwCUtMicKcY50SfgNdi3QmshQ2YIxvXNfbSex2kCPS1dvXMroUU49EIHP22sOEdJUB/exec';
+let _contractId = null, _monthIndex = null;
 
-// Universal GET-based API (avoids CORS issues)
-function callAPI(params) {
-  return fetch(API + params).then(r => r.json());
-}
+document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
-function postAPI(data) {
-  // Convert all data to GET params
-  const params = Object.entries(data)
-    .map(([k,v]) => k + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v))
-    .join('&');
-  return fetch(API + '?' + params).then(r => r.json());
-}
-let allClients = [];
-let currentFilter = 'all';
-let currentClientId = null;
-
-// ═══ LOGIN ═══
-function doLogin(e) {
+function doLogin() {
   const pass = document.getElementById('loginPass').value;
-  callAPI('?action=login&pass=' + encodeURIComponent(pass))
-    .then(data => {
-      if (data.ok) {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('app').classList.add('visible');
-        initApp();
-      } else {
-        document.getElementById('loginErr').classList.add('show');
-      }
-    }).catch(() => showToast('Ошибка соединения', 'error'));
-}
-
-document.getElementById('loginPass').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});
-
-// ═══ INIT ═══
-const CACHE = { clients: null, payments: null, dashboard: null };
-
-function initApp() {
-  const now = new Date();
-  document.getElementById('dashDate').textContent = now.toLocaleDateString('ru-RU', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  loadAllData();
-}
-
-async function loadAllData() {
-  document.getElementById('dashStats').innerHTML = '<div class="loading"><div class="spinner"></div> Загружаем данные...</div>';
-  try {
-    // Загружаем всё параллельно одним запросом
-    const [dash, clients, payments] = await Promise.all([
-      callAPI('?action=dashboard'),
-      callAPI('?action=clients'),
-      callAPI('?action=payments')
-    ]);
-    CACHE.dashboard = dash;
-    CACHE.clients = clients;
-    CACHE.payments = payments;
-    allClients = clients;
-    renderDashboard(dash);
-    filterClients();
-  } catch(e) {
-    showToast('Ошибка загрузки данных', 'error');
+  if(pass === 'amana2025') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('loginErr').classList.add('show');
   }
 }
 
-// ═══ NAVIGATION ═══
-function showPage(page) {
-  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page).style.display = 'block';
-  const navEl = document.getElementById('nav-' + page);
-  if (navEl) navEl.classList.add('active');
+function initApp() {
+  document.getElementById('dashDate').textContent = new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  loadAll();
+}
+
+function loadAll() {
+  const C = window.CRM;
+  document.getElementById('dashStats').innerHTML = '<div class="loading"><div class="spinner"></div> Подключение...</div>';
   
-  if (page === 'dashboard') loadDashboard();
-  if (page === 'clients') loadClients();
-  if (page === 'payments') loadPayments();
+  let clientsLoaded = false, paymentsLoaded = false;
+  
+  // Realtime listener для клиентов
+  C.onSnapshot(C.collection(C.db,'clients'), snap => {
+    C.clients = snap.docs.map(d => ({id:d.id,...d.data()}));
+    clientsLoaded = true;
+    if (paymentsLoaded) { renderDashboard(); renderClients(); }
+  });
+  
+  // Realtime listener для платежей
+  C.onSnapshot(C.query(C.collection(C.db,'payments'), C.orderBy('date','desc')), snap => {
+    C.payments = snap.docs.map(d => ({id:d.id,...d.data()}));
+    paymentsLoaded = true;
+    if (clientsLoaded) { renderDashboard(); renderClients(); }
+  });
+}
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).style.display='block';
+  const nav = document.getElementById('nav-'+page);
+  if(nav) nav.classList.add('active');
+  // Всё из памяти — мгновенно
+  if(page==='dashboard') renderDashboard();
+  if(page==='clients') renderClients();
+  if(page==='payments') renderPaymentsFromCache();
 }
 
 // ═══ DASHBOARD ═══
-function loadDashboard() {
-  callAPI('?action=dashboard')
-    .then(data => {
-      renderStats(data);
-      renderOverdue(data.overdueClients || []);
-      renderToday(data.todayPayments || []);
-      renderUpcoming(data.upcomingClients || []);
-      
-      const badge = document.getElementById('overdueCount');
-      if (data.overdueClients && data.overdueClients.length > 0) {
-        badge.textContent = data.overdueClients.length;
-        badge.style.display = 'inline';
-      } else {
-        badge.style.display = 'none';
-      }
-    }).catch(err => console.error(err));
-}
+function renderDashboard() {
+  const C = window.CRM;
+  const t = C.today();
+  let totalDebt=0, totalOverdue=0, activeCount=0, closedCount=0;
+  const overdueClients=[], todayPayments=[], upcomingClients=[];
 
-function renderStats(data) {
+  C.clients.forEach(c => {
+    if(c.status==='закрыт') { closedCount++; return; }
+    activeCount++;
+    const payments = C.calcPayments(c);
+    const balance = C.calcBalance(c);
+    const overdue = C.calcOverdue(payments);
+    totalDebt += balance;
+    totalOverdue += overdue;
+    if(overdue>0) overdueClients.push({...c, overdue, balance});
+    payments.forEach(p => {
+      if(p.diff===0 && p.status!=='paid') todayPayments.push({...c, payment:p});
+      if(p.diff>0 && p.diff<=3 && p.status!=='paid') upcomingClients.push({...c, payment:p});
+    });
+  });
+
+  const badge = document.getElementById('overdueCount');
+  badge.textContent = overdueClients.length;
+  badge.style.display = overdueClients.length ? 'inline' : 'none';
+
   document.getElementById('dashStats').innerHTML = `
-    <div class="stat-card good">
-      <div class="stat-label">Активных договоров</div>
-      <div class="stat-value">${data.activeCount || 0}</div>
-      <div class="stat-sub">Закрытых: ${data.closedCount || 0}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Общий долг</div>
-      <div class="stat-value">${fmt(data.totalDebt || 0)}</div>
-      <div class="stat-sub">По всем активным</div>
-    </div>
-    <div class="stat-card alert">
-      <div class="stat-label">Просрочка</div>
-      <div class="stat-value">${fmt(data.totalOverdue || 0)}</div>
-      <div class="stat-sub">${(data.overdueClients || []).length} клиентов</div>
-    </div>
-    <div class="stat-card warn">
-      <div class="stat-label">Платежей сегодня</div>
-      <div class="stat-value">${(data.todayPayments || []).length}</div>
-      <div class="stat-sub">Требуют оплаты</div>
-    </div>
+    <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value v-green">${activeCount}</div><div class="stat-sub">Закрытых: ${closedCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Общий долг</div><div class="stat-value">${C.fmt(totalDebt)} ₽</div></div>
+    <div class="stat-card"><div class="stat-label">Просрочка</div><div class="stat-value v-red">${C.fmt(totalOverdue)} ₽</div><div class="stat-sub">${overdueClients.length} клиентов</div></div>
+    <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value v-yellow">${todayPayments.length}</div><div class="stat-sub">платежей</div></div>
   `;
-}
 
-function renderOverdue(list) {
-  const el = document.getElementById('overdueList');
-  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">Просрочников нет</div></div>'; return; }
-  el.innerHTML = list.map(c => `
-    <div class="overdue-item" onclick="openClient('${c.id}')">
-      <div>
-        <div class="overdue-name">${c.name}</div>
-        <div class="overdue-meta">Договор №${c.id} · Остаток: ${fmt(c.balance)} ₽</div>
-      </div>
-      <div class="overdue-amount">${fmt(c.overdue)} ₽</div>
-    </div>
-  `).join('');
-}
+  document.getElementById('overdueList').innerHTML = overdueClients.length
+    ? overdueClients.map(c=>`<div class="overdue-item" onclick="openClient('${c.id}')">
+        <div><div style="font-size:14px;font-weight:600">${c.name}</div><div style="font-size:12px;color:var(--text2)">№${c.contractId} · Остаток: ${C.fmt(c.balance)} ₽</div></div>
+        <div class="amount v-red">${C.fmt(c.overdue)} ₽</div>
+      </div>`).join('')
+    : '<div class="empty" style="padding:20px"><div style="font-size:24px">✓</div>Просрочников нет</div>';
 
-function renderToday(list) {
-  const el = document.getElementById('todayList');
-  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text" style="font-size:12px">Платежей сегодня нет</div></div>'; return; }
-  el.innerHTML = list.map(c => `
-    <div class="today-item" onclick="openClient('${c.id}')">
-      <div>
-        <div style="font-size:14px;font-weight:600">${c.name}</div>
-        <div style="font-size:12px;color:var(--text2)">Платёж ${c.month}</div>
-      </div>
-      <div class="amount" style="color:var(--yellow)">${fmt(c.amount)} ₽</div>
-    </div>
-  `).join('');
-}
+  document.getElementById('todayList').innerHTML = todayPayments.length
+    ? todayPayments.map(c=>`<div class="today-item" onclick="openClient('${c.id}')">
+        <div><div style="font-size:13px;font-weight:600">${c.name}</div></div>
+        <div class="amount v-yellow">${C.fmt(c.payment.size)} ₽</div>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:12px;padding:10px">Нет платежей</div>';
 
-function renderUpcoming(list) {
-  const el = document.getElementById('upcomingList');
-  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text" style="font-size:12px">Нет предстоящих платежей</div></div>'; return; }
-  el.innerHTML = list.map(c => `
-    <div class="upcoming-item" onclick="openClient('${c.id}')">
-      <div>
-        <div style="font-size:13px;font-weight:600">${c.name}</div>
-        <div style="font-size:11px;color:var(--text2)">${c.date} · через ${c.days} дн.</div>
-      </div>
-      <div class="amount" style="font-size:13px">${fmt(c.amount)} ₽</div>
-    </div>
-  `).join('');
+  document.getElementById('upcomingList').innerHTML = upcomingClients.length
+    ? upcomingClients.map(c=>`<div class="upcoming-item" onclick="openClient('${c.id}')">
+        <div><div style="font-size:13px;font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--text2)">${c.payment.date} · через ${c.payment.diff} дн.</div></div>
+        <div class="amount" style="font-size:13px">${C.fmt(c.payment.size)} ₽</div>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:12px;padding:10px">Нет</div>';
 }
 
 // ═══ CLIENTS ═══
-function loadClients() {
-  document.getElementById('clientsList').innerHTML = '<div class="loading"><div class="spinner"></div> Загрузка...</div>';
-  callAPI('?action=clients')
-    .then(data => {
-      allClients = data;
-      filterClients();
-    }).catch(() => showToast('Ошибка загрузки', 'error'));
-}
-
 function setFilter(f, btn) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  window.CRM.filter = f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  filterClients();
+  renderClients();
 }
 
-function filterClients() {
-  const q = (document.getElementById('searchInput').value || '').toLowerCase();
-  let list = allClients;
-  
-  if (currentFilter === 'overdue') list = list.filter(c => c.overdue > 0 && c.status !== 'закрыт');
-  else if (currentFilter !== 'all') list = list.filter(c => c.status === currentFilter);
-  
-  if (q) list = list.filter(c =>
-    c.name.toLowerCase().includes(q) ||
-    String(c.id).includes(q) ||
-    (c.product || '').toLowerCase().includes(q) ||
-    (c.phone || '').includes(q)
+function renderClients() {
+  const C = window.CRM;
+  const q = (document.getElementById('searchInput').value||'').toLowerCase();
+  let list = C.clients.map(c => {
+    const payments = C.calcPayments(c);
+    return {...c, overdue: C.calcOverdue(payments), balance: C.calcBalance(c)};
+  });
+
+  if(C.filter==='active') list = list.filter(c=>c.status!=='закрыт');
+  else if(C.filter==='overdue') list = list.filter(c=>c.overdue>0&&c.status!=='закрыт');
+  else if(C.filter==='closed') list = list.filter(c=>c.status==='закрыт');
+
+  if(q) list = list.filter(c=>
+    (c.name||'').toLowerCase().includes(q)||
+    (c.contractId||'').includes(q)||
+    (c.product||'').toLowerCase().includes(q)||
+    (c.phone||'').includes(q)
   );
-  
-  document.getElementById('clientsCount').textContent = `${list.length} клиентов`;
-  
-  if (!list.length) {
-    document.getElementById('clientsList').innerHTML = '<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">Ничего не найдено</div></div>';
-    return;
-  }
-  
-  document.getElementById('clientsList').innerHTML = `
-    <table class="client-table">
-      <thead>
-        <tr>
-          <th>№</th>
-          <th>Дата</th>
-          <th>Клиент</th>
-          <th>Товар</th>
-          <th>Остаток</th>
-          <th>Просрочка</th>
-          <th>Статус</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${list.map(c => `
-          <tr onclick="openClient('${c.id}')">
-            <td style="font-weight:700;color:var(--text2)">${c.id}</td>
-            <td style="color:var(--text2)">${c.date}</td>
-            <td>
-              <div style="font-weight:600">${c.name}</div>
-              <div style="font-size:11px;color:var(--text3)">${c.phone}</div>
-            </td>
-            <td style="color:var(--text2)">${c.product || '—'}</td>
-            <td><span class="amount">${fmt(c.balance)} ₽</span></td>
-            <td>${c.overdue > 0 ? `<span class="amount amount-red">${fmt(c.overdue)} ₽</span>` : '<span style="color:var(--text3)">—</span>'}</td>
-            <td>${statusBadge(c)}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
 
-function statusBadge(c) {
-  if (c.status === 'закрыт') return '<span class="badge badge-closed">Закрыт</span>';
-  if (c.overdue > 0) return '<span class="badge badge-overdue">Просрочка</span>';
-  return '<span class="badge badge-active">Активный</span>';
+  document.getElementById('clientsCount').textContent = list.length + ' клиентов';
+
+  if(!list.length) { document.getElementById('clientsList').innerHTML='<div class="empty">Ничего не найдено</div>'; return; }
+
+  document.getElementById('clientsList').innerHTML = `
+    <table class="tbl"><thead><tr>
+      <th>№</th><th>Дата</th><th>Клиент</th><th>Товар</th><th>Остаток</th><th>Просрочка</th><th>Статус</th>
+    </tr></thead><tbody>
+    ${list.map(c=>`<tr onclick="openClient('${c.id}')">
+      <td style="font-weight:700;color:var(--text2)">${c.contractId||'—'}</td>
+      <td style="color:var(--text2)">${c.date||'—'}</td>
+      <td><div style="font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--text3)">${c.phone||''}</div></td>
+      <td style="color:var(--text2)">${c.product||'—'}</td>
+      <td><span class="amount">${C.fmt(c.balance)} ₽</span></td>
+      <td>${c.overdue>0?`<span class="amount v-red">${C.fmt(c.overdue)} ₽</span>`:'<span style="color:var(--text3)">—</span>'}</td>
+      <td>${c.status==='закрыт'?'<span class="badge b-closed">Закрыт</span>':c.overdue>0?'<span class="badge b-overdue">Просрочка</span>':'<span class="badge b-active">Активный</span>'}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
 }
 
 // ═══ CLIENT DETAIL ═══
 function openClient(id) {
-  currentClientId = id;
+  window.CRM.currentClientId = id;
   showPage('client');
   document.getElementById('nav-clients').classList.add('active');
-  document.getElementById('nav-client') && document.getElementById('nav-client').classList.remove('active');
-  
-  callAPI('?action=client&id=' + encodeURIComponent(id))
-    .then(data => renderClientDetail(data))
-    .catch(() => showToast('Ошибка загрузки', 'error'));
+  const c = window.CRM.clients.find(x=>x.id===id);
+  if(c) renderClientDetail(c);
 }
 
 function renderClientDetail(c) {
-  if (c.error) { document.getElementById('clientDetail').innerHTML = '<div class="empty">Клиент не найден</div>'; return; }
-  
-  const paidCount = c.payments.filter(p => p.status === 'paid').length;
-  const totalDebt = c.payments.filter(p => p.status !== 'paid').reduce((s, p) => s + (p.size - p.paid), 0);
-  
+  const C = window.CRM;
+  const payments = C.calcPayments(c);
+  const balance = C.calcBalance(c);
+  const overdue = C.calcOverdue(payments);
+  const paidCount = payments.filter(p=>p.status==='paid').length;
+
   document.getElementById('clientDetail').innerHTML = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:20px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:20px">
       <div>
-        <div class="client-name">${c.name}</div>
-        <div class="client-meta">
-          <span>📱 ${c.phone}</span>
-          <span>📋 Договор №${c.id}</span>
-          <span>📅 ${c.date}</span>
-          ${c.status === 'закрыт' ? '<span class="badge badge-closed" style="font-size:11px">Закрыт</span>' : '<span class="badge badge-active" style="font-size:11px">Активный</span>'}
+        <div style="font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;margin-bottom:8px">${c.name}</div>
+        <div style="font-size:13px;color:var(--text2)">
+          📱 ${c.phone||'—'} &nbsp; 📋 Договор №${c.contractId||'—'} &nbsp; 📅 ${c.date||'—'}
+          ${c.status==='закрыт'?'<span class="badge b-closed" style="font-size:10px;margin-left:8px">Закрыт</span>':'<span class="badge b-active" style="font-size:10px;margin-left:8px">Активный</span>'}
         </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="openPaymentModal('${c.id}', '${c.name}')">+ Оплата</button>
-        ${c.status !== 'закрыт' ? `<button class="btn btn-ghost btn-sm" onclick="closeContractConfirm('${c.id}')">Закрыть договор</button>` : ''}
+        <button class="btn btn-primary btn-sm" onclick="openPayModal('${c.id}','${c.name}')">+ Оплата</button>
+        ${c.status!=='закрыт'?`<button class="btn btn-danger btn-sm" onclick="closeClientContract('${c.id}')">Закрыть договор</button>`:''}
       </div>
     </div>
-    
+
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
       <div>
         <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Товар</div>
-            <div class="info-value">${c.product}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Партнёр</div>
-            <div class="info-value">${c.partner || '—'}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Цена</div>
-            <div class="info-value">${fmt(c.price)} ₽</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Предоплата</div>
-            <div class="info-value">${fmt(c.prepay)} ₽</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Поручитель</div>
-            <div class="info-value">${c.guarantor || '—'}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Тел. поручителя</div>
-            <div class="info-value">${c.guarantorPhone || '—'}</div>
-          </div>
-          <div class="info-item" style="grid-column:1/-1">
-            <div class="info-label">Адрес</div>
-            <div class="info-value">${c.address || '—'}</div>
-          </div>
+          <div class="info-item"><div class="info-label">Товар</div><div class="info-value">${c.product||'—'}</div></div>
+          <div class="info-item"><div class="info-label">Партнёр</div><div class="info-value">${c.partner||'—'}</div></div>
+          <div class="info-item"><div class="info-label">Цена</div><div class="info-value">${C.fmt(c.price)} ₽</div></div>
+          <div class="info-item"><div class="info-label">Предоплата</div><div class="info-value">${C.fmt(c.prepay)} ₽</div></div>
+          <div class="info-item"><div class="info-label">Поручитель</div><div class="info-value">${c.guarantor||'—'}</div></div>
+          <div class="info-item"><div class="info-label">Тел. поручителя</div><div class="info-value">${c.guarantorPhone||'—'}</div></div>
+          <div class="info-item" style="grid-column:1/-1"><div class="info-label">Адрес</div><div class="info-value">${c.address||'—'}</div></div>
         </div>
-        
         <div class="card">
           <div class="card-title">График платежей</div>
           <div style="margin-bottom:14px">
             <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Оплачено ${paidCount} из ${c.months} платежей</div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(paidCount/c.months*100)}%"></div></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(paidCount/(c.months||1)*100)}%"></div></div>
           </div>
           <div class="payments-list">
-            ${c.payments.map((p, i) => renderPaymentRow(p, i, c.id, c.name)).join('')}
+            ${payments.map((p,i)=>renderPayRow(p,i,c.id)).join('')}
           </div>
         </div>
       </div>
-      
       <div>
-        <div class="stat-card" style="margin-bottom:16px">
-          <div class="stat-label">Остаток долга</div>
-          <div class="stat-value good" style="font-size:20px">${fmt(c.balance)} ₽</div>
-          <div class="stat-sub">из ${fmt(c.price)} ₽</div>
-        </div>
-        <div class="stat-card alert" style="margin-bottom:16px">
-          <div class="stat-label">Просрочка</div>
-          <div class="stat-value" style="font-size:20px">${fmt(Math.max(0, c.payments.filter(p=>p.status==='overdue'||p.status==='partial').reduce((s,p)=>s+(p.size-p.paid),0)))} ₽</div>
-        </div>
-        <div class="stat-card" style="margin-bottom:16px">
-          <div class="stat-label">Срок</div>
-          <div class="stat-value" style="font-size:20px">${c.months} мес.</div>
-          <div class="stat-sub">Число оплаты: ${c.payDay}</div>
-        </div>
+        <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Остаток долга</div><div class="stat-value v-green" style="font-size:20px">${C.fmt(balance)} ₽</div><div class="stat-sub">из ${C.fmt(c.price)} ₽</div></div>
+        <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Просрочка</div><div class="stat-value v-red" style="font-size:20px">${C.fmt(overdue)} ₽</div></div>
+        <div class="stat-card"><div class="stat-label">Срок</div><div class="stat-value" style="font-size:20px">${c.months} мес.</div><div class="stat-sub">День оплаты: ${c.payDay}</div></div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
-function renderPaymentRow(p, i, contractId, clientName) {
-  const dotClass = {
-    paid:'dot-paid', overdue:'dot-overdue', warning:'dot-warning',
-    partial:'dot-partial', partial_future:'dot-partial', upcoming:'dot-upcoming', deferred:'dot-deferred'
-  }[p.status] || 'dot-upcoming';
-  
-  const statusText = {
-    paid: 'Оплачен',
-    overdue: `Просрочен (${fmt(p.size - p.paid)} из ${fmt(p.size)} ₽)`,
-    warning: `Завтра! ${fmt(p.size)} ₽`,
-    partial: `Частично (${fmt(p.paid)} из ${fmt(p.size)} ₽)`,
-    partial_future: `Частично (${fmt(p.paid)} из ${fmt(p.size)} ₽)`,
-    upcoming: 'Ожидается',
-    deferred: `Отсрочка до ${p.deferDate}`
-  }[p.status] || 'Ожидается';
-  
-  const statusClass = {
-    paid:'status-paid', overdue:'status-overdue', warning:'status-warning',
-    partial:'status-partial', partial_future:'status-partial', upcoming:'status-upcoming', deferred:'status-deferred'
-  }[p.status] || 'status-upcoming';
-  
-  const itemClass = {
-    paid:'paid', overdue:'overdue', warning:'warning', deferred:'deferred'
-  }[p.status] || '';
-  
-  const showPayBtn = p.status !== 'paid' && p.status !== 'upcoming' || p.status === 'warning';
-  
-  return `
-    <div class="payment-item ${itemClass}">
-      <div class="payment-dot ${dotClass}"></div>
-      <div class="payment-month">${p.month} мес.</div>
-      <div class="payment-date">${p.date}${p.deferDate ? ` → ${p.deferDate}` : ''}</div>
-      <div class="payment-size">${fmt(p.size)} ₽</div>
-      <div class="payment-status ${statusClass}">${statusText}</div>
-      ${p.status !== 'paid' ? `
-      <div class="payment-actions">
-        <button class="btn btn-primary btn-sm" onclick="openPaymentModal('${contractId}','${clientName}',${i})">Оплата</button>
-        <button class="btn btn-ghost btn-sm" onclick="openDeferralModal('${contractId}',${i})">Отсрочка</button>
-      </div>` : ''}
-    </div>
-    ${p.deferComment ? `<div style="font-size:11px;color:var(--text3);padding:4px 36px;margin-top:-6px;margin-bottom:4px">💬 ${p.deferComment}</div>` : ''}
-  `;
+function renderPayRow(p, i, clientId) {
+  const dots = {paid:'d-paid',overdue:'d-overdue',warning:'d-warning',partial:'d-partial',partial_future:'d-partial',upcoming:'d-upcoming'};
+  const statuses = {paid:'Оплачен',overdue:`Просрочен (${window.CRM.fmt(p.size-p.paid)} из ${window.CRM.fmt(p.size)} ₽)`,warning:`Завтра! ${window.CRM.fmt(p.size)} ₽`,partial:`Частично (${window.CRM.fmt(p.paid)} из ${window.CRM.fmt(p.size)} ₽)`,partial_future:`Частично (${window.CRM.fmt(p.paid)} из ${window.CRM.fmt(p.size)} ₽)`,upcoming:'Ожидается'};
+  const sc = {paid:'s-paid',overdue:'s-overdue',warning:'s-warning',partial:'s-partial',partial_future:'s-partial',upcoming:'s-upcoming'};
+  const ic = {paid:'paid',overdue:'overdue',warning:'warning'};
+  return `<div class="pay-item ${ic[p.status]||''}">
+    <div class="pay-dot ${dots[p.status]||'d-upcoming'}"></div>
+    <div class="pay-month">${p.month} мес.</div>
+    <div class="pay-date">${p.date}</div>
+    <div class="pay-size">${window.CRM.fmt(p.size)} ₽</div>
+    <div class="pay-status ${sc[p.status]||'s-upcoming'}">${statuses[p.status]||'Ожидается'}</div>
+    ${p.status!=='paid'?`<div class="pay-actions">
+      <button class="btn btn-primary btn-sm" onclick="openPayModal('${clientId}','',${i})">Оплата</button>
+      <button class="btn btn-ghost btn-sm" onclick="openDefModal('${clientId}',${i})">Отсрочка</button>
+    </div>`:''}
+  </div>`;
 }
 
 // ═══ PAYMENTS HISTORY ═══
-function loadPayments() {
-  document.getElementById('paymentsList').innerHTML = '<div class="loading"><div class="spinner"></div> Загрузка...</div>';
-  callAPI('?action=payments')
-    .then(data => renderPayments(data))
-    .catch(() => showToast('Ошибка загрузки', 'error'));
-}
-
-function renderPayments(list) {
-  if (!list.length) {
-    document.getElementById('paymentsList').innerHTML = '<div class="empty" style="padding:60px"><div class="empty-icon">💳</div><div class="empty-text">Нет платежей</div></div>';
-    return;
-  }
-  document.getElementById('paymentsList').innerHTML = `
-    <table class="payments-table">
-      <thead>
-        <tr>
-          <th>Дата</th>
-          <th>Договор</th>
-          <th>Клиент</th>
-          <th>Сумма</th>
-          <th>Тип</th>
-          <th>Способ</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${list.map(p => `
-          <tr>
-            <td style="color:var(--text2)">${p.date}</td>
-            <td style="font-weight:700;color:var(--text2)">№${p.contractId}</td>
-            <td>${p.name}</td>
-            <td><span class="amount amount-green">${fmt(p.amount)} ₽</span></td>
-            <td>${p.type}</td>
-            <td><span class="badge ${p.payType === 'Нал' ? 'cash-badge' : 'bank-badge'}">${p.payType}</span></td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
+function renderPaymentsFromCache() {
+  const C = window.CRM;
+  const list = C.payments || [];
+  if(!list.length) { document.getElementById('paymentsList').innerHTML='<div class="empty">Нет платежей</div>'; return; }
+  document.getElementById('paymentsList').innerHTML=`<table class="tbl"><thead><tr><th>Дата</th><th>Договор</th><th>Клиент</th><th>Сумма</th><th>Тип</th><th>Способ</th></tr></thead><tbody>
+    ${list.map(p=>`<tr>
+      <td style="color:var(--text2)">${p.dateStr||''}</td>
+      <td style="font-weight:700;color:var(--text2)">№${p.contractId||''}</td>
+      <td>${p.name||''}</td>
+      <td><span class="amount v-green">${C.fmt(p.amount)} ₽</span></td>
+      <td>${p.type||''}</td>
+      <td><span class="badge" style="background:rgba(149,193,31,0.12);color:var(--green)">${p.payType||''}</span></td>
+    </tr>`).join('')}
+  </tbody></table>`;
 }
 
 // ═══ ADD CLIENT ═══
-function openAddClient() {
-  document.getElementById('f_date').value = new Date().toISOString().split('T')[0];
-  calcPaymentSizes();
-  document.getElementById('modalAddClient').classList.add('show');
-}
-
-function calcPaymentSizes() {
-  const price = parseFloat(document.getElementById('f_price').value) || 0;
-  const prepay = parseFloat(document.getElementById('f_prepay').value) || 0;
-  const months = parseInt(document.getElementById('f_months').value) || 3;
-  const remaining = price - prepay;
-  const size = remaining > 0 ? Math.ceil(remaining / months / 100) * 100 : 0;
-  
+function calcSizes() {
+  const price = parseFloat(document.getElementById('f_price').value)||0;
+  const prepay = parseFloat(document.getElementById('f_prepay').value)||0;
+  const months = parseInt(document.getElementById('f_months').value)||3;
+  const size = Math.ceil((price-prepay)/months/100)*100;
   const grid = document.getElementById('sizesGrid');
-  grid.innerHTML = '';
-  for (let m = 0; m < months; m++) {
-    grid.innerHTML += `
-      <div class="size-input-wrap">
-        <div class="size-label">${m+1} платёж</div>
-        <input class="form-input" type="number" id="size_${m}" value="${size}" style="padding:10px;"/>
-      </div>
-    `;
+  grid.innerHTML='';
+  for(let m=0;m<months;m++) {
+    grid.innerHTML+=`<div style="display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:10px;color:var(--text3);font-weight:600">${m+1} платёж</div>
+      <input class="f-input" type="number" id="sz_${m}" value="${size}" style="padding:10px;"/>
+    </div>`;
   }
 }
 
-function submitAddClient() {
+async function submitClient() {
+  const C = window.CRM;
   const months = parseInt(document.getElementById('f_months').value);
-  const sizes = [];
-  for (let m = 0; m < months; m++) {
-    const v = parseFloat(document.getElementById('size_' + m).value) || 0;
-    sizes.push(v);
-  }
-  
+  const price = parseFloat(document.getElementById('f_price').value)||0;
+  const prepay = parseFloat(document.getElementById('f_prepay').value)||0;
+  const payDay = parseInt(document.getElementById('f_payDay').value);
+  const name = document.getElementById('f_name').value.trim();
+  if(!name||!price||!payDay) { showToast('Заполните обязательные поля','error'); return; }
+
+  const startDate = new Date(document.getElementById('f_date').value);
   const data = {
-    action: 'addClient',
+    contractId: String(C.clients.length+1).padStart(5,'0'),
     date: document.getElementById('f_date').value,
-    name: document.getElementById('f_name').value,
-    phone: document.getElementById('f_phone').value,
+    name, phone: document.getElementById('f_phone').value,
     guarantor: document.getElementById('f_guarantor').value,
     guarantorPhone: document.getElementById('f_guarantorPhone').value,
     product: document.getElementById('f_product').value,
     partner: document.getElementById('f_partner').value,
-    cost: document.getElementById('f_cost').value,
-    price: document.getElementById('f_price').value,
-    prepay: document.getElementById('f_prepay').value,
-    months: months,
-    payDay: document.getElementById('f_payDay').value,
+    cost: parseFloat(document.getElementById('f_cost').value)||0,
+    price, prepay, months, payDay,
     address: document.getElementById('f_address').value,
-    payType: document.getElementById('f_payType').value
+    status: 'активный',
+    createdAt: new Date()
   };
-  // Add sizes as individual params
-  sizes.forEach((s, i) => { data['size' + i] = s; });
-  
-  if (!data.name || !data.phone || !data.price || !data.payDay) {
-    showToast('Заполните все обязательные поля', 'error'); return;
+
+  for(let m=0;m<12;m++) {
+    if(m<months) {
+      const d=new Date(startDate); d.setMonth(d.getMonth()+m+1); d.setDate(payDay);
+      data['дата'+(m+1)] = C.formatDate(d);
+      const szEl = document.getElementById('sz_'+m);
+      data['размер'+(m+1)] = szEl ? parseFloat(szEl.value)||0 : Math.ceil((price-prepay)/months/100)*100;
+    } else {
+      data['дата'+(m+1)]=''; data['размер'+(m+1)]=0;
+    }
+    data['взнос'+(m+1)]=0;
   }
-  
-  postAPI(data)
-    .then(res => {
-      if (res.ok) {
-        closeModal('modalAddClient');
-        showToast(`Договор №${res.contractId} создан!`, 'success');
-        loadDashboard();
-        allClients = [];
-      } else showToast('Ошибка: ' + res.error, 'error');
-    }).catch(() => showToast('Ошибка соединения', 'error'));
+
+  const ref = await addDoc(collection(C.db,'clients'), data);
+  if(prepay>0) {
+    await addDoc(collection(C.db,'payments'),{
+      contractId:data.contractId, name, amount:prepay,
+      type:'Предоплата', payType:document.getElementById('f_payType').value,
+      date:new Date(), dateStr:C.formatDate(new Date())
+    });
+  }
+  C.clients.push({id:ref.id,...data});
+  closeModal('modalClient');
+  showToast(`Договор №${data.contractId} создан!`,'success');
+  renderDashboard(); renderClients();
 }
 
-// ═══ PAYMENT MODAL ═══
-function openPaymentModal(contractId, clientName, monthIndex) {
-  document.getElementById('pm_contractId').value = contractId;
-  document.getElementById('pm_clientName').textContent = clientName;
-  document.getElementById('pm_monthIndex').value = monthIndex !== undefined ? monthIndex : '';
-  document.getElementById('pm_amount').value = '';
-  document.getElementById('modalPayment').classList.add('show');
+// ═══ PAYMENT ═══
+function openPayModal(clientId, name, monthIdx) {
+  _contractId=clientId; _monthIndex=monthIdx!==undefined?monthIdx:null;
+  const c = window.CRM.clients.find(x=>x.id===clientId);
+  document.getElementById('pm_name').textContent = c?c.name:name;
+  document.getElementById('pm_amount').value='';
+  openModal('modalPayment');
 }
 
-function submitPayment() {
-  const contractId = document.getElementById('pm_contractId').value;
-  const amount = document.getElementById('pm_amount').value;
-  const monthIndex = document.getElementById('pm_monthIndex').value;
+async function submitPayment() {
+  const C = window.CRM;
+  const amount = parseFloat(document.getElementById('pm_amount').value);
+  if(!amount) { showToast('Введите сумму','error'); return; }
   const payType = document.getElementById('pm_payType').value;
+  const c = C.clients.find(x=>x.id===_contractId);
+  if(!c) return;
+
+  // Находим нужный месяц
+  const payments = C.calcPayments(c);
+  let targetMonth = _monthIndex!==null ? _monthIndex : payments.findIndex(p=>p.status!=='paid');
+  if(targetMonth===-1) targetMonth=0;
+  const key = 'взнос'+(targetMonth+1);
+  const current = parseFloat(c[key])||0;
+  const updated = {[key]: current+amount};
+
+  await updateDoc(doc(C.db,'clients',_contractId), updated);
+  await addDoc(collection(C.db,'payments'),{
+    contractId:c.contractId, name:c.name, amount,
+    type:'Еж платеж', payType, date:new Date(), dateStr:C.formatDate(new Date())
+  });
+
+  Object.assign(c, updated);
+  // Обновляем кэш платежей
+  const newPay = {contractId:c.contractId, name:c.name, amount, type:'Еж платеж', payType, dateStr:C.formatDate(new Date())};
+  C.payments.unshift(newPay);
   
-  if (!amount) { showToast('Введите сумму', 'error'); return; }
-  
-  const data = { action:'addPayment', contractId, amount, payType };
-  if (monthIndex !== '') data.monthIndex = parseInt(monthIndex);
-  
-  postAPI(data)
-    .then(res => {
-      if (res.ok) {
-        closeModal('modalPayment');
-        showToast('Оплата записана!', 'success');
-        if (currentClientId) openClient(currentClientId);
-      } else showToast('Ошибка: ' + res.error, 'error');
-    }).catch(() => showToast('Ошибка соединения', 'error'));
+  closeModal('modalPayment');
+  showToast('Оплата записана!','success');
+  renderDashboard(); renderClients();
+  if(C.currentClientId===_contractId) renderClientDetail(c);
 }
 
-// ═══ DEFERRAL MODAL ═══
-function openDeferralModal(contractId, monthIndex) {
-  document.getElementById('def_contractId').value = contractId;
-  document.getElementById('def_monthIndex').value = monthIndex;
-  document.getElementById('def_date').value = '';
-  document.getElementById('def_comment').value = '';
-  document.getElementById('modalDeferral').classList.add('show');
+// ═══ DEFERRAL ═══
+function openDefModal(clientId, monthIdx) {
+  _contractId=clientId; _monthIndex=monthIdx;
+  document.getElementById('def_date').value='';
+  document.getElementById('def_comment').value='';
+  openModal('modalDeferral');
 }
 
-function submitDeferral() {
-  const data = {
-    action: 'addDeferral',
-    contractId: document.getElementById('def_contractId').value,
-    monthIndex: document.getElementById('def_monthIndex').value,
-    deferDate: document.getElementById('def_date').value,
-    comment: document.getElementById('def_comment').value
-  };
-  
-  postAPI(data)
-    .then(res => {
-      if (res.ok) {
-        closeModal('modalDeferral');
-        showToast('Отсрочка сохранена!', 'success');
-        if (currentClientId) openClient(currentClientId);
-      } else showToast('Ошибка: ' + res.error, 'error');
-    }).catch(() => showToast('Ошибка соединения', 'error'));
+async function submitDeferral() {
+  const C = window.CRM;
+  const date = document.getElementById('def_date').value;
+  const comment = document.getElementById('def_comment').value;
+  await updateDoc(doc(C.db,'clients',_contractId),{
+    deferDate:date, deferComment:comment, deferMonth:_monthIndex
+  });
+  const c = C.clients.find(x=>x.id===_contractId);
+  if(c) { c.deferDate=date; c.deferComment=comment; }
+  closeModal('modalDeferral');
+  showToast('Отсрочка сохранена!','success');
+  if(C.currentClientId===_contractId) renderClientDetail(c);
 }
 
 // ═══ CLOSE CONTRACT ═══
-function closeContractConfirm(contractId) {
-  if (!confirm('Закрыть договор №' + contractId + '? Это действие нельзя отменить.')) return;
-  postAPI({ action:'closeContract', contractId })
-    .then(r => r.json())
-    .then(res => {
-      if (res.ok) { showToast('Договор закрыт', 'success'); showPage('clients'); }
-      else showToast('Ошибка: ' + res.error, 'error');
-    });
+async function closeClientContract(id) {
+  if(!confirm('Закрыть договор?')) return;
+  const C = window.CRM;
+  await updateDoc(doc(C.db,'clients',id),{status:'закрыт'});
+  const c = C.clients.find(x=>x.id===id);
+  if(c) c.status='закрыт';
+  showToast('Договор закрыт','success');
+  showPage('clients');
 }
 
 // ═══ UTILS ═══
-function fmt(n) {
-  return (parseFloat(n) || 0).toLocaleString('ru-RU');
+function openModal(id) { document.getElementById(id).classList.add('show'); if(id==='modalClient'){document.getElementById('f_date').value=new Date().toISOString().split('T')[0];calcSizes();} }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function showToast(msg,type) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+(type||''); t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
 }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); });
+});
 
-function closeModal(id) {
-  document.getElementById(id).classList.remove('show');
-}
-
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + (type || '');
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+// Ждём Firebase
+window.addEventListener('firebaseReady',()=>{
+  const {collection,getDocs,orderBy,query,doc,updateDoc,addDoc} = window.CRM;
+  window.collection=collection; window.getDocs=getDocs; window.orderBy=orderBy;
+  window.query=query; window.doc=doc; window.updateDoc=updateDoc; window.addDoc=addDoc;
 });
 </script>
 </body>
