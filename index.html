@@ -99,24 +99,22 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 .ft{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--brd);background:transparent;color:var(--t2);transition:.2s}
 .ft.on{background:var(--green);color:#09100b;border-color:var(--green)}
 
-/* TABLE WITH COLUMN FILTERS */
-.tbl-wrap{overflow:auto}
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
 .tbl{width:100%;border-collapse:collapse}
-.tbl th{padding:0;border-bottom:1px solid var(--brd2);vertical-align:top}
-.th-inner{display:flex;flex-direction:column}
-.th-label{padding:8px 11px 4px;font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap}
-.th-label:hover{color:var(--green)}
-.th-filter{padding:0 8px 6px}
-.tf-inp{width:100%;padding:4px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:5px;font-family:'Manrope',sans-serif;font-size:11px;color:var(--text);outline:none}
-.tf-inp:focus{border-color:var(--green)}
-.tf-range{display:flex;gap:4px}
-.tf-range .tf-inp{width:50%}
-.tf-sel{width:100%;padding:4px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:5px;font-family:'Manrope',sans-serif;font-size:11px;color:var(--text);outline:none;cursor:pointer;appearance:none}
-.tbl td{padding:11px;border-bottom:1px solid var(--brd2);font-size:12px;vertical-align:middle}
-.tbl tbody tr:hover td{background:var(--bg3)}
+.tbl th{border-bottom:2px solid var(--brd2);white-space:nowrap;background:var(--card)}
+.th-cell{display:flex;align-items:center;gap:6px;padding:10px 12px;cursor:pointer;user-select:none;transition:.15s}
+.th-cell:hover{background:var(--bg3)}
+.th-name{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;transition:.15s}
+.th-name.filtered{color:var(--green)}
+.th-cell:hover .th-name{color:var(--t2)}
+.th-farrow{font-size:11px;color:var(--t3);transition:.15s;flex-shrink:0}
+.th-farrow.active{color:var(--green)}
+.sarr{font-size:9px;opacity:.4;margin-left:2px}.sarr.on{opacity:1;color:var(--green)}
+.tbl td{padding:12px;border-bottom:1px solid var(--brd2);font-size:12px;vertical-align:middle}
+.tbl tbody tr:hover td{background:var(--bg3);transition:.1s}
 .tbl tbody tr:last-child td{border-bottom:none}
 .crow{cursor:pointer}
-.sarr{font-size:9px;opacity:.4}.sarr.on{opacity:1;color:var(--green)}
 
 /* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
