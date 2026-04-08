@@ -1188,31 +1188,36 @@ async function loadClientPayments(clientId, contractId){
 async function cancelPayment(paymentId, clientId, amount, monthIndex, contractId){
   if(!confirm(`Отменить платёж ${window.CRM.fmt(amount)} ₽? Сумма будет вычтена из оплат клиента.`)) return;
   const C=window.CRM;
-  
+  const c=C.clients.find(x=>x.id===clientId);
+  if(!c){ showToast('Клиент не найден','error'); return; }
+
   // Удаляем запись из истории платежей
   await C.deleteDoc(C.doc(C.db,'payments',paymentId));
+
+  // Вычитаем сумму из взносов — начиная с последнего непустого
+  // Это работает независимо от monthIndex
+  let toSubtract = amount;
+  const updateData = {};
   
-  // Вычитаем сумму из взноса клиента
-  const c=C.clients.find(x=>x.id===clientId);
-  if(c && monthIndex>=0){
-    const key='взнос'+(monthIndex+1);
-    const current=parseFloat(c[key])||0;
-    const newVal=Math.max(0, current-amount);
-    const updateData={[key]:newVal};
-    if(c.status==='завершён') updateData.status='активный';
-    await C.updateDoc(C.doc(C.db,'clients',clientId),updateData);
+  for(let m=11; m>=0 && toSubtract>0; m--){
+    const key = 'взнос'+(m+1);
+    const val = parseFloat(c[key])||0;
+    if(val > 0){
+      const sub = Math.min(val, toSubtract);
+      updateData[key] = val - sub;
+      toSubtract -= sub;
+    }
+  }
+  
+  // Если договор был завершён — возвращаем активный
+  if(c.status==='завершён') updateData.status='активный';
+  
+  if(Object.keys(updateData).length > 0){
+    await C.updateDoc(C.doc(C.db,'clients',clientId), updateData);
     await logAction('Отмена платежа', `Договор №${c.contractId} — ${C.fmt(amount)} ₽ отменён`);
   }
-  showToast('Платёж отменён!','success');
   
-  // Принудительно перерисовываем карточку клиента
-  setTimeout(() => {
-    const c = window.CRM.clients.find(x=>x.id===clientId);
-    if(c) {
-      renderClientDetail(c);
-      loadClientPayments(clientId, c.contractId);
-    }
-  }, 500);
+  showToast('Платёж отменён!','success');
 }
 
 // ═══ JOURNAL OF ACTIONS ═══
