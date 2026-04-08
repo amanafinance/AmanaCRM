@@ -333,8 +333,9 @@
       <div class="filter-tabs">
         <button class="filter-tab active" onclick="setFilter('all',this)">Все</button>
         <button class="filter-tab" onclick="setFilter('active',this)">Активные</button>
-        <button class="filter-tab" onclick="setFilter('overdue',this)">Просрочники</button>
-        <button class="filter-tab" onclick="setFilter('closed',this)">Завершёные</button>
+        <button class="filter-tab" onclick="setFilter('overdue',this)">Просроченные</button>
+        <button class="filter-tab" onclick="setFilter('завершён',this)">Завершённые</button>
+        <button class="filter-tab" onclick="setFilter('удалён',this)">🗑 Удалённые</button>
       </div>
       <div class="card" style="padding:0;overflow:hidden"><div id="clientsList"><div class="loading"><div class="spinner"></div></div></div></div>
     </div>
@@ -647,8 +648,8 @@ function renderClients(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase();
   let list=C.clients.map(c=>({...c,overdue:C.calcOverdue(C.calcPayments(c)),balance:C.calcBalance(c)}));
   if(C.filter==='all') list=list.filter(c=>c.status!=='удалён');
-  else if(C.filter==='active') list=list.filter(c=>c.status!=='завершён'&&c.status!=='удалён');
-  else if(C.filter==='overdue') list=list.filter(c=>c.overdue>0&&c.status!=='завершён'&&c.status!=='удалён');
+  else if(C.filter==='active') list=list.filter(c=>c.status==='активный');
+  else if(C.filter==='overdue') list=list.filter(c=>c.overdue>0&&c.status==='активный');
   else if(C.filter==='завершён') list=list.filter(c=>c.status==='завершён');
   else if(C.filter==='удалён') list=list.filter(c=>c.status==='удалён');
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.contractId||'').includes(q)||(c.product||'').toLowerCase().includes(q)||(c.phones||[]).join(' ').includes(q));
