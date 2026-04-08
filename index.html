@@ -579,8 +579,15 @@ function loadAll(){
   C.onSnapshot(C.collection(C.db,'clients'),snap=>{
     C.clients=snap.docs.map(d=>({id:d.id,...d.data()}));
     cLoaded=true;
-    renderDashboard(); renderClients();
-    if(C.currentClientId){ const c=C.clients.find(x=>x.id===C.currentClientId); if(c) renderClientDetail(c); }
+    renderDashboard();
+    renderClients();
+    // Если открыта карточка клиента — перерисовываем её тоже
+    if(C.currentClientId){
+      const c=C.clients.find(x=>x.id===C.currentClientId);
+      if(c && document.getElementById('page-client').style.display!=='none'){
+        renderClientDetail(c);
+      }
+    }
   });
   C.onSnapshot(C.query(C.collection(C.db,'payments'),C.orderBy('date','desc')),snap=>{
     C.payments=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1197,6 +1204,15 @@ async function cancelPayment(paymentId, clientId, amount, monthIndex, contractId
     await logAction('Отмена платежа', `Договор №${c.contractId} — ${C.fmt(amount)} ₽ отменён`);
   }
   showToast('Платёж отменён!','success');
+  
+  // Принудительно перерисовываем карточку клиента
+  setTimeout(() => {
+    const c = window.CRM.clients.find(x=>x.id===clientId);
+    if(c) {
+      renderClientDetail(c);
+      loadClientPayments(clientId, c.contractId);
+    }
+  }, 500);
 }
 
 // ═══ JOURNAL OF ACTIONS ═══
