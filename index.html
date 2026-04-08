@@ -1188,36 +1188,57 @@ async function loadClientPayments(clientId, contractId){
 async function cancelPayment(paymentId, clientId, amount, monthIndex, contractId){
   if(!confirm(`Отменить платёж ${window.CRM.fmt(amount)} ₽? Сумма будет вычтена из оплат клиента.`)) return;
   const C=window.CRM;
-  const c=C.clients.find(x=>x.id===clientId);
-  if(!c){ showToast('Клиент не найден','error'); return; }
 
-  // Удаляем запись из истории платежей
-  await C.deleteDoc(C.doc(C.db,'payments',paymentId));
+  try {
+    // 1. Читаем АКТУАЛЬНЫЕ данные клиента напрямую из Firebase
+    const clientSnap = await C.getDoc(C.doc(C.db,'clients',clientId));
+    if(!clientSnap.exists()){ showToast('Клиент не найден','error'); return; }
+    const clientData = clientSnap.data();
 
-  // Вычитаем сумму из взносов — начиная с последнего непустого
-  // Это работает независимо от monthIndex
-  let toSubtract = amount;
-  const updateData = {};
-  
-  for(let m=11; m>=0 && toSubtract>0; m--){
-    const key = 'взнос'+(m+1);
-    const val = parseFloat(c[key])||0;
-    if(val > 0){
-      const sub = Math.min(val, toSubtract);
-      updateData[key] = val - sub;
-      toSubtract -= sub;
+    // 2. Удаляем платёж из истории
+    await C.deleteDoc(C.doc(C.db,'payments',paymentId));
+
+    // 3. Вычитаем сумму из взносов (с последнего заполненного)
+    let toSubtract = parseFloat(amount);
+    const updateData = {};
+
+    for(let m=11; m>=0 && toSubtract>0; m--){
+      const key = 'взнос'+(m+1);
+      const val = parseFloat(clientData[key])||0;
+      if(val > 0){
+        const sub = Math.min(val, toSubtract);
+        updateData[key] = parseFloat((val - sub).toFixed(2));
+        toSubtract = parseFloat((toSubtract - sub).toFixed(2));
+      }
     }
-  }
-  
-  // Если договор был завершён — возвращаем активный
-  if(c.status==='завершён') updateData.status='активный';
-  
-  if(Object.keys(updateData).length > 0){
+
+    // 4. Если договор был завершён — возвращаем активный
+    if(clientData.status === 'завершён') updateData.status = 'активный';
+
+    // 5. Обновляем Firebase
     await C.updateDoc(C.doc(C.db,'clients',clientId), updateData);
-    await logAction('Отмена платежа', `Договор №${c.contractId} — ${C.fmt(amount)} ₽ отменён`);
+
+    // 6. Обновляем локальный кэш сразу
+    const localClient = C.clients.find(x=>x.id===clientId);
+    if(localClient) Object.assign(localClient, updateData);
+
+    // 7. Журнал
+    await logAction('Отмена платежа', `Договор №${clientData.contractId} — ${C.fmt(amount)} ₽ отменён`);
+
+    // 8. Принудительно перерисовываем UI
+    renderDashboard();
+    renderClients();
+    const freshClient = C.clients.find(x=>x.id===clientId);
+    if(freshClient){
+      renderClientDetail(freshClient);
+      setTimeout(()=>loadClientPayments(clientId, clientData.contractId), 200);
+    }
+
+    showToast('Платёж отменён!','success');
+  } catch(err){
+    console.error('cancelPayment error:', err);
+    showToast('Ошибка при отмене платежа','error');
   }
-  
-  showToast('Платёж отменён!','success');
 }
 
 // ═══ JOURNAL OF ACTIONS ═══
