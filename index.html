@@ -292,6 +292,7 @@
       <div class="nav-group">Работа</div>
       <button class="nav-item" id="nav-clients" onclick="showPage('clients')"><span style="font-size:18px">◉</span><span>Клиенты <span class="nav-badge" id="overdueCount" style="display:none">0</span></span></button>
       <button class="nav-item" id="nav-payments" onclick="showPage('payments')"><span style="font-size:18px">◎</span><span>Платежи</span></button>
+      <button class="nav-item" id="nav-journal" onclick="showPage('journal')"><span style="font-size:18px">📋</span><span>Журнал</span></button>
       <div class="nav-group">Система</div>
       <button class="nav-item" id="nav-settings" onclick="showPage('settings')"><span style="font-size:18px">⚙</span><span>Настройки</span></button>
     </div>
@@ -350,6 +351,12 @@
     <div id="page-payments" class="page" style="display:none">
       <div class="page-header"><div class="page-title">История платежей</div></div>
       <div class="card" style="padding:0;overflow:hidden"><div id="paymentsList"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- JOURNAL -->
+    <div id="page-journal" class="page" style="display:none">
+      <div class="page-header"><div class="page-title">📋 Журнал действий</div></div>
+      <div class="card" style="padding:0;overflow:hidden"><div id="journalList"><div class="loading"><div class="spinner"></div></div></div></div>
     </div>
 
     <!-- SETTINGS -->
@@ -727,6 +734,15 @@ function renderClientDetail(c){
           </div>
           ${payments.map((p,i)=>renderPayRow(p,i,c.id)).join('')}
         </div>
+        <div class="card">
+          <div class="card-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleClientPayments('${c.id}')">
+            <span>💳 История платежей клиента</span>
+            <span id="cph_arrow_${c.id}" style="font-size:16px;color:var(--text3)">▼</span>
+          </div>
+          <div id="clientPaymentsBlock_${c.id}" style="display:none">
+            <div id="clientPaymentsList_${c.id}"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
       </div>
       <div>
         <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Остаток долга</div><div class="stat-value v-green" style="font-size:20px">${C.fmt(balance)} ₽</div><div class="stat-sub">из ${C.fmt(c.price)} ₽${c.discount?` · скидка ${C.fmt(c.discount)} ₽`:''}</div></div>
@@ -734,6 +750,9 @@ function renderClientDetail(c){
         <div class="stat-card"><div class="stat-label">Срок</div><div class="stat-value" style="font-size:20px">${c.months||0} мес.</div></div>
       </div>
     </div>`;
+  
+  // Load client payments after render
+  setTimeout(() => loadClientPayments(c.id, c.contractId), 100);
 }
 
 function renderPayRow(p,i,cid){
@@ -854,6 +873,7 @@ async function submitClient(){
       payType:document.getElementById('f_payType').value,date:new Date(),dateStr:C.formatDate(new Date())
     });
   }
+  await logAction('Новый договор', `Договор №${data.contractId} — ${data.name}`);
   closeModal('modalClient');
   showToast(`Договор №${data.contractId} создан!`,'success');
 }
@@ -897,8 +917,14 @@ async function submitPayment(){
   
   await C.updateDoc(C.doc(C.db,'clients',_cid), updateData);
   await C.addDoc(C.collection(C.db,'payments'),{
-    contractId:c.contractId, name:c.name, amount, type:'Еж платеж', payType, date:new Date(), dateStr:C.formatDate(new Date())
+    contractId:c.contractId, clientId:_cid, name:c.name, amount,
+    type:'Еж платеж', payType, monthIndex:tm,
+    date:new Date(), dateStr:C.formatDate(new Date())
   });
+  
+  // Журнал действий
+  await logAction('Оплата', `Договор №${c.contractId} — ${C.fmt(amount)} ₽ (${payType})`);
+  
   closeModal('modalPayment');
   showToast(newBalance===0 ? '✅ Оплата записана! Договор завершён!' : 'Оплата записана!', 'success');
 }
@@ -990,6 +1016,8 @@ async function restoreClient(id){
 async function deleteClientForever(id){
   if(!confirm('Удалёнь НАВСЕГДА? Это действие нельзя отменить!')) return;
   const C=window.CRM;
+  const cd=C.clients.find(x=>x.id===id);
+  if(cd) await logAction('Удаление', `Договор №${cd.contractId} — ${cd.name} удалён навсегда`);
   await C.deleteDoc(C.doc(C.db,'clients',id));
   showToast('Договор удалён навсегда','success');
 }
@@ -1085,6 +1113,101 @@ async function submitEditClient(){
   document.querySelector('#modalClient .modal-title').textContent='Новый договор';
   document.querySelector('#modalClient .modal-footer .btn-primary').textContent='Сохранить договор';
   document.querySelector('#modalClient .modal-footer .btn-primary').onclick=submitClient;
+}
+
+// ═══ JOURNAL ═══
+async function loadJournal(){
+  const C=window.CRM;
+  document.getElementById('journalList').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  const snap=await C.getDocs(C.query(C.collection(C.db,'journal'),C.orderBy('date','desc')));
+  const list=snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(!list.length){document.getElementById('journalList').innerHTML='<div class="empty">Нет записей</div>';return;}
+  document.getElementById('journalList').innerHTML=`<table class="tbl">
+    <thead><tr><th>Дата</th><th>Время</th><th>Действие</th><th>Описание</th></tr></thead>
+    <tbody>${list.map(j=>`<tr>
+      <td style="color:var(--text2)">${j.dateStr||''}</td>
+      <td style="color:var(--text2)">${j.time||''}</td>
+      <td><span class="badge ${j.type==='Отмена платежа'?'b-overdue':j.type==='Скидка'?'b-closed':'b-active'}">${j.type||''}</span></td>
+      <td style="font-size:13px">${j.description||''}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ═══ CLIENT PAYMENTS HISTORY ═══
+function toggleClientPayments(clientId){
+  const block=document.getElementById('clientPaymentsBlock_'+clientId);
+  const arrow=document.getElementById('cph_arrow_'+clientId);
+  if(block.style.display==='none'){
+    block.style.display='block';
+    arrow.textContent='▲';
+  } else {
+    block.style.display='none';
+    arrow.textContent='▼';
+  }
+}
+
+async function loadClientPayments(clientId, contractId){
+  const C=window.CRM;
+  const el=document.getElementById('clientPaymentsList_'+clientId);
+  if(!el) return;
+  
+  // Фильтруем платежи этого клиента из кэша
+  const list=(C.payments||[]).filter(p=>p.contractId===contractId||p.clientId===clientId);
+  
+  if(!list.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px 0">Платежей нет</div>';
+    return;
+  }
+  
+  el.innerHTML=`<table class="tbl" style="margin-top:8px">
+    <thead><tr>
+      <th>Дата</th><th>Сумма</th><th>Тип</th><th>Способ</th><th style="width:50px"></th>
+    </tr></thead>
+    <tbody>
+      ${list.map(p=>`<tr>
+        <td style="color:var(--text2);font-size:12px">${p.dateStr||''}</td>
+        <td><span class="amount v-green" style="font-size:13px">${C.fmt(p.amount)} ₽</span></td>
+        <td style="font-size:12px">${p.type||''}</td>
+        <td><span class="badge b-active" style="font-size:10px">${p.payType||''}</span></td>
+        <td><button class="btn-icon btn-del" style="width:26px;height:26px;font-size:11px;border:none;cursor:pointer;background:rgba(255,71,87,0.1);color:var(--red);border-radius:6px" 
+          onclick="cancelPayment('${p.id}','${clientId}',${p.amount||0},${p.monthIndex!==undefined&&p.monthIndex!==''?p.monthIndex:-1},'${contractId}')" 
+          title="Отменить платёж">✕</button></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ═══ CANCEL PAYMENT ═══
+async function cancelPayment(paymentId, clientId, amount, monthIndex, contractId){
+  if(!confirm(`Отменить платёж ${window.CRM.fmt(amount)} ₽? Сумма будет вычтена из оплат клиента.`)) return;
+  const C=window.CRM;
+  
+  // Удаляем запись из истории платежей
+  await C.deleteDoc(C.doc(C.db,'payments',paymentId));
+  
+  // Вычитаем сумму из взноса клиента
+  const c=C.clients.find(x=>x.id===clientId);
+  if(c && monthIndex>=0){
+    const key='взнос'+(monthIndex+1);
+    const current=parseFloat(c[key])||0;
+    const newVal=Math.max(0, current-amount);
+    const updateData={[key]:newVal};
+    if(c.status==='завершён') updateData.status='активный';
+    await C.updateDoc(C.doc(C.db,'clients',clientId),updateData);
+    await logAction('Отмена платежа', `Договор №${c.contractId} — ${C.fmt(amount)} ₽ отменён`);
+  }
+  showToast('Платёж отменён!','success');
+}
+
+// ═══ JOURNAL OF ACTIONS ═══
+async function logAction(type, description){
+  const C=window.CRM;
+  await C.addDoc(C.collection(C.db,'journal'),{
+    type, description,
+    date: new Date(),
+    dateStr: C.formatDate(new Date()),
+    time: new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})
+  });
 }
 
 // ═══ EXPORT EXCEL ═══
