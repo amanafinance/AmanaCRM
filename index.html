@@ -55,8 +55,9 @@
     }
     function calcBalance(client) {
       const price=parseFloat(client.price)||0, prepay=parseFloat(client.prepay)||0;
+      const discount=parseFloat(client.discount)||0;
       let paid=0; for(let m=0;m<12;m++) paid+=parseFloat(client['взнос'+(m+1)])||0;
-      return Math.max(0,price-prepay-paid);
+      return Math.max(0,price-prepay-paid-discount);
     }
 
     window.CRM = {
@@ -502,6 +503,26 @@
   </div>
 </div>
 
+<!-- MODAL: DISCOUNT -->
+<div class="modal-overlay" id="modalDiscount">
+  <div class="modal modal-sm">
+    <div class="modal-title">🎁 Скидка клиенту</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Скидка уменьшит остаток долга клиента. Сумма скидки добавляется к уже существующей.</div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Сумма скидки (₽)</label>
+      <input class="f-input no-mb" type="number" id="disc_amount" placeholder="5000"/>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Причина (необязательно)</label>
+      <input class="f-input no-mb" type="text" id="disc_reason" placeholder="По договорённости..."/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalDiscount')">Отмена</button>
+      <button class="btn btn-primary" style="background:var(--yellow);color:#0a0f0c" onclick="submitDiscount()">Применить скидку</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: DEFERRAL -->
 <div class="modal-overlay" id="modalDeferral">
   <div class="modal modal-sm">
@@ -625,11 +646,11 @@ function renderClients(){
   const C=window.CRM;
   const q=(document.getElementById('searchInput').value||'').toLowerCase();
   let list=C.clients.map(c=>({...c,overdue:C.calcOverdue(C.calcPayments(c)),balance:C.calcBalance(c)}));
-  if(C.filter==='all') list=list.filter(c=>c.status!=='удалён');
-  else if(C.filter==='active') list=list.filter(c=>c.status!=='завершён'&&c.status!=='удалён');
-  else if(C.filter==='overdue') list=list.filter(c=>c.overdue>0&&c.status!=='завершён'&&c.status!=='удалён');
+  if(C.filter==='all') list=list.filter(c=>c.status!=='расторгнут');
+  else if(C.filter==='active') list=list.filter(c=>c.status!=='завершён'&&c.status!=='расторгнут');
+  else if(C.filter==='overdue') list=list.filter(c=>c.overdue>0&&c.status!=='завершён'&&c.status!=='расторгнут');
   else if(C.filter==='завершён') list=list.filter(c=>c.status==='завершён');
-  else if(C.filter==='удалён') list=list.filter(c=>c.status==='удалён');
+  else if(C.filter==='расторгнут') list=list.filter(c=>c.status==='расторгнут');
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.contractId||'').includes(q)||(c.product||'').toLowerCase().includes(q)||(c.phones||[]).join(' ').includes(q));
   document.getElementById('clientsCount').textContent=list.length+' клиентов';
   if(!list.length){document.getElementById('clientsList').innerHTML='<div class="empty">Ничего не найдено</div>';return;}
@@ -641,14 +662,14 @@ function renderClients(){
       <td style="color:var(--text2)" onclick="openClient('${c.id}')">${c.product||'—'}</td>
       <td onclick="openClient('${c.id}')"><span class="amount">${C.fmt(c.balance)} ₽</span></td>
       <td onclick="openClient('${c.id}')">${c.overdue>0?`<span class="amount v-red">${C.fmt(c.overdue)} ₽</span>`:'<span style="color:var(--text3)">—</span>'}</td>
-      <td onclick="openClient('${c.id}')">${c.status==='завершён'?'<span class="badge b-closed">Завершён</span>':c.status==='удалён'?'<span class="badge" style="background:rgba(255,71,87,0.1);color:var(--red)">Удалён</span>':c.overdue>0?'<span class="badge b-overdue">Просрочка</span>':'<span class="badge b-active">Активный</span>'}</td>
+      <td onclick="openClient('${c.id}')">${c.status==='завершён'?'<span class="badge b-closed">Завершён</span>':c.status==='расторгнут'?'<span class="badge" style="background:rgba(255,71,87,0.1);color:var(--red)">Расторгнут</span>':c.overdue>0?'<span class="badge b-overdue">Просрочка</span>':'<span class="badge b-active">Активный</span>'}</td>
       <td>
         <div style="display:flex;gap:6px;justify-content:flex-end">
-          ${c.status!=='удалён'?`
+          ${c.status!=='расторгнут'?`
             <button class="btn-icon" style="background:rgba(149,193,31,0.1);color:var(--green);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();openEditClient('${c.id}')" title="Изменить">✏</button>
-            <button class="btn-icon" style="background:rgba(255,71,87,0.1);color:var(--red);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();softDeleteClient('${c.id}')" title="Удалить">🗑</button>
+            <button class="btn-icon" style="background:rgba(255,71,87,0.1);color:var(--red);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();cancelClient('${c.id}')" title="Расторгнуть">🗑</button>
           `:`<button class="btn-icon" style="background:rgba(149,193,31,0.1);color:var(--green);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();restoreClient('${c.id}')" title="Восстановить">↩</button>
-            <button class="btn-icon" style="background:rgba(255,71,87,0.15);color:var(--red);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();hardDeleteClient('${c.id}')" title="Удалить навсегда">✕</button>`}
+            <button class="btn-icon" style="background:rgba(255,71,87,0.15);color:var(--red);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();deleteClientForever('${c.id}')" title="Расторгнуть навсегда">✕</button>`}
         </div>
       </td>
     </tr>`).join('')}
@@ -707,7 +728,7 @@ function renderClientDetail(c){
         </div>
       </div>
       <div>
-        <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Остаток долга</div><div class="stat-value v-green" style="font-size:20px">${C.fmt(balance)} ₽</div><div class="stat-sub">из ${C.fmt(c.price)} ₽</div></div>
+        <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Остаток долга</div><div class="stat-value v-green" style="font-size:20px">${C.fmt(balance)} ₽</div><div class="stat-sub">из ${C.fmt(c.price)} ₽${c.discount?` · скидка ${C.fmt(c.discount)} ₽`:''}</div></div>
         <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Просрочка</div><div class="stat-value v-red" style="font-size:20px">${C.fmt(overdue)} ₽</div></div>
         <div class="stat-card"><div class="stat-label">Срок</div><div class="stat-value" style="font-size:20px">${c.months||0} мес.</div></div>
       </div>
@@ -858,12 +879,27 @@ async function submitPayment(){
   if(tm===-1) tm=0;
   const key='взнос'+(tm+1);
   const current=parseFloat(c[key])||0;
-  await C.updateDoc(C.doc(C.db,'clients',_cid),{[key]:current+amount});
+  const newPaid = current + amount;
+  const updateData = {[key]: newPaid};
+  
+  // Считаем новый остаток
+  let totalPaid = 0;
+  for(let m=0;m<12;m++) totalPaid += parseFloat(c['взнос'+(m+1)])||0;
+  totalPaid += amount;
+  const price = parseFloat(c.price)||0;
+  const prepay = parseFloat(c.prepay)||0;
+  const discount = parseFloat(c.discount)||0;
+  const newBalance = Math.max(0, price - prepay - totalPaid - discount);
+  
+  // Если остаток = 0 — автоматически завершаем
+  if(newBalance === 0) updateData.status = 'завершён';
+  
+  await C.updateDoc(C.doc(C.db,'clients',_cid), updateData);
   await C.addDoc(C.collection(C.db,'payments'),{
-    contractId:c.contractId,name:c.name,amount,type:'Еж платеж',payType,date:new Date(),dateStr:C.formatDate(new Date())
+    contractId:c.contractId, name:c.name, amount, type:'Еж платеж', payType, date:new Date(), dateStr:C.formatDate(new Date())
   });
   closeModal('modalPayment');
-  showToast('Оплата записана!','success');
+  showToast(newBalance===0 ? '✅ Оплата записана! Договор завершён!' : 'Оплата записана!', 'success');
 }
 
 // ═══ DEFERRAL ═══
@@ -890,12 +926,12 @@ function renderSettings(){
   document.getElementById('partnersList').innerHTML=C.partners.map((p,i)=>`
     <div class="settings-item">
       <div class="settings-item-name">${p}</div>
-      <button class="btn btn-danger btn-sm" onclick="removePartner(${i})">Удалить</button>
+      <button class="btn btn-danger btn-sm" onclick="removePartner(${i})">Расторгнуть</button>
     </div>`).join('');
   document.getElementById('cardsList').innerHTML=(C.cards||[]).map((c,i)=>`
     <div class="settings-item">
       <div><div class="settings-item-name">${c.name}</div><div style="font-size:12px;color:var(--text3)">${c.number}</div></div>
-      <button class="btn btn-danger btn-sm" onclick="removeCard(${i})">Удалить</button>
+      <button class="btn btn-danger btn-sm" onclick="removeCard(${i})">Расторгнуть</button>
     </div>`).join('');
 }
 
@@ -937,11 +973,11 @@ async function removeCard(i){
 }
 
 // ═══ DELETE CLIENT ═══
-async function softDeleteClient(id){
-  if(!confirm('Переместить договор в удалённые?')) return;
+async function cancelClient(id){
+  if(!confirm('Переместить договор в расторгнутные?')) return;
   const C=window.CRM;
-  await C.updateDoc(C.doc(C.db,'clients',id),{status:'удалён'});
-  showToast('Договор перемещён в удалённые','success');
+  await C.updateDoc(C.doc(C.db,'clients',id),{status:'расторгнут'});
+  showToast('Договор перемещён в расторгнутные','success');
 }
 
 async function restoreClient(id){
@@ -950,11 +986,11 @@ async function restoreClient(id){
   showToast('Договор восстановлен!','success');
 }
 
-async function hardDeleteClient(id){
-  if(!confirm('Удалить НАВСЕГДА? Это действие нельзя отменить!')) return;
+async function deleteClientForever(id){
+  if(!confirm('Расторгнуть НАВСЕГДА? Это действие нельзя отменить!')) return;
   const C=window.CRM;
   await C.deleteDoc(C.doc(C.db,'clients',id));
-  showToast('Договор удалён навсегда','success');
+  showToast('Договор расторгнут навсегда','success');
 }
 
 // ═══ EDIT CLIENT ═══
