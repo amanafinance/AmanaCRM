@@ -10,274 +10,258 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
     import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, orderBy, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-    const firebaseConfig = {
+    const app = initializeApp({
       apiKey: "AIzaSyCZZCJiPUfZ2OqAa2CaQXKeHGh5MGR9uuo",
       authDomain: "amana-crm-16033.firebaseapp.com",
       projectId: "amana-crm-16033",
       storageBucket: "amana-crm-16033.firebasestorage.app",
       messagingSenderId: "21151729250",
       appId: "1:21151729250:web:06fe4021102a8ac8c9333b"
-    };
-
-    const app = initializeApp(firebaseConfig);
+    });
     const db = getFirestore(app);
 
-    function fmt(n) { return (parseFloat(n)||0).toLocaleString('ru-RU'); }
-    function today() { const d=new Date(); d.setHours(0,0,0,0); return d; }
-    function parseDate(s) { if(!s) return null; const p=s.split('.'); if(p.length===3) return new Date(p[2],p[1]-1,p[0]); return new Date(s); }
-    function formatDate(d) { if(!d) return ''; const dt=d instanceof Date?d:d.toDate?d.toDate():new Date(d); return ('0'+dt.getDate()).slice(-2)+'.'+('0'+(dt.getMonth()+1)).slice(-2)+'.'+dt.getFullYear(); }
+    // ─── УТИЛИТЫ ───
+    const fmt = n => (parseFloat(n)||0).toLocaleString('ru-RU');
+    const today = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
+    const parseDate = s => { if(!s) return null; const p=s.split('.'); return p.length===3 ? new Date(p[2],p[1]-1,p[0]) : new Date(s); };
+    const fmtDate = d => { if(!d) return ''; const dt=d instanceof Date?d:d.toDate?d.toDate():new Date(d); return ('0'+dt.getDate()).slice(-2)+'.'+('0'+(dt.getMonth()+1)).slice(-2)+'.'+dt.getFullYear(); };
 
-    function calcPayments(client) {
+    // ─── КЛЮЧЕВАЯ ФУНКЦИЯ: считаем всё из payments ───
+    function calcClientStats(client, payments) {
       const t = today();
-      const payments = [];
       const months = parseInt(client.months)||0;
-      let totalPaid = 0;
-      for(let m=0;m<12;m++) totalPaid += parseFloat(client['взнос'+(m+1)])||0;
-      let remaining = totalPaid;
-      for(let m=0;m<months;m++) {
+      // Только ежемесячные платежи этого клиента
+      const paid = payments
+        .filter(p => p.clientId===client.id && p.type==='payment')
+        .reduce((s,p) => s+(parseFloat(p.amount)||0), 0);
+      const discount = parseFloat(client.discount)||0;
+      const price = parseFloat(client.price)||0;
+      const prepay = parseFloat(client.prepay)||0;
+      const balance = Math.max(0, price - prepay - paid - discount);
+      
+      // Статус договора
+      let status = client.status||'активный';
+      if(balance===0 && status==='активный') status='завершён';
+
+      // График платежей
+      let remaining = paid;
+      const schedule = [];
+      for(let m=0; m<months; m++){
         const dateStr = client['дата'+(m+1)];
         const size = parseFloat(client['размер'+(m+1)])||0;
         if(!dateStr||!size) break;
         const d = parseDate(dateStr);
         if(!d) break;
         const diff = Math.round((d-t)/86400000);
-        let paid, status;
-        if(remaining>=size) { paid=size; remaining-=size; status='paid'; }
-        else if(remaining>0) { paid=remaining; remaining=0; status=d<=t?'partial':'partial_future'; }
-        else { paid=0; status=d<=t?'overdue':diff<=1?'warning':'upcoming'; }
-        payments.push({month:m+1,date:dateStr,size,paid,status,diff});
+        let paidAmt, st;
+        if(remaining>=size){ paidAmt=size; remaining-=size; st='paid'; }
+        else if(remaining>0){ paidAmt=remaining; remaining=0; st=d<=t?'partial':'partial_future'; }
+        else { paidAmt=0; st=d<=t?'overdue':diff<=1?'warning':'upcoming'; }
+        const defer = client.defers&&client.defers[m];
+        schedule.push({month:m+1,date:dateStr,size,paid:paidAmt,status:st,diff,defer});
       }
-      return payments;
+
+      const overdue = schedule
+        .filter(p=>p.status==='overdue'||p.status==='partial')
+        .reduce((s,p)=>s+(p.size-p.paid),0);
+
+      return {paid, balance, overdue, schedule, status};
     }
 
-    function calcOverdue(payments) {
-      return payments.filter(p=>p.status==='overdue'||p.status==='partial').reduce((s,p)=>s+(p.size-p.paid),0);
-    }
-    function calcBalance(client) {
-      const price=parseFloat(client.price)||0, prepay=parseFloat(client.prepay)||0;
-      const discount=parseFloat(client.discount)||0;
-      let paid=0; for(let m=0;m<12;m++) paid+=parseFloat(client['взнос'+(m+1)])||0;
-      return Math.max(0,price-prepay-paid-discount);
-    }
-
-    window.CRM = {
-      db, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, orderBy, onSnapshot, setDoc,
-      fmt, today, parseDate, formatDate, calcPayments, calcOverdue, calcBalance,
-      clients:[], payments:[], partners:['Хайр Строй','Иса кирпич','Прочий'],
-      cards:[], currentClientId:null, filter:'all'
-    };
-    window.dispatchEvent(new Event('firebaseReady'));
+    window.FB = { db, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, orderBy, onSnapshot, setDoc, fmt, fmtDate, parseDate, calcClientStats };
+    window.dispatchEvent(new Event('fbReady'));
   </script>
   <style>
-    :root{--bg:#0a0f0c;--bg2:#111812;--bg3:#1a2520;--card:#141f1a;--green:#95c11f;--green-dark:#115c30;--text:#e8f0eb;--text2:#8fa898;--text3:#5a7066;--red:#ff4757;--yellow:#ffa502;--blue:#6495ed;--border:rgba(149,193,31,0.12);--border2:rgba(149,193,31,0.06);--shadow:0 8px 32px rgba(0,0,0,0.4);--radius:16px;--radius-sm:10px;}
+    :root{
+      --bg:#0a0f0c;--bg2:#0f1a14;--bg3:#162018;--card:#131e17;--card2:#1a2b20;
+      --green:#95c11f;--gd:#115c30;--text:#e4ede7;--t2:#7a9a84;--t3:#4a6654;
+      --red:#ff4757;--yellow:#ffa502;--blue:#5b8ff9;
+      --brd:rgba(149,193,31,0.1);--brd2:rgba(149,193,31,0.05);
+      --sh:0 4px 24px rgba(0,0,0,0.5);--r:14px;--r2:8px;
+    }
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
     /* LOGIN */
-    .login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.3),transparent 60%),var(--bg);}
-    .login-box{width:360px;padding:48px 40px;background:var(--card);border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);}
-    .login-logo{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:var(--green);letter-spacing:3px;margin-bottom:8px;}
-    .login-title{font-family:'Unbounded',sans-serif;font-size:28px;font-weight:900;margin-bottom:32px;}
+    .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.25),transparent 60%),var(--bg);}
+    .login-box{width:340px;padding:44px 36px;background:var(--card);border:1px solid var(--brd);border-radius:20px;box-shadow:var(--sh);}
+    .login-logo{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;color:var(--green);letter-spacing:3px;margin-bottom:6px;}
+    .login-title{font-family:'Unbounded',sans-serif;font-size:26px;font-weight:900;margin-bottom:28px;}
     .login-title span{color:var(--green);}
     /* INPUTS */
-    .f-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;display:block;}
-    .f-input{width:100%;padding:12px 16px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-size:14px;color:var(--text);outline:none;transition:all .2s;margin-bottom:14px;}
-    .f-input:focus{border-color:var(--green);background:var(--bg2);}
-    .f-input.no-mb{margin-bottom:0;}
-    .f-select{appearance:none;cursor:pointer;}
+    .inp{width:100%;padding:11px 14px;background:var(--bg3);border:1.5px solid var(--brd);border-radius:var(--r2);font-family:'Manrope',sans-serif;font-size:14px;color:var(--text);outline:none;transition:.2s;}
+    .inp:focus{border-color:var(--green);}
+    .lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;display:block;margin-bottom:6px;}
+    .sel{appearance:none;cursor:pointer;}
     /* LAYOUT */
-    .app{display:none;min-height:100vh;}
-    .app.visible{display:flex;}
-    .sidebar{width:240px;min-height:100vh;background:var(--card);border-right:1px solid var(--border2);padding:28px 20px;display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;}
-    .main{margin-left:240px;flex:1;padding:32px 36px;min-height:100vh;}
-    .sidebar-logo{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:var(--green);letter-spacing:3px;margin-bottom:4px;}
-    .sidebar-name{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;margin-bottom:36px;}
-    .nav-group{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;margin-top:20px;}
-    .nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-size:14px;font-weight:600;margin-bottom:4px;transition:all .2s;border:none;background:none;width:100%;text-align:left;}
-    .nav-item:hover{background:var(--bg3);color:var(--text);}
-    .nav-item.active{background:linear-gradient(135deg,rgba(149,193,31,0.15),rgba(17,92,48,0.2));color:var(--green);border:1px solid rgba(149,193,31,0.2);}
-    .nav-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
-    .sidebar-footer{margin-top:auto;padding-top:20px;border-top:1px solid var(--border2);font-size:11px;color:var(--text3);}
+    .app{display:none;}
+    .app.on{display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:var(--card);border-right:1px solid var(--brd2);padding:24px 16px;display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;}
+    .main{margin-left:220px;flex:1;padding:28px 32px;min-height:100vh;}
+    .s-logo{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;color:var(--green);letter-spacing:3px;margin-bottom:3px;}
+    .s-name{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;margin-bottom:28px;}
+    .s-group{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:2px;margin:16px 0 6px;}
+    .nav-btn{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--r2);cursor:pointer;color:var(--t2);font-size:13px;font-weight:600;margin-bottom:2px;transition:.2s;border:none;background:none;width:100%;text-align:left;}
+    .nav-btn:hover{background:var(--bg3);color:var(--text);}
+    .nav-btn.active{background:linear-gradient(135deg,rgba(149,193,31,0.13),rgba(17,92,48,0.18));color:var(--green);border:1px solid rgba(149,193,31,0.18);}
+    .nav-icon{width:18px;height:18px;flex-shrink:0;}
+    .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;}
+    .s-foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--brd2);font-size:10px;color:var(--t3);}
     /* BUTTONS */
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
-    .btn-primary{background:var(--green);color:#0a0f0c;}
-    .btn-primary:hover{background:#aad422;transform:translateY(-1px);}
-    .btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
-    .btn-ghost:hover{color:var(--text);border-color:var(--green);}
-    .btn-sm{padding:6px 12px;font-size:11px;border-radius:6px;}
-    .btn-danger{background:rgba(255,71,87,0.15);color:var(--red);border:1px solid rgba(255,71,87,0.3);}
-    .btn-icon{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:none;transition:all .2s;}
-    .btn-add{background:rgba(149,193,31,0.15);color:var(--green);}
-    .btn-add:hover{background:rgba(149,193,31,0.25);}
-    .btn-del{background:rgba(255,71,87,0.1);color:var(--red);}
-    .btn-del:hover{background:rgba(255,71,87,0.2);}
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--r2);font-family:'Manrope',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.2s;}
+    .btn-g{background:var(--green);color:#0a0f0c;}
+    .btn-g:hover{background:#a8d422;transform:translateY(-1px);}
+    .btn-gh{background:var(--bg3);color:var(--t2);border:1px solid var(--brd);}
+    .btn-gh:hover{color:var(--text);border-color:var(--green);}
+    .btn-r{background:rgba(255,71,87,0.12);color:var(--red);border:1px solid rgba(255,71,87,0.25);}
+    .btn-y{background:rgba(255,165,2,0.12);color:var(--yellow);border:1px solid rgba(255,165,2,0.25);}
+    .btn-sm{padding:5px 10px;font-size:11px;border-radius:6px;}
+    .ic-btn{width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:none;transition:.2s;flex-shrink:0;}
+    .ic-g{background:rgba(149,193,31,0.12);color:var(--green);}
+    .ic-g:hover{background:rgba(149,193,31,0.22);}
+    .ic-r{background:rgba(255,71,87,0.1);color:var(--red);}
+    .ic-r:hover{background:rgba(255,71,87,0.2);}
     /* PAGE */
-    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
-    .page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;}
-    .page-sub{font-size:13px;color:var(--text3);margin-top:4px;}
-    .page-actions{display:flex;gap:10px;}
+    .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+    .pt{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;}
+    .ps{font-size:12px;color:var(--t3);margin-top:3px;}
+    .pa{display:flex;gap:8px;}
     /* STATS */
-    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
-    .stat-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:22px 24px;}
-    .stat-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;}
-    .stat-value{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;}
-    .stat-sub{font-size:11px;color:var(--text3);margin-top:6px;}
-    .v-red{color:var(--red);}.v-green{color:var(--green);}.v-yellow{color:var(--yellow);}
+    .sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+    .sc{background:var(--card);border:1px solid var(--brd2);border-radius:var(--r);padding:20px;}
+    .sl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;}
+    .sv{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;}
+    .ss{font-size:11px;color:var(--t3);margin-top:4px;}
     /* CARD */
-    .card{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:24px;margin-bottom:20px;}
-    .card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:18px;}
-    /* SEARCH */
-    .search-bar{display:flex;gap:12px;margin-bottom:20px;}
-    .search-input{flex:1;padding:12px 18px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Manrope',sans-serif;font-size:14px;color:var(--text);outline:none;transition:all .2s;}
-    .search-input:focus{border-color:var(--green);}
-    .filter-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
-    .filter-tab{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text2);transition:all .2s;}
-    .filter-tab.active{background:var(--green);color:#0a0f0c;border-color:var(--green);}
+    .card{background:var(--card);border:1px solid var(--brd2);border-radius:var(--r);padding:20px;margin-bottom:16px;}
+    .ct{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;}
+    /* SEARCH + FILTERS */
+    .search-row{display:flex;gap:10px;margin-bottom:14px;}
+    .search-inp{flex:1;padding:10px 14px;background:var(--card);border:1.5px solid var(--brd);border-radius:var(--r2);font-family:'Manrope',sans-serif;font-size:13px;color:var(--text);outline:none;transition:.2s;}
+    .search-inp:focus{border-color:var(--green);}
+    .ftabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+    .ftab{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--brd);background:transparent;color:var(--t2);transition:.2s;}
+    .ftab.on{background:var(--green);color:#0a0f0c;border-color:var(--green);}
     /* TABLE */
     .tbl{width:100%;border-collapse:collapse;}
-    .tbl th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border2);}
-    .tbl td{padding:13px 14px;border-bottom:1px solid var(--border2);font-size:13px;vertical-align:middle;}
-    .tbl tr:hover td{background:var(--bg3);cursor:pointer;}
-    .tbl tr:last-child td{border-bottom:none;}
-    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-    .b-active{background:rgba(149,193,31,0.15);color:var(--green);}
-    .b-overdue{background:rgba(255,71,87,0.15);color:var(--red);}
-    .b-closed{background:rgba(90,112,102,0.2);color:var(--text3);}
-    .amount{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;}
+    .tbl th{padding:8px 12px;text-align:left;font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--brd2);white-space:nowrap;}
+    .tbl th.sortable{cursor:pointer;user-select:none;}
+    .tbl th.sortable:hover{color:var(--green);}
+    .tbl td{padding:12px;border-bottom:1px solid var(--brd2);font-size:13px;vertical-align:middle;}
+    .tbl tbody tr:hover td{background:var(--bg3);}
+    .tbl tbody tr:last-child td{border-bottom:none;}
+    .tbl .row-click{cursor:pointer;}
+    .sort-arrow{display:inline-block;margin-left:4px;opacity:0.4;font-size:10px;}
+    .sort-arrow.active{opacity:1;color:var(--green);}
+    /* BADGES */
+    .badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+    .b-act{background:rgba(149,193,31,0.13);color:var(--green);}
+    .b-over{background:rgba(255,71,87,0.13);color:var(--red);}
+    .b-done{background:rgba(91,143,249,0.13);color:var(--blue);}
+    .b-del{background:rgba(255,71,87,0.08);color:var(--t2);}
+    .b-pay{background:rgba(149,193,31,0.1);color:var(--green);}
+    .amt{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;}
+    .c-r{color:var(--red);} .c-g{color:var(--green);} .c-y{color:var(--yellow);} .c-b{color:var(--blue);}
     /* CLIENT DETAIL */
-    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
-    .info-item{background:var(--bg3);border-radius:var(--radius-sm);padding:14px 18px;}
-    .info-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
-    .info-value{font-size:14px;font-weight:600;}
-    /* PAYMENTS */
-    .pay-item{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid transparent;margin-bottom:8px;}
-    .pay-item.paid{border-color:rgba(149,193,31,0.2);}
-    .pay-item.overdue{border-color:rgba(255,71,87,0.3);background:rgba(255,71,87,0.05);}
-    .pay-item.warning{border-color:rgba(255,165,2,0.3);background:rgba(255,165,2,0.05);}
-    .pay-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-    .d-paid{background:var(--green);}.d-overdue{background:var(--red);}.d-warning,.d-partial{background:var(--yellow);}.d-upcoming{background:var(--text3);}
-    .pay-month{font-size:12px;font-weight:700;color:var(--text3);width:55px;}
-    .pay-date{font-size:13px;color:var(--text2);flex:1;}
-    .pay-size{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;}
-    .pay-status{font-size:11px;font-weight:700;margin-left:12px;}
-    .s-paid{color:var(--green);}.s-overdue{color:var(--red);}.s-warning,.s-partial{color:var(--yellow);}.s-upcoming{color:var(--text3);}
-    .pay-actions{display:flex;gap:6px;margin-left:auto;}
-    .progress-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:8px;}
-    .progress-fill{height:100%;border-radius:2px;background:var(--green);}
+    .ig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+    .ii{background:var(--bg3);border-radius:var(--r2);padding:12px 16px;}
+    .il{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;}
+    .iv{font-size:13px;font-weight:600;}
+    /* SCHEDULE */
+    .sched-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .pay-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border-radius:var(--r2);border:1px solid transparent;margin-bottom:6px;}
+    .pay-row.r-paid{border-color:rgba(149,193,31,0.15);}
+    .pay-row.r-over{border-color:rgba(255,71,87,0.25);background:rgba(255,71,87,0.04);}
+    .pay-row.r-warn{border-color:rgba(255,165,2,0.25);background:rgba(255,165,2,0.04);}
+    .pay-row.r-defer{border-color:rgba(91,143,249,0.25);background:rgba(91,143,249,0.04);}
+    .pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .pd-paid{background:var(--green);} .pd-over{background:var(--red);} .pd-warn,.pd-part{background:var(--yellow);} .pd-up{background:var(--t3);} .pd-def{background:var(--blue);}
+    .pnum{font-size:11px;font-weight:700;color:var(--t3);width:48px;}
+    .pdate{font-size:12px;color:var(--t2);flex:1;}
+    .psize{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;}
+    .pst{font-size:11px;font-weight:700;margin-left:10px;}
+    .ps-paid{color:var(--green);} .ps-over{color:var(--red);} .ps-warn,.ps-part{color:var(--yellow);} .ps-up{color:var(--t3);}
+    .pbar{height:3px;background:var(--bg3);border-radius:2px;margin:8px 0 14px;}
+    .pfill{height:100%;border-radius:2px;background:var(--green);}
+    /* CLIENT PAYMENTS HISTORY */
+    .cph-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 16px;background:var(--bg3);border-radius:var(--r2);margin-top:8px;}
+    .cph-body{display:none;margin-top:6px;}
+    .cph-body.open{display:block;}
     /* MODAL */
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-    .modal-overlay.show{display:flex;}
-    .modal{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px;width:680px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow);}
-    .modal-sm{width:440px;}
-    .modal-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;margin-bottom:28px;}
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-    .form-full{grid-column:1/-1;}
-    .form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
-    .form-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;}
-    .modal-footer{display:flex;gap:12px;justify-content:flex-end;margin-top:28px;padding-top:20px;border-top:1px solid var(--border2);}
+    .mover{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+    .mover.on{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--brd);border-radius:18px;padding:32px;width:660px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:var(--sh);}
+    .modal-sm{width:420px;}
+    .mtitle{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;margin-bottom:24px;}
+    .fg{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .ff{grid-column:1/-1;}
+    .fgp{display:flex;flex-direction:column;gap:6px;}
+    .mfoot{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:18px;border-top:1px solid var(--brd2);}
+    .sdiv{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--brd2);}
     /* PHONE ROW */
-    .phone-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
-    .phone-row .f-input{margin-bottom:0;flex:1;}
-    /* PAYMENT SCHEDULE TABLE */
-    .schedule-table{width:100%;border-collapse:collapse;}
-    .schedule-table th{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;border-bottom:1px solid var(--border2);text-align:left;}
-    .schedule-table td{padding:8px 12px;border-bottom:1px solid var(--border2);}
-    .schedule-table tr:last-child td{border-bottom:none;}
-    .sched-input{width:100%;padding:8px 12px;background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;font-family:'Manrope',sans-serif;font-size:13px;color:var(--text);outline:none;}
-    .sched-input:focus{border-color:var(--green);}
+    .ph-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+    .ph-row .inp{flex:1;margin-bottom:0;}
+    /* SCHEDULE TABLE */
+    .stbl{width:100%;border-collapse:collapse;}
+    .stbl th{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;border-bottom:1px solid var(--brd2);text-align:left;}
+    .stbl td{padding:6px 10px;border-bottom:1px solid var(--brd2);}
+    .stbl tr:last-child td{border-bottom:none;}
+    .sinp{width:100%;padding:7px 10px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:6px;font-family:'Manrope',sans-serif;font-size:13px;color:var(--text);outline:none;}
+    .sinp:focus{border-color:var(--green);}
     /* MISC */
-    .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text3);font-size:13px;gap:10px;}
-    .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .empty{text-align:center;padding:60px 20px;color:var(--text3);}
-    .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;box-shadow:var(--shadow);z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;}
-    .toast.show{transform:translateY(0);opacity:1;}
-    .toast.success{border-color:var(--green);color:var(--green);}
-    .toast.error{border-color:var(--red);color:var(--red);}
-    .back-btn{display:inline-flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:20px;border:none;background:none;}
+    .loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--t3);font-size:13px;gap:8px;}
+    .spin{width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--green);border-radius:50%;animation:sp .8s linear infinite;}
+    @keyframes sp{to{transform:rotate(360deg);}}
+    .empty{text-align:center;padding:48px;color:var(--t3);font-size:13px;}
+    .toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);font-size:13px;font-weight:600;box-shadow:var(--sh);z-index:9999;transform:translateY(80px);opacity:0;transition:.3s;}
+    .toast.on{transform:translateY(0);opacity:1;}
+    .toast.ok{border-color:var(--green);color:var(--green);}
+    .toast.err{border-color:var(--red);color:var(--red);}
+    .back-btn{display:inline-flex;align-items:center;gap:6px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:16px;border:none;background:none;transition:.2s;}
     .back-btn:hover{color:var(--green);}
-    .overdue-item{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,71,87,0.05);border:1px solid rgba(255,71,87,0.15);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;}
-    .today-item{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:rgba(255,165,2,0.05);border:1px solid rgba(255,165,2,0.15);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;}
-    .upcoming-item{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;}
     /* SETTINGS */
-    .settings-list{display:flex;flex-direction:column;gap:10px;}
-    .settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg3);border-radius:var(--radius-sm);}
-    .settings-item-name{font-size:14px;font-weight:600;}
-    .add-item-row{display:flex;gap:10px;margin-top:12px;}
-    .add-item-row .f-input{margin-bottom:0;flex:1;}
-    /* SECTION DIVIDER */
-    .section-div{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border2);}
-
-    /* ═══ MOBILE ═══ */
-    @media (max-width: 768px) {
-      .sidebar { 
-        width: 100%; height: 56px; min-height: unset;
-        flex-direction: row; align-items: center;
-        padding: 0; bottom: 0; top: auto;
-        border-right: none; border-top: 1px solid var(--border2);
-        justify-content: space-around;
-      }
-      .sidebar > div:first-child { display: flex; flex-direction: row; align-items: center; width: 100%; justify-content: space-around; }
-      .sidebar-logo, .sidebar-name, .nav-group, .sidebar-footer { display: none !important; }
-      .nav-item { 
-        flex-direction: column; gap: 3px; padding: 6px 8px;
-        font-size: 9px; margin-bottom: 0; border-radius: 8px;
-        min-width: 60px; align-items: center; justify-content: center;
-      }
-      .nav-item svg, .nav-item span:first-child { font-size: 18px; }
-      .main { margin-left: 0; padding: 16px 14px 80px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-      .stat-card { padding: 14px 16px; }
-      .stat-value { font-size: 18px; }
-      .page-header { flex-direction: column; gap: 12px; margin-bottom: 20px; align-items: flex-start; }
-      .page-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
-      .page-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 10px 12px; }
-      .page-title { font-size: 18px; }
-      .card { padding: 16px; }
-      /* Dashboard grid */
-      #page-dashboard > div:last-child { grid-template-columns: 1fr; }
-      /* Client detail */
-      #clientDetail > div:last-child { grid-template-columns: 1fr !important; }
-      .info-grid { grid-template-columns: 1fr; }
-      /* Table */
-      .tbl th, .tbl td { padding: 10px 8px; font-size: 12px; }
-      .tbl th:nth-child(4), .tbl td:nth-child(4),
-      .tbl th:nth-child(7), .tbl td:nth-child(7) { display: none; }
-      /* Modal */
-      .modal { padding: 24px 20px; border-radius: 16px 16px 0 0; width: 100% !important; max-width: 100% !important; margin-top: auto; max-height: 95vh; }
-      .modal-overlay { align-items: flex-end; }
-      .form-grid { grid-template-columns: 1fr; }
-      .form-full { grid-column: 1; }
-      /* Pay item */
-      .pay-item { flex-wrap: wrap; gap: 8px; padding: 12px; }
-      .pay-actions { width: 100%; justify-content: flex-end; }
-      .pay-month { width: auto; }
-      /* Search */
-      .search-bar { flex-direction: column; }
-      .filter-tabs { gap: 6px; }
-      .filter-tab { padding: 6px 12px; font-size: 11px; }
-      /* Settings */
-      #page-settings > div { grid-template-columns: 1fr !important; }
-      /* Overdue/today lists */
-      .overdue-item, .today-item, .upcoming-item { padding: 10px 14px; }
+    .slist{display:flex;flex-direction:column;gap:8px;}
+    .sitem{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border-radius:var(--r2);}
+    .sadd{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+    .sadd .inp{flex:1;min-width:120px;}
+    /* DASHBOARD LISTS */
+    .dash-item{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:var(--r2);margin-bottom:6px;cursor:pointer;transition:.15s;}
+    .dash-item:hover{background:var(--bg3);}
+    .di-over{background:rgba(255,71,87,0.04);border:1px solid rgba(255,71,87,0.12);}
+    .di-today{background:rgba(255,165,2,0.04);border:1px solid rgba(255,165,2,0.12);}
+    .di-up{background:var(--bg3);border:1px solid var(--brd2);}
+    /* MOBILE */
+    @media(max-width:768px){
+      .sidebar{width:100%;height:54px;min-height:unset;flex-direction:row;align-items:center;padding:0;bottom:0;top:auto;border-right:none;border-top:1px solid var(--brd2);justify-content:space-around;}
+      .sidebar>div:first-child{display:flex;flex-direction:row;align-items:center;width:100%;justify-content:space-around;}
+      .s-logo,.s-name,.s-group,.s-foot{display:none!important;}
+      .nav-btn{flex-direction:column;gap:2px;padding:5px 8px;font-size:9px;min-width:54px;align-items:center;justify-content:center;margin-bottom:0;}
+      .nav-icon{width:20px;height:20px;}
+      .main{margin-left:0;padding:14px 12px 72px;}
+      .sg{grid-template-columns:1fr 1fr;gap:10px;}
+      .ph{flex-direction:column;gap:10px;align-items:flex-start;}
+      .pa{flex-wrap:wrap;width:100%;}
+      .pa .btn{flex:1;justify-content:center;}
+      #clientDetail>div:last-child{grid-template-columns:1fr!important;}
+      .ig{grid-template-columns:1fr;}
+      .modal{padding:22px 18px;border-radius:16px 16px 0 0;width:100%!important;max-width:100%!important;max-height:94vh;}
+      .mover.on{align-items:flex-end;}
+      .fg{grid-template-columns:1fr;}
+      .ff{grid-column:1;}
+      .tbl th:nth-child(2),.tbl td:nth-child(2),.tbl th:nth-child(4),.tbl td:nth-child(4){display:none;}
     }
-    @media (max-width: 400px) {
-      .stats-grid { grid-template-columns: 1fr; }
-      .nav-item { min-width: 50px; font-size: 8px; }
-    }
-
   </style>
 </head>
 <body>
 
 <!-- LOGIN -->
-<div id="loginScreen" class="login-screen">
+<div id="loginWrap" class="login-wrap">
   <div class="login-box">
     <div class="login-logo">AMANA FINANCE</div>
-    <div class="login-title">CRM<br><span>Система</span></div>
-    <label class="f-label">Пароль</label>
-    <input class="f-input" type="password" id="loginPass" placeholder="Введите пароль"/>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:15px" onclick="doLogin()">Войти →</button>
-    <div style="color:var(--red);font-size:13px;margin-top:10px;text-align:center;display:none" id="loginErr">Неверный пароль</div>
+    <div class="login-title">CRM <span>Система</span></div>
+    <label class="lbl">Пароль</label>
+    <input class="inp" type="password" id="loginPass" placeholder="Введите пароль" style="margin-bottom:12px"/>
+    <button class="btn btn-g" style="width:100%;justify-content:center;padding:13px" onclick="doLogin()">Войти</button>
+    <div id="loginErr" style="color:var(--red);font-size:12px;margin-top:8px;text-align:center;display:none">Неверный пароль</div>
   </div>
 </div>
 
@@ -285,101 +269,125 @@
 <div id="app" class="app">
   <aside class="sidebar">
     <div>
-      <div class="sidebar-logo">AMANA FINANCE</div>
-      <div class="sidebar-name">CRM</div>
-      <div class="nav-group">Главная</div>
-      <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')"><span style="font-size:18px">◈</span><span>Дашборд</span></button>
-      <div class="nav-group">Работа</div>
-      <button class="nav-item" id="nav-clients" onclick="showPage('clients')"><span style="font-size:18px">◉</span><span>Клиенты <span class="nav-badge" id="overdueCount" style="display:none">0</span></span></button>
-      <button class="nav-item" id="nav-payments" onclick="showPage('payments')"><span style="font-size:18px">◎</span><span>Платежи</span></button>
-      <button class="nav-item" id="nav-journal" onclick="showPage('journal')"><span style="font-size:18px">📋</span><span>Журнал</span></button>
-      <div class="nav-group">Система</div>
-      <button class="nav-item" id="nav-settings" onclick="showPage('settings')"><span style="font-size:18px">⚙</span><span>Настройки</span></button>
+      <div class="s-logo">AMANA FINANCE</div>
+      <div class="s-name">CRM</div>
+      <div class="s-group">Главная</div>
+      <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Дашборд
+      </button>
+      <div class="s-group">Работа</div>
+      <button class="nav-btn" id="nav-clients" onclick="showPage('clients')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Клиенты <span class="nav-badge" id="ovBadge" style="display:none">0</span>
+      </button>
+      <button class="nav-btn" id="nav-payments" onclick="showPage('payments')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Платежи
+      </button>
+      <button class="nav-btn" id="nav-journal" onclick="showPage('journal')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Журнал
+      </button>
+      <div class="s-group">Система</div>
+      <button class="nav-btn" id="nav-settings" onclick="showPage('settings')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Настройки
+      </button>
     </div>
-    <div class="sidebar-footer">Amana Finance © 2025</div>
+    <div class="s-foot">Amana Finance © 2025</div>
   </aside>
 
   <main class="main">
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page">
-      <div class="page-header">
-        <div><div class="page-title">Дашборд</div><div class="page-sub" id="dashDate"></div></div>
-        <div class="page-actions">
-          <button class="btn btn-ghost" onclick="exportExcel()">📥 Экспорт Excel</button>
-          <button class="btn btn-primary" onclick="openModal('modalClient')">+ Новый договор</button>
+      <div class="ph">
+        <div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div>
+        <div class="pa">
+          <button class="btn btn-gh" onclick="exportExcel()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Экспорт Excel
+          </button>
+          <button class="btn btn-g" onclick="openNewClient()">+ Новый договор</button>
         </div>
       </div>
-      <div id="dashStats" class="stats-grid"><div class="loading"><div class="spinner"></div> Загрузка...</div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <div class="card"><div class="card-title">🔴 Просрочники</div><div id="overdueList"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div id="dashStats" class="sg"><div class="loading"><div class="spin"></div> Загрузка...</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card"><div class="ct">Просрочники</div><div id="ovList"></div></div>
         <div>
-          <div class="card"><div class="card-title">🟡 Платежи сегодня</div><div id="todayList"></div></div>
-          <div class="card"><div class="card-title">⏰ Ближайшие 3 дня</div><div id="upcomingList"></div></div>
+          <div class="card"><div class="ct">Платежи сегодня</div><div id="todayList"></div></div>
+          <div class="card"><div class="ct">Ближайшие 3 дня</div><div id="upList"></div></div>
         </div>
       </div>
     </div>
 
     <!-- CLIENTS -->
     <div id="page-clients" class="page" style="display:none">
-      <div class="page-header">
-        <div><div class="page-title">Клиенты</div><div class="page-sub" id="clientsCount"></div></div>
-        <div class="page-actions">
-          <button class="btn btn-ghost" onclick="exportExcel()">📥 Экспорт Excel</button>
-          <button class="btn btn-primary" onclick="openModal('modalClient')">+ Новый договор</button>
+      <div class="ph">
+        <div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div>
+        <div class="pa">
+          <button class="btn btn-gh" onclick="exportExcel()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Экспорт Excel
+          </button>
+          <button class="btn btn-g" onclick="openNewClient()">+ Новый договор</button>
         </div>
       </div>
-      <div class="search-bar">
-        <input class="search-input" id="searchInput" placeholder="🔍  Поиск по ФИО, договору, товару, телефону..." oninput="renderClients()"/>
+      <div class="search-row">
+        <input class="search-inp" id="searchQ" placeholder="Поиск по ФИО, договору, товару, телефону..." oninput="renderClients()"/>
       </div>
-      <div class="filter-tabs">
-        <button class="filter-tab active" onclick="setFilter('all',this)">Все</button>
-        <button class="filter-tab" onclick="setFilter('active',this)">Активные</button>
-        <button class="filter-tab" onclick="setFilter('overdue',this)">Просроченные</button>
-        <button class="filter-tab" onclick="setFilter('завершён',this)">Завершённые</button>
-        <button class="filter-tab" onclick="setFilter('удалён',this)">🗑 Удалённые</button>
+      <div class="ftabs">
+        <button class="ftab on" onclick="setF('all',this)">Все</button>
+        <button class="ftab" onclick="setF('активный',this)">Активные</button>
+        <button class="ftab" onclick="setF('overdue',this)">Просроченные</button>
+        <button class="ftab" onclick="setF('завершён',this)">Завершённые</button>
+        <button class="ftab" onclick="setF('удалён',this)">Удалённые</button>
       </div>
-      <div class="card" style="padding:0;overflow:hidden"><div id="clientsList"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="clientsList"><div class="loading"><div class="spin"></div></div></div>
+      </div>
     </div>
 
     <!-- CLIENT DETAIL -->
     <div id="page-client" class="page" style="display:none">
-      <button class="back-btn" onclick="showPage('clients')">← Назад к клиентам</button>
-      <div id="clientDetail"><div class="loading"><div class="spinner"></div></div></div>
+      <button class="back-btn" onclick="showPage('clients')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад к клиентам
+      </button>
+      <div id="clientDetail"></div>
     </div>
 
     <!-- PAYMENTS -->
     <div id="page-payments" class="page" style="display:none">
-      <div class="page-header"><div class="page-title">История платежей</div></div>
-      <div class="card" style="padding:0;overflow:hidden"><div id="paymentsList"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="ph"><div class="pt">История платежей</div></div>
+      <div class="card" style="padding:0;overflow:hidden"><div id="payList"></div></div>
     </div>
 
     <!-- JOURNAL -->
     <div id="page-journal" class="page" style="display:none">
-      <div class="page-header"><div class="page-title">📋 Журнал действий</div></div>
-      <div class="card" style="padding:0;overflow:hidden"><div id="journalList"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="ph"><div class="pt">Журнал действий</div></div>
+      <div class="card" style="padding:0;overflow:hidden"><div id="journalList"></div></div>
     </div>
 
     <!-- SETTINGS -->
     <div id="page-settings" class="page" style="display:none">
-      <div class="page-header"><div class="page-title">Настройки</div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <!-- Partners -->
+      <div class="ph"><div class="pt">Настройки</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="card">
-          <div class="card-title">Партнёры</div>
-          <div class="settings-list" id="partnersList"></div>
-          <div class="add-item-row">
-            <input class="f-input no-mb" type="text" id="newPartner" placeholder="Название партнёра"/>
-            <button class="btn btn-primary btn-sm" onclick="addPartner()">+ Добавить</button>
+          <div class="ct">Партнёры</div>
+          <div class="slist" id="partnersList"></div>
+          <div class="sadd">
+            <input class="inp" type="text" id="newPartner" placeholder="Название партнёра" style="margin-bottom:0"/>
+            <button class="btn btn-g btn-sm" onclick="addPartner()">Добавить</button>
           </div>
         </div>
-        <!-- Cards -->
         <div class="card">
-          <div class="card-title">Карты для оплаты</div>
-          <div class="settings-list" id="cardsList"></div>
-          <div class="add-item-row" style="flex-direction:column;gap:8px">
-            <input class="f-input no-mb" type="text" id="newCardName" placeholder="Название (напр. Сбер Иван)"/>
-            <input class="f-input no-mb" type="text" id="newCardNumber" placeholder="Номер карты"/>
-            <button class="btn btn-primary btn-sm" onclick="addCard()" style="align-self:flex-end">+ Добавить</button>
+          <div class="ct">Способы оплаты</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Добавьте названия карт или типов оплаты (Нал, Сбер, Т-Банк и т.д.)</div>
+          <div class="slist" id="cardsList"></div>
+          <div class="sadd">
+            <input class="inp" type="text" id="newPayType" placeholder="Например: Т-Банк" style="margin-bottom:0"/>
+            <button class="btn btn-g btn-sm" onclick="addPayType()">Добавить</button>
           </div>
         </div>
       </div>
@@ -387,165 +395,88 @@
   </main>
 </div>
 
-<!-- MODAL: ADD CLIENT -->
-<div class="modal-overlay" id="modalClient">
+<!-- MODAL: CLIENT FORM -->
+<div class="mover" id="mClient">
   <div class="modal">
-    <div class="modal-title">Новый договор</div>
-    
-    <div class="section-div">Основная информация</div>
-    <div class="form-grid">
-      <div class="form-group form-full">
-        <label class="form-label">Дата оформления</label>
-        <input class="f-input no-mb" type="date" id="f_date"/>
-      </div>
+    <div class="mtitle" id="mClientTitle">Новый договор</div>
+    <div class="sdiv">Основное</div>
+    <div class="fg">
+      <div class="fgp ff"><label class="lbl">Дата оформления</label><input class="inp" type="date" id="f_date"/></div>
     </div>
-
-    <div class="section-div">Клиент</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">ФИО клиента *</label>
-        <input class="f-input no-mb" type="text" id="f_name" placeholder="Иванов Иван Иванович"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Телефоны клиента</label>
-        <div id="f_phones">
-          <div class="phone-row"><input class="f-input no-mb" type="tel" placeholder="89001234567"/><button class="btn-icon btn-add" onclick="addPhone('f_phones')">+</button></div>
-        </div>
-      </div>
-      <div class="form-group form-full">
-        <label class="form-label">Адрес клиента</label>
-        <input class="f-input no-mb" type="text" id="f_address" placeholder="г. Грозный, ул. Примерная, 1"/>
-      </div>
+    <div class="sdiv">Клиент</div>
+    <div class="fg">
+      <div class="fgp"><label class="lbl">ФИО клиента *</label><input class="inp" type="text" id="f_name" placeholder="Иванов Иван Иванович"/></div>
+      <div class="fgp"><label class="lbl">Телефоны клиента</label><div id="f_phones"><div class="ph-row"><input class="inp" type="tel" placeholder="89001234567"/><button class="ic-btn ic-g" onclick="addPhone('f_phones')">+</button></div></div></div>
+      <div class="fgp ff"><label class="lbl">Адрес клиента</label><input class="inp" type="text" id="f_addr"/></div>
     </div>
-
-    <div class="section-div">Поручитель</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">ФИО поручителя</label>
-        <input class="f-input no-mb" type="text" id="f_guarantor"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Телефоны поручителя</label>
-        <div id="f_gphones">
-          <div class="phone-row"><input class="f-input no-mb" type="tel" placeholder="89001234567"/><button class="btn-icon btn-add" onclick="addPhone('f_gphones')">+</button></div>
-        </div>
-      </div>
-      <div class="form-group form-full">
-        <label class="form-label">Адрес поручителя</label>
-        <input class="f-input no-mb" type="text" id="f_guarantorAddress" placeholder="г. Грозный, ул. Примерная, 2"/>
-      </div>
+    <div class="sdiv">Поручитель</div>
+    <div class="fg">
+      <div class="fgp"><label class="lbl">ФИО поручителя</label><input class="inp" type="text" id="f_gname"/></div>
+      <div class="fgp"><label class="lbl">Телефоны поручителя</label><div id="f_gphones"><div class="ph-row"><input class="inp" type="tel" placeholder="89001234567"/><button class="ic-btn ic-g" onclick="addPhone('f_gphones')">+</button></div></div></div>
+      <div class="fgp ff"><label class="lbl">Адрес поручителя</label><input class="inp" type="text" id="f_gaddr"/></div>
     </div>
-
-    <div class="section-div">Товар и финансы</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">Наименование товара *</label>
-        <input class="f-input no-mb" type="text" id="f_product"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Партнёр</label>
-        <select class="f-input no-mb f-select" id="f_partner"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Себестоимость (₽)</label>
-        <input class="f-input no-mb" type="number" id="f_cost"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Цена продажи (₽) *</label>
-        <input class="f-input no-mb" type="number" id="f_price" oninput="calcSchedule()"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Предоплата (₽)</label>
-        <input class="f-input no-mb" type="number" id="f_prepay" oninput="calcSchedule()"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Кол-во месяцев *</label>
-        <select class="f-input no-mb f-select" id="f_months" onchange="calcSchedule()">
+    <div class="sdiv">Товар и финансы</div>
+    <div class="fg">
+      <div class="fgp"><label class="lbl">Товар *</label><input class="inp" type="text" id="f_product"/></div>
+      <div class="fgp"><label class="lbl">Партнёр</label><select class="inp sel" id="f_partner"></select></div>
+      <div class="fgp"><label class="lbl">Себестоимость (₽)</label><input class="inp" type="number" id="f_cost"/></div>
+      <div class="fgp"><label class="lbl">Цена продажи (₽) *</label><input class="inp" type="number" id="f_price" oninput="calcSched()"/></div>
+      <div class="fgp"><label class="lbl">Предоплата (₽)</label><input class="inp" type="number" id="f_prepay" oninput="calcSched()"/></div>
+      <div class="fgp"><label class="lbl">Кол-во месяцев *</label>
+        <select class="inp sel" id="f_months" onchange="calcSched()">
           <option>3</option><option>4</option><option>5</option><option>6</option>
           <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
         </select>
       </div>
-      <div class="form-group form-full">
-        <label class="form-label">Способ оплаты предоплаты</label>
-        <select class="f-input no-mb f-select" id="f_payType">
-          <option value="Нал">Наличные</option>
-          <option value="Безнал">Безналичные</option>
-        </select>
-      </div>
+      <div class="fgp ff"><label class="lbl">Способ оплаты предоплаты</label><select class="inp sel" id="f_prepayType"></select></div>
     </div>
-
-    <div class="section-div">График платежей</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Укажите сумму и дату для каждого платежа. Суммы рассчитаны автоматически — измените если нужно.</div>
-    <table class="schedule-table">
-      <thead><tr><th style="width:60px">№</th><th>Сумма (₽)</th><th>Дата оплаты</th></tr></thead>
-      <tbody id="scheduleBody"></tbody>
-    </table>
-
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modalClient')">Отмена</button>
-      <button class="btn btn-primary" onclick="submitClient()">Сохранить договор</button>
+    <div class="sdiv">График платежей</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Суммы рассчитаны автоматически. Измените если нужно.</div>
+    <table class="stbl"><thead><tr><th>№</th><th>Сумма (₽)</th><th>Дата оплаты</th></tr></thead><tbody id="schedBody"></tbody></table>
+    <div class="mfoot">
+      <button class="btn btn-gh" onclick="closeModal('mClient')">Отмена</button>
+      <button class="btn btn-g" id="mClientBtn" onclick="submitClient()">Сохранить</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL: PAYMENT -->
-<div class="modal-overlay" id="modalPayment">
+<div class="mover" id="mPayment">
   <div class="modal modal-sm">
-    <div class="modal-title">Внести оплату</div>
-    <div style="font-size:15px;font-weight:600;margin-bottom:20px;color:var(--text)" id="pm_name"></div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Сумма (₽) *</label>
-      <input class="f-input no-mb" type="number" id="pm_amount"/>
-    </div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Способ оплаты</label>
-      <select class="f-input no-mb f-select" id="pm_payType">
-        <option value="Нал">Наличные</option>
-        <option value="Безнал">Безналичные</option>
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modalPayment')">Отмена</button>
-      <button class="btn btn-primary" onclick="submitPayment()">Записать</button>
+    <div class="mtitle">Внести оплату</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:18px;color:var(--text)" id="pm_name"></div>
+    <div class="fgp" style="margin-bottom:12px"><label class="lbl">Сумма (₽) *</label><input class="inp" type="number" id="pm_amount"/></div>
+    <div class="fgp" style="margin-bottom:12px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="pm_type"></select></div>
+    <div class="mfoot">
+      <button class="btn btn-gh" onclick="closeModal('mPayment')">Отмена</button>
+      <button class="btn btn-g" onclick="submitPayment()">Записать</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL: DISCOUNT -->
-<div class="modal-overlay" id="modalDiscount">
+<div class="mover" id="mDiscount">
   <div class="modal modal-sm">
-    <div class="modal-title">🎁 Скидка клиенту</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Скидка уменьшит остаток долга клиента. Сумма скидки добавляется к уже существующей.</div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Сумма скидки (₽)</label>
-      <input class="f-input no-mb" type="number" id="disc_amount" placeholder="5000"/>
-    </div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Причина (необязательно)</label>
-      <input class="f-input no-mb" type="text" id="disc_reason" placeholder="По договорённости..."/>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modalDiscount')">Отмена</button>
-      <button class="btn btn-primary" style="background:var(--yellow);color:#0a0f0c" onclick="submitDiscount()">Применить скидку</button>
+    <div class="mtitle">Скидка клиенту</div>
+    <div class="fgp" style="margin-bottom:12px"><label class="lbl">Сумма скидки (₽) *</label><input class="inp" type="number" id="disc_amount"/></div>
+    <div class="fgp" style="margin-bottom:12px"><label class="lbl">Причина</label><input class="inp" type="text" id="disc_reason" placeholder="По договорённости..."/></div>
+    <div class="mfoot">
+      <button class="btn btn-gh" onclick="closeModal('mDiscount')">Отмена</button>
+      <button class="btn btn-y" onclick="submitDiscount()">Применить скидку</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL: DEFERRAL -->
-<div class="modal-overlay" id="modalDeferral">
+<div class="mover" id="mDefer">
   <div class="modal modal-sm">
-    <div class="modal-title">Отсрочка платежа</div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Новая дата оплаты</label>
-      <input class="f-input no-mb" type="date" id="def_date"/>
-    </div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Комментарий</label>
-      <input class="f-input no-mb" type="text" id="def_comment" placeholder="Обещал оплатить..."/>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modalDeferral')">Отмена</button>
-      <button class="btn btn-primary" onclick="submitDeferral()">Сохранить</button>
+    <div class="mtitle">Отсрочка платежа</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:14px" id="def_info"></div>
+    <div class="fgp" style="margin-bottom:12px"><label class="lbl">Новая дата</label><input class="inp" type="date" id="def_date"/></div>
+    <div class="fgp" style="margin-bottom:12px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="def_comment" placeholder="Обещал оплатить..."/></div>
+    <div class="mfoot">
+      <button class="btn btn-gh" onclick="closeModal('mDefer')">Отмена</button>
+      <button class="btn btn-g" onclick="submitDefer()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -553,780 +484,699 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const G = { clients:[], payments:[], payTypes:['Нал','Безнал'], partners:['Хайр Строй','Иса кирпич','Прочий'], curClient:null, filter:'all', sortCol:'', sortDir:1 };
 let _cid=null, _midx=null;
 
+// ─── LOGIN ───
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-
 function doLogin(){
   if(document.getElementById('loginPass').value==='amana2025'){
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('app').classList.add('visible');
+    document.getElementById('loginWrap').style.display='none';
+    document.getElementById('app').classList.add('on');
     initApp();
-  } else {
-    document.getElementById('loginErr').style.display='block';
+  } else document.getElementById('loginErr').style.display='block';
+}
+
+// ─── INIT ───
+function initApp(){
+  document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  loadSettings();
+  startListeners();
+}
+
+function startListeners(){
+  const {db,collection,query,orderBy,onSnapshot} = window.FB;
+  let cOk=false, pOk=false;
+  onSnapshot(collection(db,'clients'), snap=>{
+    G.clients=snap.docs.map(d=>({id:d.id,...d.data()}));
+    cOk=true; if(pOk) refreshAll();
+  });
+  onSnapshot(query(collection(db,'payments'),orderBy('date','desc')), snap=>{
+    G.payments=snap.docs.map(d=>({id:d.id,...d.data()}));
+    pOk=true; if(cOk) refreshAll();
+  });
+}
+
+function refreshAll(){
+  renderDashboard();
+  renderClients();
+  renderPayments();
+  if(G.curClient){
+    const c=G.clients.find(x=>x.id===G.curClient);
+    if(c && document.getElementById('page-client').style.display!=='none') renderDetail(c);
   }
 }
 
-function initApp(){
-  document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  loadAll();
-  loadSettings();
+// ─── NAVIGATION ───
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).style.display='block';
+  const nb=document.getElementById('nav-'+p);
+  if(nb) nb.classList.add('active');
+  if(p==='journal') loadJournal();
 }
 
-function loadAll(){
-  const C=window.CRM;
-  let cLoaded=false, pLoaded=false;
-  C.onSnapshot(C.collection(C.db,'clients'),snap=>{
-    C.clients=snap.docs.map(d=>({id:d.id,...d.data()}));
-    cLoaded=true;
-    renderDashboard();
-    renderClients();
-    // Если открыта карточка клиента — перерисовываем её тоже
-    if(C.currentClientId){
-      const c=C.clients.find(x=>x.id===C.currentClientId);
-      if(c && document.getElementById('page-client').style.display!=='none'){
-        renderClientDetail(c);
-      }
-    }
-  });
-  C.onSnapshot(C.query(C.collection(C.db,'payments'),C.orderBy('date','desc')),snap=>{
-    C.payments=snap.docs.map(d=>({id:d.id,...d.data()}));
-    pLoaded=true;
-    renderPaymentsFromCache();
-  });
+// ─── HELPERS ───
+const {fmt,fmtDate,calcClientStats} = (() => {
+  let fb={};
+  window.addEventListener('fbReady',()=>fb=window.FB);
+  return { 
+    get fmt(){ return window.FB?.fmt||((n)=>n); },
+    get fmtDate(){ return window.FB?.fmtDate||((d)=>''); },
+    get calcClientStats(){ return window.FB?.calcClientStats||((c,p)=>({balance:0,overdue:0,schedule:[],status:c.status||'активный'})); }
+  };
+})();
+
+function getStats(c){ return window.FB.calcClientStats(c, G.payments); }
+function autoStatus(c,stats){
+  if(c.status==='удалён') return 'удалён';
+  if(c.status==='завершён') return 'завершён';
+  if(stats.balance===0) return 'завершён';
+  return 'активный';
 }
 
-async function loadSettings(){
-  const C=window.CRM;
-  const snap=await C.getDocs(C.collection(C.db,'settings'));
-  snap.docs.forEach(d=>{
-    const data=d.data();
-    if(d.id==='partners') C.partners=data.list||['Хайр Строй','Иса кирпич','Прочий'];
-    if(d.id==='cards') C.cards=data.list||[];
-  });
-  renderSettings();
-  updatePartnerSelect();
-  updatePayTypeSelect();
-}
-
-function showPage(page){
-  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+page).style.display='block';
-  const nav=document.getElementById('nav-'+page);
-  if(nav) nav.classList.add('active');
-}
-
-// ═══ DASHBOARD ═══
+// ─── DASHBOARD ───
 function renderDashboard(){
-  const C=window.CRM;
-  const t=C.today();
-  let totalDebt=0,totalOverdue=0,activeCount=0,closedCount=0;
-  const overdueClients=[],todayPayments=[],upcomingClients=[];
-  C.clients.forEach(c=>{
-    if(c.status==='завершён'){closedCount++;return;}
-    activeCount++;
-    const payments=C.calcPayments(c);
-    const balance=C.calcBalance(c);
-    const overdue=C.calcOverdue(payments);
-    totalDebt+=balance; totalOverdue+=overdue;
-    if(overdue>0) overdueClients.push({...c,overdue,balance});
-    payments.forEach(p=>{
-      if(p.diff===0&&p.status!=='paid') todayPayments.push({...c,payment:p});
-      if(p.diff>0&&p.diff<=3&&p.status!=='paid') upcomingClients.push({...c,payment:p});
+  const FB=window.FB;
+  const t=FB.today();
+  let totalDebt=0,totalOver=0,active=0,done=0;
+  const ovList=[],todayList=[],upList=[];
+  G.clients.forEach(c=>{
+    if(c.status==='удалён') return;
+    const s=getStats(c);
+    const st=autoStatus(c,s);
+    if(st==='завершён'){done++;return;}
+    active++;
+    totalDebt+=s.balance;
+    totalOver+=s.overdue;
+    if(s.overdue>0) ovList.push({c,s});
+    s.schedule.forEach(p=>{
+      if(p.diff===0&&p.status!=='paid') todayList.push({c,p});
+      if(p.diff>0&&p.diff<=3&&p.status!=='paid') upList.push({c,p});
     });
   });
-  const badge=document.getElementById('overdueCount');
-  badge.textContent=overdueClients.length; badge.style.display=overdueClients.length?'inline':'none';
+  const badge=document.getElementById('ovBadge');
+  badge.textContent=ovList.length; badge.style.display=ovList.length?'inline':'none';
   document.getElementById('dashStats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value v-green">${activeCount}</div><div class="stat-sub">Завершёных: ${closedCount}</div></div>
-    <div class="stat-card"><div class="stat-label">Общий долг</div><div class="stat-value">${C.fmt(totalDebt)} ₽</div></div>
-    <div class="stat-card"><div class="stat-label">Просрочка</div><div class="stat-value v-red">${C.fmt(totalOverdue)} ₽</div><div class="stat-sub">${overdueClients.length} клиентов</div></div>
-    <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value v-yellow">${todayPayments.length}</div><div class="stat-sub">платежей</div></div>`;
-  document.getElementById('overdueList').innerHTML=overdueClients.length
-    ?overdueClients.map(c=>`<div class="overdue-item" onclick="openClient('${c.id}')"><div><div style="font-size:14px;font-weight:600">${c.name}</div><div style="font-size:12px;color:var(--text2)">№${c.contractId||'—'} · ${C.fmt(c.balance)} ₽ осталось</div></div><div class="amount v-red">${C.fmt(c.overdue)} ₽</div></div>`).join('')
-    :'<div class="empty" style="padding:20px"><div style="font-size:24px">✓</div><div style="font-size:12px;margin-top:8px">Просрочников нет</div></div>';
-  document.getElementById('todayList').innerHTML=todayPayments.length
-    ?todayPayments.map(c=>`<div class="today-item" onclick="openClient('${c.id}')"><div style="font-size:13px;font-weight:600">${c.name}</div><div class="amount v-yellow">${C.fmt(c.payment.size)} ₽</div></div>`).join('')
-    :'<div style="color:var(--text3);font-size:12px;padding:8px">Нет платежей</div>';
-  document.getElementById('upcomingList').innerHTML=upcomingClients.length
-    ?upcomingClients.map(c=>`<div class="upcoming-item" onclick="openClient('${c.id}')"><div><div style="font-size:13px;font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--text2)">${c.payment.date} · через ${c.payment.diff} дн.</div></div><div class="amount" style="font-size:13px">${C.fmt(c.payment.size)} ₽</div></div>`).join('')
-    :'<div style="color:var(--text3);font-size:12px;padding:8px">Нет</div>';
+    <div class="sc"><div class="sl">Активных</div><div class="sv c-g">${active}</div><div class="ss">Завершённых: ${done}</div></div>
+    <div class="sc"><div class="sl">Общий долг</div><div class="sv">${FB.fmt(totalDebt)} ₽</div></div>
+    <div class="sc"><div class="sl">Просрочка</div><div class="sv c-r">${FB.fmt(totalOver)} ₽</div><div class="ss">${ovList.length} клиентов</div></div>
+    <div class="sc"><div class="sl">Сегодня</div><div class="sv c-y">${todayList.length}</div><div class="ss">платежей</div></div>`;
+  document.getElementById('ovList').innerHTML=ovList.length
+    ?ovList.map(({c,s})=>`<div class="dash-item di-over" onclick="openClient('${c.id}')"><div><div style="font-size:13px;font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--t2)">№${c.contractId} · остаток ${FB.fmt(s.balance)} ₽</div></div><div class="amt c-r">${FB.fmt(s.overdue)} ₽</div></div>`).join('')
+    :'<div class="empty" style="padding:16px">Просрочников нет</div>';
+  document.getElementById('todayList').innerHTML=todayList.length
+    ?todayList.map(({c,p})=>`<div class="dash-item di-today" onclick="openClient('${c.id}')"><div style="font-size:13px;font-weight:600">${c.name}</div><div class="amt c-y">${FB.fmt(p.size)} ₽</div></div>`).join('')
+    :'<div style="color:var(--t3);font-size:12px;padding:8px">Нет</div>';
+  document.getElementById('upList').innerHTML=upList.length
+    ?upList.map(({c,p})=>`<div class="dash-item di-up" onclick="openClient('${c.id}')"><div><div style="font-size:13px;font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--t2)">${p.date} · через ${p.diff} дн.</div></div><div class="amt" style="font-size:12px">${FB.fmt(p.size)} ₽</div></div>`).join('')
+    :'<div style="color:var(--t3);font-size:12px;padding:8px">Нет</div>';
 }
 
-// ═══ CLIENTS ═══
-function setFilter(f,btn){window.CRM.filter=f;document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderClients();}
+// ─── CLIENTS ───
+function setF(f,btn){G.filter=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');renderClients();}
 
 function renderClients(){
-  const C=window.CRM;
-  const q=(document.getElementById('searchInput').value||'').toLowerCase();
-  let list=C.clients.map(c=>({...c,overdue:C.calcOverdue(C.calcPayments(c)),balance:C.calcBalance(c)}));
-  if(C.filter==='all') list=list.filter(c=>c.status!=='удалён');
-  else if(C.filter==='active') list=list.filter(c=>c.status==='активный');
-  else if(C.filter==='overdue') list=list.filter(c=>c.overdue>0&&c.status==='активный');
-  else if(C.filter==='завершён') list=list.filter(c=>c.status==='завершён');
-  else if(C.filter==='удалён') list=list.filter(c=>c.status==='удалён');
+  const FB=window.FB;
+  const q=(document.getElementById('searchQ').value||'').toLowerCase();
+  let list=G.clients.map(c=>{
+    const s=getStats(c);
+    return {...c,_balance:s.balance,_overdue:s.overdue,_status:autoStatus(c,s)};
+  });
+  // Filter
+  if(G.filter==='all') list=list.filter(c=>c._status!=='удалён');
+  else if(G.filter==='активный') list=list.filter(c=>c._status==='активный');
+  else if(G.filter==='overdue') list=list.filter(c=>c._overdue>0&&c._status==='активный');
+  else if(G.filter==='завершён') list=list.filter(c=>c._status==='завершён');
+  else if(G.filter==='удалён') list=list.filter(c=>c._status==='удалён');
+  // Search
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.contractId||'').includes(q)||(c.product||'').toLowerCase().includes(q)||(c.phones||[]).join(' ').includes(q));
-  document.getElementById('clientsCount').textContent=list.length+' клиентов';
+  // Sort
+  if(G.sortCol){
+    list.sort((a,b)=>{
+      let va=a[G.sortCol]||0, vb=b[G.sortCol]||0;
+      if(typeof va==='string') return va.localeCompare(vb)*G.sortDir;
+      return (va-vb)*G.sortDir;
+    });
+  }
+  document.getElementById('cCount').textContent=list.length+' клиентов';
   if(!list.length){document.getElementById('clientsList').innerHTML='<div class="empty">Ничего не найдено</div>';return;}
-  document.getElementById('clientsList').innerHTML=`<table class="tbl"><thead><tr><th>№</th><th>Дата</th><th>Клиент</th><th>Товар</th><th>Остаток</th><th>Просрочка</th><th>Статус</th><th style="width:120px"></th></tr></thead><tbody>
-    ${list.map(c=>`<tr>
-      <td style="font-weight:700;color:var(--text2)" onclick="openClient('${c.id}')" >${c.contractId||'—'}</td>
-      <td style="color:var(--text2)" onclick="openClient('${c.id}')">${c.date||'—'}</td>
-      <td onclick="openClient('${c.id}')"><div style="font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--text3)">${(c.phones||[])[0]||''}</div></td>
-      <td style="color:var(--text2)" onclick="openClient('${c.id}')">${c.product||'—'}</td>
-      <td onclick="openClient('${c.id}')"><span class="amount">${C.fmt(c.balance)} ₽</span></td>
-      <td onclick="openClient('${c.id}')">${c.overdue>0?`<span class="amount v-red">${C.fmt(c.overdue)} ₽</span>`:'<span style="color:var(--text3)">—</span>'}</td>
-      <td onclick="openClient('${c.id}')">${c.status==='завершён'?'<span class="badge b-closed">Завершён</span>':c.status==='удалён'?'<span class="badge" style="background:rgba(255,71,87,0.1);color:var(--red)">Удалён</span>':c.overdue>0?'<span class="badge b-overdue">Просрочка</span>':'<span class="badge b-active">Активный</span>'}</td>
-      <td>
-        <div style="display:flex;gap:6px;justify-content:flex-end">
-          ${c.status!=='удалён'?`
-            <button class="btn-icon" style="background:rgba(149,193,31,0.1);color:var(--green);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();openEditClient('${c.id}')" title="Изменить">✏</button>
-            <button class="btn-icon" style="background:rgba(255,71,87,0.1);color:var(--red);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();deleteToTrash('${c.id}')" title="Удалёнь">🗑</button>
-          `:`<button class="btn-icon" style="background:rgba(149,193,31,0.1);color:var(--green);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();restoreClient('${c.id}')" title="Восстановить">↩</button>
-            <button class="btn-icon" style="background:rgba(255,71,87,0.15);color:var(--red);width:28px;height:28px;font-size:13px;border-radius:6px;border:none;cursor:pointer" onclick="event.stopPropagation();deleteClientForever('${c.id}')" title="Удалёнь навсегда">✕</button>`}
-        </div>
-      </td>
-    </tr>`).join('')}
-  </tbody></table>`;
+  
+  const sa=(col)=>`onclick="sortBy('${col}')" class="sortable"`;
+  document.getElementById('clientsList').innerHTML=`<table class="tbl">
+    <thead><tr>
+      <th ${sa('contractId')}>№ <span class="sort-arrow ${G.sortCol==='contractId'?'active':''}">${G.sortCol==='contractId'?G.sortDir===1?'↑':'↓':'↕'}</span></th>
+      <th ${sa('date')}>Дата <span class="sort-arrow ${G.sortCol==='date'?'active':''}">${G.sortCol==='date'?G.sortDir===1?'↑':'↓':'↕'}</span></th>
+      <th ${sa('name')}>Клиент <span class="sort-arrow ${G.sortCol==='name'?'active':''}">${G.sortCol==='name'?G.sortDir===1?'↑':'↓':'↕'}</span></th>
+      <th ${sa('product')}>Товар <span class="sort-arrow ${G.sortCol==='product'?'active':''}">${G.sortCol==='product'?G.sortDir===1?'↑':'↓':'↕'}</span></th>
+      <th ${sa('_balance')}>Остаток <span class="sort-arrow ${G.sortCol==='_balance'?'active':''}">${G.sortCol==='_balance'?G.sortDir===1?'↑':'↓':'↕'}</span></th>
+      <th ${sa('_overdue')}>Просрочка <span class="sort-arrow ${G.sortCol==='_overdue'?'active':''}">${G.sortCol==='_overdue'?G.sortDir===1?'↑':'↓':'↕'}</span></th>
+      <th>Статус</th>
+      <th style="width:80px"></th>
+    </tr></thead>
+    <tbody>${list.map(c=>`<tr>
+      <td class="row-click" onclick="openClient('${c.id}')" style="font-weight:700;color:var(--t2)">${c.contractId||'—'}</td>
+      <td class="row-click" onclick="openClient('${c.id}')" style="color:var(--t2)">${c.date||'—'}</td>
+      <td class="row-click" onclick="openClient('${c.id}')"><div style="font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--t3)">${(c.phones||[])[0]||''}</div></td>
+      <td class="row-click" onclick="openClient('${c.id}')" style="color:var(--t2)">${c.product||'—'}</td>
+      <td class="row-click" onclick="openClient('${c.id}')"><span class="amt">${FB.fmt(c._balance)} ₽</span></td>
+      <td class="row-click" onclick="openClient('${c.id}')">${c._overdue>0?`<span class="amt c-r">${FB.fmt(c._overdue)} ₽</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td class="row-click" onclick="openClient('${c.id}')">${statusBadge(c._status)}</td>
+      <td><div style="display:flex;gap:4px;justify-content:flex-end">
+        ${c._status!=='удалён'?`
+          <button class="ic-btn ic-g" onclick="openEditClient('${c.id}')" title="Изменить">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="ic-btn ic-r" onclick="softDelete('${c.id}')" title="Удалить">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>`:`
+          <button class="ic-btn ic-g" onclick="restoreClient('${c.id}')" title="Восстановить">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+          </button>`}
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
 }
 
-// ═══ CLIENT DETAIL ═══
+function sortBy(col){
+  if(G.sortCol===col) G.sortDir*=-1; else { G.sortCol=col; G.sortDir=1; }
+  renderClients();
+}
+
+function statusBadge(st){
+  if(st==='завершён') return '<span class="badge b-done">Завершён</span>';
+  if(st==='удалён') return '<span class="badge b-del">Удалён</span>';
+  return '<span class="badge b-act">Активный</span>';
+}
+
+// ─── CLIENT DETAIL ───
 function openClient(id){
-  window.CRM.currentClientId=id;
+  G.curClient=id;
   showPage('client');
   document.getElementById('nav-clients').classList.add('active');
-  const c=window.CRM.clients.find(x=>x.id===id);
-  if(c) renderClientDetail(c);
+  const c=G.clients.find(x=>x.id===id);
+  if(c) renderDetail(c);
 }
 
-function renderClientDetail(c){
-  const C=window.CRM;
-  const payments=C.calcPayments(c);
-  const balance=C.calcBalance(c);
-  const overdue=C.calcOverdue(payments);
-  const paidCount=payments.filter(p=>p.status==='paid').length;
+function renderDetail(c){
+  const FB=window.FB;
+  const s=getStats(c);
+  const st=autoStatus(c,s);
   const phones=(c.phones||[]).join(', ')||'—';
   const gphones=(c.gphones||[]).join(', ')||'—';
+  const paidCount=s.schedule.filter(p=>p.status==='paid').length;
+
+  // Client payments from history
+  const cPays=G.payments.filter(p=>p.clientId===c.id);
+
   document.getElementById('clientDetail').innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:20px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap">
       <div>
-        <div style="font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;margin-bottom:8px">${c.name}</div>
-        <div style="font-size:13px;color:var(--text2)">📱 ${phones} &nbsp;·&nbsp; 📋 №${c.contractId||'—'} &nbsp;·&nbsp; 📅 ${c.date||'—'} &nbsp;
-          ${c.status==='завершён'?'<span class="badge b-closed" style="font-size:10px">Завершён</span>':'<span class="badge b-active" style="font-size:10px">Активный</span>'}
+        <div style="font-family:'Unbounded',sans-serif;font-size:19px;font-weight:900;margin-bottom:6px">${c.name}</div>
+        <div style="font-size:12px;color:var(--t2)">
+          ${phones} &nbsp;·&nbsp; №${c.contractId||'—'} &nbsp;·&nbsp; ${c.date||'—'} &nbsp;
+          ${statusBadge(st)}
         </div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="openPayModal('${c.id}','${c.name.replace(/'/g,"\\'")}')">+ Оплата</button>
-        ${c.status!=='завершён'?`<button class="btn btn-danger btn-sm" onclick="completeClientContract('${c.id}')">Завершёнь</button>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-g btn-sm" onclick="openPayModal('${c.id}')">+ Оплата</button>
+        ${st!=='завершён'&&st!=='удалён'?`<button class="btn btn-y btn-sm" onclick="openDiscModal('${c.id}')">Скидка</button>`:''}
+        <button class="btn btn-gh btn-sm" onclick="openEditClient('${c.id}')">Изменить</button>
+        ${st==='удалён'?`<button class="btn btn-gh btn-sm" onclick="restoreClient('${c.id}')">Восстановить</button>`:`<button class="btn btn-r btn-sm" onclick="softDelete('${c.id}')">Удалить</button>`}
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
       <div>
-        <div class="info-grid">
-          <div class="info-item"><div class="info-label">Товар</div><div class="info-value">${c.product||'—'}</div></div>
-          <div class="info-item"><div class="info-label">Партнёр</div><div class="info-value">${c.partner||'—'}</div></div>
-          <div class="info-item"><div class="info-label">Цена</div><div class="info-value">${C.fmt(c.price)} ₽</div></div>
-          <div class="info-item"><div class="info-label">Предоплата</div><div class="info-value">${C.fmt(c.prepay)} ₽</div></div>
-          <div class="info-item"><div class="info-label">Поручитель</div><div class="info-value">${c.guarantor||'—'}</div></div>
-          <div class="info-item"><div class="info-label">Тел. поручителя</div><div class="info-value">${gphones}</div></div>
-          <div class="info-item"><div class="info-label">Адрес клиента</div><div class="info-value">${c.address||'—'}</div></div>
-          <div class="info-item"><div class="info-label">Адрес поручителя</div><div class="info-value">${c.guarantorAddress||'—'}</div></div>
+        <div class="ig">
+          <div class="ii"><div class="il">Товар</div><div class="iv">${c.product||'—'}</div></div>
+          <div class="ii"><div class="il">Партнёр</div><div class="iv">${c.partner||'—'}</div></div>
+          <div class="ii"><div class="il">Цена</div><div class="iv">${FB.fmt(c.price)} ₽</div></div>
+          <div class="ii"><div class="il">Предоплата</div><div class="iv">${FB.fmt(c.prepay)} ₽</div></div>
+          <div class="ii"><div class="il">Поручитель</div><div class="iv">${c.gname||'—'}</div></div>
+          <div class="ii"><div class="il">Тел. поручителя</div><div class="iv">${gphones}</div></div>
+          <div class="ii"><div class="il">Адрес клиента</div><div class="iv">${c.addr||'—'}</div></div>
+          <div class="ii"><div class="il">Адрес поручителя</div><div class="iv">${c.gaddr||'—'}</div></div>
         </div>
         <div class="card">
-          <div class="card-title">График платежей</div>
-          <div style="margin-bottom:14px">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Оплачено ${paidCount} из ${c.months||0} платежей</div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(paidCount/((c.months||1))*100)}%"></div></div>
+          <div class="sched-hdr">
+            <div class="ct" style="margin-bottom:0">График платежей</div>
           </div>
-          ${payments.map((p,i)=>renderPayRow(p,i,c.id)).join('')}
+          <div style="font-size:11px;color:var(--t3);margin-bottom:6px">Оплачено ${paidCount} из ${c.months||0}</div>
+          <div class="pbar"><div class="pfill" style="width:${Math.round(paidCount/Math.max(c.months||1,1)*100)}%"></div></div>
+          ${s.schedule.map((p,i)=>payRow(p,i,c.id)).join('')}
         </div>
-        <div class="card">
-          <div class="card-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleClientPayments('${c.id}')">
-            <span>💳 История платежей клиента</span>
-            <span id="cph_arrow_${c.id}" style="font-size:16px;color:var(--text3)">▼</span>
+        <!-- ИСТОРИЯ ПЛАТЕЖЕЙ -->
+        <div>
+          <div class="cph-hdr" onclick="toggleCph('${c.id}')">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);display:flex;align-items:center;gap:8px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              История платежей клиента (${cPays.length})
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="cph_arr_${c.id}"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div id="clientPaymentsBlock_${c.id}" style="display:none">
-            <div id="clientPaymentsList_${c.id}"><div class="loading"><div class="spinner"></div></div></div>
+          <div class="cph-body" id="cph_${c.id}">
+            ${cPays.length?`<table class="tbl" style="margin-top:6px">
+              <thead><tr><th>Дата</th><th>Сумма</th><th>Тип</th><th>Способ</th><th style="width:40px"></th></tr></thead>
+              <tbody>${cPays.map(p=>`<tr>
+                <td style="color:var(--t2);font-size:12px">${p.dateStr||''}</td>
+                <td><span class="amt c-g" style="font-size:12px">${FB.fmt(p.amount)} ₽</span></td>
+                <td style="font-size:12px">${p.typeLabel||p.type||''}</td>
+                <td><span class="badge b-pay" style="font-size:10px">${p.payType||''}</span></td>
+                <td><button class="ic-btn ic-r" style="width:24px;height:24px;font-size:11px" onclick="cancelPayment('${p.id}','${c.id}',${p.amount})" title="Отменить">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button></td>
+              </tr>`).join('')}</tbody>
+            </table>`:'<div style="color:var(--t3);font-size:12px;padding:10px">Платежей нет</div>'}
           </div>
         </div>
       </div>
       <div>
-        <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Остаток долга</div><div class="stat-value v-green" style="font-size:20px">${C.fmt(balance)} ₽</div><div class="stat-sub">из ${C.fmt(c.price)} ₽${c.discount?` · скидка ${C.fmt(c.discount)} ₽`:''}</div></div>
-        <div class="stat-card" style="margin-bottom:16px"><div class="stat-label">Просрочка</div><div class="stat-value v-red" style="font-size:20px">${C.fmt(overdue)} ₽</div></div>
-        <div class="stat-card"><div class="stat-label">Срок</div><div class="stat-value" style="font-size:20px">${c.months||0} мес.</div></div>
+        <div class="sc" style="margin-bottom:12px"><div class="sl">Остаток долга</div><div class="sv c-g" style="font-size:18px">${FB.fmt(s.balance)} ₽</div><div class="ss">из ${FB.fmt(c.price)} ₽${c.discount?` · скидка ${FB.fmt(c.discount)} ₽`:''}</div></div>
+        <div class="sc" style="margin-bottom:12px"><div class="sl">Просрочка</div><div class="sv c-r" style="font-size:18px">${FB.fmt(s.overdue)} ₽</div></div>
+        <div class="sc"><div class="sl">Срок</div><div class="sv" style="font-size:18px">${c.months||0} мес.</div></div>
       </div>
     </div>`;
-  
-  // Load client payments after render
-  setTimeout(() => loadClientPayments(c.id, c.contractId), 100);
 }
 
-function renderPayRow(p,i,cid){
-  const dots={paid:'d-paid',overdue:'d-overdue',warning:'d-warning',partial:'d-partial',partial_future:'d-partial',upcoming:'d-upcoming'};
-  const statuses={paid:'Оплачен',overdue:`Просрочен (${window.CRM.fmt(p.size-p.paid)} из ${window.CRM.fmt(p.size)} ₽)`,warning:`Завтра!`,partial:`Частично (${window.CRM.fmt(p.paid)} из ${window.CRM.fmt(p.size)} ₽)`,partial_future:`Частично (${window.CRM.fmt(p.paid)} из ${window.CRM.fmt(p.size)} ₽)`,upcoming:'Ожидается'};
-  const sc={paid:'s-paid',overdue:'s-overdue',warning:'s-warning',partial:'s-partial',partial_future:'s-partial',upcoming:'s-upcoming'};
-  const ic={paid:'paid',overdue:'overdue',warning:'warning'};
-  return `<div class="pay-item ${ic[p.status]||''}">
-    <div class="pay-dot ${dots[p.status]||'d-upcoming'}"></div>
-    <div class="pay-month">${p.month} мес.</div>
-    <div class="pay-date">${p.date}</div>
-    <div class="pay-size">${window.CRM.fmt(p.size)} ₽</div>
-    <div class="pay-status ${sc[p.status]||'s-upcoming'}">${statuses[p.status]||'Ожидается'}</div>
-    ${p.status!=='paid'?`<div class="pay-actions">
-      <button class="btn btn-primary btn-sm" onclick="openPayModal('${cid}','',${i})">Оплата</button>
-      <button class="btn btn-ghost btn-sm" onclick="openDefModal('${cid}',${i})">Отсрочка</button>
-    </div>`:''}
+function payRow(p,i,cid){
+  const dc={paid:'pd-paid',overdue:'pd-over',warning:'pd-warn',partial:'pd-part',partial_future:'pd-part',upcoming:'pd-up'};
+  const rc={paid:'r-paid',overdue:'r-over',warning:'r-warn'};
+  const FB=window.FB;
+  const stMap={
+    paid:'Оплачен',
+    overdue:`Просрочен — не хватает ${FB.fmt(p.size-p.paid)} ₽`,
+    warning:'Завтра!',
+    partial:`Частично: ${FB.fmt(p.paid)} из ${FB.fmt(p.size)} ₽`,
+    partial_future:`Частично: ${FB.fmt(p.paid)} из ${FB.fmt(p.size)} ₽`,
+    upcoming:'Ожидается'
+  };
+  const sc={paid:'ps-paid',overdue:'ps-over',warning:'ps-warn',partial:'ps-part',partial_future:'ps-part',upcoming:'ps-up'};
+  let deferInfo='';
+  if(p.defer) deferInfo=`<div style="font-size:10px;color:var(--blue);margin-top:3px">Отсрочка до ${p.defer.date} — ${p.defer.comment||''}</div>`;
+  return `<div class="pay-row ${rc[p.status]||''}">
+    <div class="pdot ${dc[p.status]||'pd-up'}"></div>
+    <div class="pnum">${p.month} мес.</div>
+    <div class="pdate">${p.date}${deferInfo}</div>
+    <div class="psize">${FB.fmt(p.size)} ₽</div>
+    <div class="pst ${sc[p.status]||'ps-up'}">${stMap[p.status]||'Ожидается'}</div>
+    ${p.status!=='paid'?`<button class="ic-btn ic-g" style="margin-left:8px;width:24px;height:24px" onclick="openDefer('${cid}',${i})" title="Отсрочка">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </button>`:''}
   </div>`;
 }
 
-// ═══ PAYMENTS ═══
-function renderPaymentsFromCache(){
-  const list=window.CRM.payments||[];
-  if(!list.length){document.getElementById('paymentsList').innerHTML='<div class="empty">Нет платежей</div>';return;}
-  document.getElementById('paymentsList').innerHTML=`<table class="tbl"><thead><tr><th>Дата</th><th>Договор</th><th>Клиент</th><th>Сумма</th><th>Тип</th><th>Способ</th></tr></thead><tbody>
-    ${list.map(p=>`<tr><td style="color:var(--text2)">${p.dateStr||''}</td><td style="font-weight:700;color:var(--text2)">№${p.contractId||''}</td><td>${p.name||''}</td>
-    <td><span class="amount v-green">${window.CRM.fmt(p.amount)} ₽</span></td><td>${p.type||''}</td>
-    <td><span class="badge b-active">${p.payType||''}</span></td></tr>`).join('')}
-  </tbody></table>`;
-}
-
-// ═══ ADD CLIENT FORM ═══
-function addPhone(containerId){
-  const div=document.getElementById(containerId);
-  const row=document.createElement('div'); row.className='phone-row';
-  row.innerHTML=`<input class="f-input no-mb" type="tel" placeholder="89001234567"/><button class="btn-icon btn-del" onclick="this.parentElement.remove()">×</button>`;
-  div.appendChild(row);
-}
-
-function calcSchedule(){
-  const price=parseFloat(document.getElementById('f_price').value)||0;
-  const prepay=parseFloat(document.getElementById('f_prepay').value)||0;
-  const months=parseInt(document.getElementById('f_months').value)||3;
-  const size=Math.ceil((price-prepay)/months/100)*100||0;
-  const tbody=document.getElementById('scheduleBody');
-  const existingRows=tbody.querySelectorAll('tr');
-  tbody.innerHTML='';
-  for(let m=0;m<months;m++){
-    const oldRow=existingRows[m];
-    const oldSize=oldRow?oldRow.querySelector('.sz-input').value:size;
-    const oldDate=oldRow?oldRow.querySelector('.dt-input').value:'';
-    tbody.innerHTML+=`<tr>
-      <td style="font-size:13px;font-weight:700;color:var(--text3)">${m+1}</td>
-      <td><input class="sched-input sz-input" type="number" value="${oldSize}"/></td>
-      <td><input class="sched-input dt-input" type="date" value="${oldDate}"/></td>
-    </tr>`;
+function toggleCph(id){
+  const b=document.getElementById('cph_'+id);
+  const a=document.getElementById('cph_arr_'+id);
+  if(b.classList.contains('open')){
+    b.classList.remove('open');
+    a.innerHTML='<polyline points="6 9 12 15 18 9"/>';
+  } else {
+    b.classList.add('open');
+    a.innerHTML='<polyline points="18 15 12 9 6 15"/>';
   }
 }
 
-function updatePartnerSelect(){
-  const sel=document.getElementById('f_partner');
-  if(!sel) return;
-  sel.innerHTML=window.CRM.partners.map(p=>`<option>${p}</option>`).join('');
-}
-
-function updatePayTypeSelect(){
-  const C=window.CRM;
-  const cards=C.cards||[];
-  ['f_payType','pm_payType'].forEach(id=>{
-    const sel=document.getElementById(id);
-    if(!sel) return;
-    sel.innerHTML='<option value="Нал">Наличные</option><option value="Безнал">Безналичные</option>'+
-      cards.map(c=>`<option value="${c.name}">${c.name} · ${c.number}</option>`).join('');
-  });
-}
-
-async function submitClient(){
-  const C=window.CRM;
-  const months=parseInt(document.getElementById('f_months').value);
-  const price=parseFloat(document.getElementById('f_price').value)||0;
-  const prepay=parseFloat(document.getElementById('f_prepay').value)||0;
-  const name=document.getElementById('f_name').value.trim();
-  if(!name||!price){showToast('Заполните обязательные поля','error');return;}
-
-  // Собираем телефоны
-  const phones=[...document.querySelectorAll('#f_phones input')].map(i=>i.value.trim()).filter(Boolean);
-  const gphones=[...document.querySelectorAll('#f_gphones input')].map(i=>i.value.trim()).filter(Boolean);
-
-  // Собираем график
-  const rows=document.querySelectorAll('#scheduleBody tr');
-  const data={
-    contractId:String(C.clients.length+1).padStart(5,'0'),
-    date:document.getElementById('f_date').value,
-    name, phones, gphones,
-    guarantor:document.getElementById('f_guarantor').value,
-    address:document.getElementById('f_address').value,
-    guarantorAddress:document.getElementById('f_guarantorAddress').value,
-    product:document.getElementById('f_product').value,
-    partner:document.getElementById('f_partner').value,
-    cost:parseFloat(document.getElementById('f_cost').value)||0,
-    price, prepay, months, status:'активный', createdAt:new Date()
-  };
-
-  for(let m=0;m<12;m++){
-    if(m<months&&rows[m]){
-      data['размер'+(m+1)]=parseFloat(rows[m].querySelector('.sz-input').value)||0;
-      const dtVal=rows[m].querySelector('.dt-input').value;
-      if(dtVal){ const d=new Date(dtVal); data['дата'+(m+1)]=C.formatDate(d); }
-      else data['дата'+(m+1)]='';
-    } else { data['размер'+(m+1)]=0; data['дата'+(m+1)]=''; }
-    data['взнос'+(m+1)]=0;
+// ─── CANCEL PAYMENT ───
+// ПРАВИЛЬНАЯ ЛОГИКА: платёж хранится только в коллекции payments
+// Удаляем его — баланс пересчитывается автоматически через calcClientStats
+async function cancelPayment(payId, clientId, amount){
+  if(!confirm(`Отменить платёж ${window.FB.fmt(amount)} ₽?`)) return;
+  const FB=window.FB;
+  try {
+    await FB.deleteDoc(FB.doc(FB.db,'payments',payId));
+    await logAction('Отмена платежа',`Клиент id:${clientId} — ${FB.fmt(amount)} ₽ отменён`);
+    showToast('Платёж отменён!','ok');
+    // onSnapshot автоматически обновит G.payments и перерисует всё
+  } catch(e){
+    showToast('Ошибка: '+e.message,'err');
   }
+}
 
-  const ref=await C.addDoc(C.collection(C.db,'clients'),data);
-  if(prepay>0){
-    await C.addDoc(C.collection(C.db,'payments'),{
-      contractId:data.contractId,name,amount:prepay,type:'Предоплата',
-      payType:document.getElementById('f_payType').value,date:new Date(),dateStr:C.formatDate(new Date())
+// ─── PAYMENTS ───
+function renderPayments(){
+  const FB=window.FB;
+  const list=G.payments;
+  if(!list.length){document.getElementById('payList').innerHTML='<div class="empty">Платежей нет</div>';return;}
+  document.getElementById('payList').innerHTML=`<table class="tbl">
+    <thead><tr><th>Дата</th><th>Договор</th><th>Клиент</th><th>Сумма</th><th>Тип</th><th>Способ</th></tr></thead>
+    <tbody>${list.map(p=>`<tr>
+      <td style="color:var(--t2)">${p.dateStr||''}</td>
+      <td style="font-weight:700;color:var(--t2)">№${p.contractId||''}</td>
+      <td>${p.name||''}</td>
+      <td><span class="amt c-g">${FB.fmt(p.amount)} ₽</span></td>
+      <td>${p.typeLabel||p.type||''}</td>
+      <td><span class="badge b-pay">${p.payType||''}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ─── JOURNAL ───
+async function loadJournal(){
+  const FB=window.FB;
+  document.getElementById('journalList').innerHTML='<div class="loading"><div class="spin"></div></div>';
+  try {
+    const snap=await FB.getDocs(FB.query(FB.collection(FB.db,'journal'),FB.orderBy('date','desc')));
+    const list=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!list.length){document.getElementById('journalList').innerHTML='<div class="empty">Нет записей</div>';return;}
+    document.getElementById('journalList').innerHTML=`<table class="tbl">
+      <thead><tr><th>Дата</th><th>Время</th><th>Действие</th><th>Описание</th></tr></thead>
+      <tbody>${list.map(j=>`<tr>
+        <td style="color:var(--t2)">${j.dateStr||''}</td>
+        <td style="color:var(--t2)">${j.time||''}</td>
+        <td><span class="badge ${j.type==='Отмена платежа'?'b-over':j.type==='Скидка'?'b-done':'b-act'}">${j.type||''}</span></td>
+        <td style="font-size:12px">${j.description||''}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch(e){
+    document.getElementById('journalList').innerHTML='<div class="empty">Ошибка загрузки: '+e.message+'</div>';
+  }
+}
+
+async function logAction(type,description){
+  const FB=window.FB;
+  try {
+    await FB.addDoc(FB.collection(FB.db,'journal'),{
+      type,description,date:new Date(),
+      dateStr:FB.fmtDate(new Date()),
+      time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})
     });
-  }
-  await logAction('Новый договор', `Договор №${data.contractId} — ${data.name}`);
-  closeModal('modalClient');
-  showToast(`Договор №${data.contractId} создан!`,'success');
+  } catch(e){ console.warn('logAction error:',e); }
 }
 
-// ═══ PAYMENT MODAL ═══
-function openPayModal(cid,name,midx){
-  _cid=cid; _midx=midx!==undefined?midx:null;
-  const c=window.CRM.clients.find(x=>x.id===cid);
-  document.getElementById('pm_name').textContent=c?c.name:name;
-  document.getElementById('pm_amount').value='';
-  updatePayTypeSelect();
-  openModal('modalPayment');
+// ─── ADD/EDIT CLIENT ───
+function openNewClient(){
+  _cid=null;
+  document.getElementById('mClientTitle').textContent='Новый договор';
+  document.getElementById('mClientBtn').textContent='Сохранить';
+  document.getElementById('mClientBtn').onclick=submitClient;
+  // Reset form
+  document.getElementById('f_date').value=new Date().toISOString().split('T')[0];
+  ['f_name','f_addr','f_gname','f_gaddr','f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_months').value='3';
+  document.getElementById('f_phones').innerHTML=`<div class="ph-row"><input class="inp" type="tel" placeholder="89001234567"/><button class="ic-btn ic-g" onclick="addPhone('f_phones')">+</button></div>`;
+  document.getElementById('f_gphones').innerHTML=`<div class="ph-row"><input class="inp" type="tel" placeholder="89001234567"/><button class="ic-btn ic-g" onclick="addPhone('f_gphones')">+</button></div>`;
+  updateSelects();
+  calcSched();
+  openModal('mClient');
 }
 
-async function submitPayment(){
-  const C=window.CRM;
-  const amount=parseFloat(document.getElementById('pm_amount').value);
-  if(!amount){showToast('Введите сумму','error');return;}
-  const payType=document.getElementById('pm_payType').value;
-  const c=C.clients.find(x=>x.id===_cid);
-  if(!c) return;
-  const payments=C.calcPayments(c);
-  let tm=_midx!==null?_midx:payments.findIndex(p=>p.status!=='paid');
-  if(tm===-1) tm=0;
-  const key='взнос'+(tm+1);
-  const current=parseFloat(c[key])||0;
-  const newPaid = current + amount;
-  const updateData = {[key]: newPaid};
-  
-  // Считаем новый остаток
-  let totalPaid = 0;
-  for(let m=0;m<12;m++) totalPaid += parseFloat(c['взнос'+(m+1)])||0;
-  totalPaid += amount;
-  const price = parseFloat(c.price)||0;
-  const prepay = parseFloat(c.prepay)||0;
-  const discount = parseFloat(c.discount)||0;
-  const newBalance = Math.max(0, price - prepay - totalPaid - discount);
-  
-  // Если остаток = 0 — автоматически завершаем
-  if(newBalance === 0) updateData.status = 'завершён';
-  
-  await C.updateDoc(C.doc(C.db,'clients',_cid), updateData);
-  await C.addDoc(C.collection(C.db,'payments'),{
-    contractId:c.contractId, clientId:_cid, name:c.name, amount,
-    type:'Еж платеж', payType, monthIndex:tm,
-    date:new Date(), dateStr:C.formatDate(new Date())
-  });
-  
-  // Журнал действий
-  await logAction('Оплата', `Договор №${c.contractId} — ${C.fmt(amount)} ₽ (${payType})`);
-  
-  closeModal('modalPayment');
-  showToast(newBalance===0 ? '✅ Оплата записана! Договор завершён!' : 'Оплата записана!', 'success');
-}
-
-// ═══ DEFERRAL ═══
-function openDefModal(cid,midx){_cid=cid;_midx=midx;document.getElementById('def_date').value='';document.getElementById('def_comment').value='';openModal('modalDeferral');}
-async function submitDeferral(){
-  const C=window.CRM;
-  await C.updateDoc(C.doc(C.db,'clients',_cid),{deferDate:document.getElementById('def_date').value,deferComment:document.getElementById('def_comment').value,deferMonth:_midx});
-  closeModal('modalDeferral');
-  showToast('Отсрочка сохранена!','success');
-}
-
-// ═══ CLOSE CONTRACT ═══
-async function completeClientContract(id){
-  if(!confirm('Завершёнь договор?')) return;
-  const C=window.CRM;
-  await C.updateDoc(C.doc(C.db,'clients',id),{status:'завершён'});
-  showToast('Договор завершён','success');
-  showPage('clients');
-}
-
-// ═══ SETTINGS ═══
-function renderSettings(){
-  const C=window.CRM;
-  document.getElementById('partnersList').innerHTML=C.partners.map((p,i)=>`
-    <div class="settings-item">
-      <div class="settings-item-name">${p}</div>
-      <button class="btn btn-danger btn-sm" onclick="removePartner(${i})">Удалёнь</button>
-    </div>`).join('');
-  document.getElementById('cardsList').innerHTML=(C.cards||[]).map((c,i)=>`
-    <div class="settings-item">
-      <div><div class="settings-item-name">${c.name}</div><div style="font-size:12px;color:var(--text3)">${c.number}</div></div>
-      <button class="btn btn-danger btn-sm" onclick="removeCard(${i})">Удалёнь</button>
-    </div>`).join('');
-}
-
-async function addPartner(){
-  const val=document.getElementById('newPartner').value.trim();
-  if(!val) return;
-  const C=window.CRM;
-  C.partners.push(val);
-  await C.setDoc(C.doc(C.db,'settings','partners'),{list:C.partners});
-  document.getElementById('newPartner').value='';
-  renderSettings(); updatePartnerSelect();
-  showToast('Партнёр добавлен','success');
-}
-
-async function removePartner(i){
-  const C=window.CRM;
-  C.partners.splice(i,1);
-  await C.setDoc(C.doc(C.db,'settings','partners'),{list:C.partners});
-  renderSettings(); updatePartnerSelect();
-}
-
-async function addCard(){
-  const name=document.getElementById('newCardName').value.trim();
-  const number=document.getElementById('newCardNumber').value.trim();
-  if(!name||!number) return;
-  const C=window.CRM;
-  C.cards.push({name,number});
-  await C.setDoc(C.doc(C.db,'settings','cards'),{list:C.cards});
-  document.getElementById('newCardName').value=''; document.getElementById('newCardNumber').value='';
-  renderSettings(); updatePayTypeSelect();
-  showToast('Карта добавлена','success');
-}
-
-async function removeCard(i){
-  const C=window.CRM;
-  C.cards.splice(i,1);
-  await C.setDoc(C.doc(C.db,'settings','cards'),{list:C.cards});
-  renderSettings(); updatePayTypeSelect();
-}
-
-// ═══ DELETE CLIENT ═══
-async function deleteToTrash(id){
-  if(!confirm('Переместить договор в удалённые?')) return;
-  const C=window.CRM;
-  await C.updateDoc(C.doc(C.db,'clients',id),{status:'удалён'});
-  showToast('Договор перемещён в удалённые','success');
-}
-
-async function restoreClient(id){
-  const C=window.CRM;
-  await C.updateDoc(C.doc(C.db,'clients',id),{status:'активный'});
-  showToast('Договор восстановлен!','success');
-}
-
-async function deleteClientForever(id){
-  if(!confirm('Удалёнь НАВСЕГДА? Это действие нельзя отменить!')) return;
-  const C=window.CRM;
-  const cd=C.clients.find(x=>x.id===id);
-  if(cd) await logAction('Удаление', `Договор №${cd.contractId} — ${cd.name} удалён навсегда`);
-  await C.deleteDoc(C.doc(C.db,'clients',id));
-  showToast('Договор удалён навсегда','success');
-}
-
-// ═══ EDIT CLIENT ═══
 function openEditClient(id){
-  const C=window.CRM;
-  const c=C.clients.find(x=>x.id===id);
+  const c=G.clients.find(x=>x.id===id);
   if(!c) return;
   _cid=id;
-  
-  // Fill form with existing data
+  document.getElementById('mClientTitle').textContent='Редактировать договор';
+  document.getElementById('mClientBtn').textContent='Сохранить изменения';
+  document.getElementById('mClientBtn').onclick=submitClient;
   document.getElementById('f_date').value=c.date||'';
   document.getElementById('f_name').value=c.name||'';
-  document.getElementById('f_guarantor').value=c.guarantor||'';
-  document.getElementById('f_address').value=c.address||'';
-  document.getElementById('f_guarantorAddress').value=c.guarantorAddress||'';
+  document.getElementById('f_addr').value=c.addr||'';
+  document.getElementById('f_gname').value=c.gname||'';
+  document.getElementById('f_gaddr').value=c.gaddr||'';
   document.getElementById('f_product').value=c.product||'';
   document.getElementById('f_cost').value=c.cost||'';
   document.getElementById('f_price').value=c.price||'';
   document.getElementById('f_prepay').value=c.prepay||'';
   document.getElementById('f_months').value=c.months||3;
   
-  updatePartnerSelect();
-  document.getElementById('f_partner').value=c.partner||'';
-
-  // Fill phones
-  const phones=c.phones||[''];
-  document.getElementById('f_phones').innerHTML=phones.map((p,i)=>`<div class="phone-row"><input class="f-input no-mb" type="tel" value="${p}" placeholder="89001234567"/>${i===0?`<button class="btn-icon btn-add" onclick="addPhone('f_phones')">+</button>`:`<button class="btn-icon btn-del" onclick="this.parentElement.remove()">×</button>`}</div>`).join('');
+  const ph=c.phones||[''];
+  document.getElementById('f_phones').innerHTML=ph.map((p,i)=>`<div class="ph-row"><input class="inp" type="tel" value="${p}"/>${i===0?`<button class="ic-btn ic-g" onclick="addPhone('f_phones')">+</button>`:`<button class="ic-btn ic-r" onclick="this.parentElement.remove()">×</button>`}</div>`).join('');
+  const gph=c.gphones||[''];
+  document.getElementById('f_gphones').innerHTML=gph.map((p,i)=>`<div class="ph-row"><input class="inp" type="tel" value="${p}"/>${i===0?`<button class="ic-btn ic-g" onclick="addPhone('f_gphones')">+</button>`:`<button class="ic-btn ic-r" onclick="this.parentElement.remove()">×</button>`}</div>`).join('');
   
-  const gphones=c.gphones||[''];
-  document.getElementById('f_gphones').innerHTML=gphones.map((p,i)=>`<div class="phone-row"><input class="f-input no-mb" type="tel" value="${p}" placeholder="89001234567"/>${i===0?`<button class="btn-icon btn-add" onclick="addPhone('f_gphones')">+</button>`:`<button class="btn-icon btn-del" onclick="this.parentElement.remove()">×</button>`}</div>`).join('');
-
+  updateSelects();
+  setTimeout(()=>{if(c.partner) document.getElementById('f_partner').value=c.partner;},50);
+  
   // Fill schedule
   const months=parseInt(c.months)||3;
-  const tbody=document.getElementById('scheduleBody');
+  const tbody=document.getElementById('schedBody');
   tbody.innerHTML='';
   for(let m=0;m<months;m++){
-    const dateStr=c['дата'+(m+1)]||'';
-    let dateVal='';
-    if(dateStr){ const p=dateStr.split('.'); if(p.length===3) dateVal=`${p[2]}-${p[1]}-${p[0]}`; }
-    tbody.innerHTML+=`<tr>
-      <td style="font-size:13px;font-weight:700;color:var(--text3)">${m+1}</td>
-      <td><input class="sched-input sz-input" type="number" value="${c['размер'+(m+1)]||0}"/></td>
-      <td><input class="sched-input dt-input" type="date" value="${dateVal}"/></td>
-    </tr>`;
+    const ds=c['дата'+(m+1)]||'';
+    let dv='';
+    if(ds){const p=ds.split('.');if(p.length===3)dv=`${p[2]}-${p[1]}-${p[0]}`;}
+    tbody.innerHTML+=`<tr><td style="font-size:12px;font-weight:700;color:var(--t3)">${m+1}</td><td><input class="sinp sz" type="number" value="${c['размер'+(m+1)]||0}"/></td><td><input class="sinp dt" type="date" value="${dv}"/></td></tr>`;
   }
-
-  // Change modal title and button
-  document.querySelector('#modalClient .modal-title').textContent='Редактировать договор';
-  document.querySelector('#modalClient .modal-footer .btn-primary').textContent='Сохранить изменения';
-  document.querySelector('#modalClient .modal-footer .btn-primary').onclick=submitEditClient;
-  document.getElementById('modalClient').classList.add('show');
+  openModal('mClient');
 }
 
-async function submitEditClient(){
-  const C=window.CRM;
-  const months=parseInt(document.getElementById('f_months').value);
-  const price=parseFloat(document.getElementById('f_price').value)||0;
-  const name=document.getElementById('f_name').value.trim();
-  if(!name||!price){showToast('Заполните обязательные поля','error');return;}
+function addPhone(cid){
+  const div=document.getElementById(cid);
+  const row=document.createElement('div');row.className='ph-row';
+  row.innerHTML=`<input class="inp" type="tel" placeholder="89001234567"/><button class="ic-btn ic-r" onclick="this.parentElement.remove()">×</button>`;
+  div.appendChild(row);
+}
 
+function calcSched(){
+  const price=parseFloat(document.getElementById('f_price').value)||0;
+  const prepay=parseFloat(document.getElementById('f_prepay').value)||0;
+  const months=parseInt(document.getElementById('f_months').value)||3;
+  const size=Math.ceil((price-prepay)/months/100)*100||0;
+  const tb=document.getElementById('schedBody');
+  const rows=tb.querySelectorAll('tr');
+  tb.innerHTML='';
+  for(let m=0;m<months;m++){
+    const osz=rows[m]?rows[m].querySelector('.sz').value:size;
+    const odt=rows[m]?rows[m].querySelector('.dt').value:'';
+    tb.innerHTML+=`<tr><td style="font-size:12px;font-weight:700;color:var(--t3)">${m+1}</td><td><input class="sinp sz" type="number" value="${osz}"/></td><td><input class="sinp dt" type="date" value="${odt}"/></td></tr>`;
+  }
+}
+
+async function submitClient(){
+  const FB=window.FB;
+  const name=document.getElementById('f_name').value.trim();
+  const price=parseFloat(document.getElementById('f_price').value)||0;
+  if(!name||!price){showToast('Заполните обязательные поля','err');return;}
+  const months=parseInt(document.getElementById('f_months').value);
   const phones=[...document.querySelectorAll('#f_phones input')].map(i=>i.value.trim()).filter(Boolean);
   const gphones=[...document.querySelectorAll('#f_gphones input')].map(i=>i.value.trim()).filter(Boolean);
-  const rows=document.querySelectorAll('#scheduleBody tr');
-
+  const rows=document.querySelectorAll('#schedBody tr');
   const data={
     date:document.getElementById('f_date').value,
-    name, phones, gphones,
-    guarantor:document.getElementById('f_guarantor').value,
-    address:document.getElementById('f_address').value,
-    guarantorAddress:document.getElementById('f_guarantorAddress').value,
+    name,phones,gphones,
+    gname:document.getElementById('f_gname').value,
+    addr:document.getElementById('f_addr').value,
+    gaddr:document.getElementById('f_gaddr').value,
     product:document.getElementById('f_product').value,
     partner:document.getElementById('f_partner').value,
     cost:parseFloat(document.getElementById('f_cost').value)||0,
-    price, prepay:parseFloat(document.getElementById('f_prepay').value)||0,
-    months
+    price,prepay:parseFloat(document.getElementById('f_prepay').value)||0,
+    months,status:'активный'
   };
-
   for(let m=0;m<12;m++){
     if(m<months&&rows[m]){
-      data['размер'+(m+1)]=parseFloat(rows[m].querySelector('.sz-input').value)||0;
-      const dtVal=rows[m].querySelector('.dt-input').value;
-      if(dtVal){ const d=new Date(dtVal); data['дата'+(m+1)]=C.formatDate(d); }
-      else data['дата'+(m+1)]='';
+      data['размер'+(m+1)]=parseFloat(rows[m].querySelector('.sz').value)||0;
+      const dv=rows[m].querySelector('.dt').value;
+      data['дата'+(m+1)]=dv?FB.fmtDate(new Date(dv)):'';
     } else { data['размер'+(m+1)]=0; data['дата'+(m+1)]=''; }
   }
-
-  await C.updateDoc(C.doc(C.db,'clients',_cid),data);
-  closeModal('modalClient');
-  showToast('Договор обновлён!','success');
-  // Reset modal
-  document.querySelector('#modalClient .modal-title').textContent='Новый договор';
-  document.querySelector('#modalClient .modal-footer .btn-primary').textContent='Сохранить договор';
-  document.querySelector('#modalClient .modal-footer .btn-primary').onclick=submitClient;
-}
-
-// ═══ JOURNAL ═══
-async function loadJournal(){
-  const C=window.CRM;
-  document.getElementById('journalList').innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  const snap=await C.getDocs(C.query(C.collection(C.db,'journal'),C.orderBy('date','desc')));
-  const list=snap.docs.map(d=>({id:d.id,...d.data()}));
-  if(!list.length){document.getElementById('journalList').innerHTML='<div class="empty">Нет записей</div>';return;}
-  document.getElementById('journalList').innerHTML=`<table class="tbl">
-    <thead><tr><th>Дата</th><th>Время</th><th>Действие</th><th>Описание</th></tr></thead>
-    <tbody>${list.map(j=>`<tr>
-      <td style="color:var(--text2)">${j.dateStr||''}</td>
-      <td style="color:var(--text2)">${j.time||''}</td>
-      <td><span class="badge ${j.type==='Отмена платежа'?'b-overdue':j.type==='Скидка'?'b-closed':'b-active'}">${j.type||''}</span></td>
-      <td style="font-size:13px">${j.description||''}</td>
-    </tr>`).join('')}</tbody>
-  </table>`;
-}
-
-// ═══ CLIENT PAYMENTS HISTORY ═══
-function toggleClientPayments(clientId){
-  const block=document.getElementById('clientPaymentsBlock_'+clientId);
-  const arrow=document.getElementById('cph_arrow_'+clientId);
-  if(block.style.display==='none'){
-    block.style.display='block';
-    arrow.textContent='▲';
+  if(_cid){
+    await FB.updateDoc(FB.doc(FB.db,'clients',_cid),data);
+    await logAction('Изменение договора',`Договор №${data.contractId||''} — ${name}`);
+    showToast('Договор обновлён!','ok');
   } else {
-    block.style.display='none';
-    arrow.textContent='▼';
+    data.contractId=String(G.clients.length+1).padStart(5,'0');
+    data.createdAt=new Date();
+    const ref=await FB.addDoc(FB.collection(FB.db,'clients'),data);
+    // Предоплата
+    const prepay=parseFloat(document.getElementById('f_prepay').value)||0;
+    if(prepay>0){
+      await FB.addDoc(FB.collection(FB.db,'payments'),{
+        clientId:ref.id,contractId:data.contractId,name,amount:prepay,
+        type:'prepay',typeLabel:'Предоплата',
+        payType:document.getElementById('f_prepayType').value,
+        date:new Date(),dateStr:FB.fmtDate(new Date())
+      });
+    }
+    await logAction('Новый договор',`Договор №${data.contractId} — ${name}`);
+    showToast(`Договор №${data.contractId} создан!`,'ok');
   }
+  closeModal('mClient');
 }
 
-async function loadClientPayments(clientId, contractId){
-  const C=window.CRM;
-  const el=document.getElementById('clientPaymentsList_'+clientId);
-  if(!el) return;
-  
-  // Фильтруем платежи этого клиента из кэша
-  const list=(C.payments||[]).filter(p=>p.contractId===contractId||p.clientId===clientId);
-  
-  if(!list.length){
-    el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px 0">Платежей нет</div>';
-    return;
-  }
-  
-  el.innerHTML=`<table class="tbl" style="margin-top:8px">
-    <thead><tr>
-      <th>Дата</th><th>Сумма</th><th>Тип</th><th>Способ</th><th style="width:50px"></th>
-    </tr></thead>
-    <tbody>
-      ${list.map(p=>`<tr>
-        <td style="color:var(--text2);font-size:12px">${p.dateStr||''}</td>
-        <td><span class="amount v-green" style="font-size:13px">${C.fmt(p.amount)} ₽</span></td>
-        <td style="font-size:12px">${p.type||''}</td>
-        <td><span class="badge b-active" style="font-size:10px">${p.payType||''}</span></td>
-        <td><button class="btn-icon btn-del" style="width:26px;height:26px;font-size:11px;border:none;cursor:pointer;background:rgba(255,71,87,0.1);color:var(--red);border-radius:6px" 
-          onclick="cancelPayment('${p.id}','${clientId}',${p.amount||0},${p.monthIndex!==undefined&&p.monthIndex!==''?p.monthIndex:-1},'${contractId}')" 
-          title="Отменить платёж">✕</button></td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`;
+// ─── PAYMENT MODAL ───
+function openPayModal(id){
+  _cid=id;
+  const c=G.clients.find(x=>x.id===id);
+  document.getElementById('pm_name').textContent=c?c.name:'';
+  document.getElementById('pm_amount').value='';
+  updatePayTypeSelect('pm_type');
+  openModal('mPayment');
 }
 
-// ═══ CANCEL PAYMENT ═══
-async function cancelPayment(paymentId, clientId, amount, monthIndex, contractId){
-  if(!confirm(`Отменить платёж ${window.CRM.fmt(amount)} ₽?`)) return;
-  const C = window.CRM;
+async function submitPayment(){
+  const FB=window.FB;
+  const amount=parseFloat(document.getElementById('pm_amount').value);
+  if(!amount||amount<=0){showToast('Введите сумму','err');return;}
+  const c=G.clients.find(x=>x.id===_cid);
+  if(!c) return;
+  const payType=document.getElementById('pm_type').value;
+  await FB.addDoc(FB.collection(FB.db,'payments'),{
+    clientId:_cid,contractId:c.contractId,name:c.name,amount,
+    type:'payment',typeLabel:'Еж платеж',payType,
+    date:new Date(),dateStr:FB.fmtDate(new Date())
+  });
+  // Проверяем завершён ли договор
+  const s=getStats(c);
+  const newPaid=s.paid+amount;
+  const newBalance=Math.max(0,(parseFloat(c.price)||0)-(parseFloat(c.prepay)||0)-newPaid-(parseFloat(c.discount)||0));
+  if(newBalance===0 && c.status==='активный'){
+    await FB.updateDoc(FB.doc(FB.db,'clients',_cid),{status:'завершён'});
+  }
+  await logAction('Оплата',`Договор №${c.contractId} — ${FB.fmt(amount)} ₽ (${payType})`);
+  closeModal('mPayment');
+  showToast(newBalance===0?'Оплата записана! Договор завершён!':'Оплата записана!','ok');
+}
 
+// ─── DISCOUNT ───
+function openDiscModal(id){ _cid=id; document.getElementById('disc_amount').value=''; document.getElementById('disc_reason').value=''; openModal('mDiscount'); }
+async function submitDiscount(){
+  const FB=window.FB;
+  const amount=parseFloat(document.getElementById('disc_amount').value);
+  if(!amount||amount<=0){showToast('Введите сумму','err');return;}
+  const reason=document.getElementById('disc_reason').value;
+  const c=G.clients.find(x=>x.id===_cid);
+  if(!c) return;
+  const newDiscount=(parseFloat(c.discount)||0)+amount;
+  const s=getStats(c);
+  const newBalance=Math.max(0,s.balance-amount);
+  const upd={discount:newDiscount};
+  if(newBalance===0) upd.status='завершён';
+  await FB.updateDoc(FB.doc(FB.db,'clients',_cid),upd);
+  // Записываем в платежи как скидку
+  await FB.addDoc(FB.collection(FB.db,'payments'),{
+    clientId:_cid,contractId:c.contractId,name:c.name,amount,
+    type:'discount',typeLabel:`Скидка${reason?` (${reason})`:''}`,payType:'—',
+    date:new Date(),dateStr:FB.fmtDate(new Date())
+  });
+  await logAction('Скидка',`Договор №${c.contractId} — скидка ${FB.fmt(amount)} ₽${reason?` (${reason})`:''}`);
+  closeModal('mDiscount');
+  showToast(newBalance===0?'Скидка применена! Договор завершён!':'Скидка применена!','ok');
+}
+
+// ─── DEFERRAL ───
+function openDefer(cid,midx){
+  _cid=cid; _midx=midx;
+  const c=G.clients.find(x=>x.id===cid);
+  const s=getStats(c);
+  const p=s.schedule[midx];
+  document.getElementById('def_info').textContent=`Платёж ${midx+1}: ${p?p.date:''} — ${window.FB.fmt(p?p.size:0)} ₽`;
+  document.getElementById('def_date').value='';
+  document.getElementById('def_comment').value='';
+  openModal('mDefer');
+}
+async function submitDefer(){
+  const FB=window.FB;
+  const date=document.getElementById('def_date').value;
+  const comment=document.getElementById('def_comment').value;
+  if(!date){showToast('Выберите дату','err');return;}
+  const c=G.clients.find(x=>x.id===_cid);
+  const defers=c.defers||{};
+  defers[_midx]={date:FB.fmtDate(new Date(date)),comment};
+  await FB.updateDoc(FB.doc(FB.db,'clients',_cid),{defers});
+  await logAction('Отсрочка',`Договор №${c.contractId} — платёж ${_midx+1} перенесён на ${FB.fmtDate(new Date(date))}`);
+  closeModal('mDefer');
+  showToast('Отсрочка сохранена!','ok');
+}
+
+// ─── DELETE/RESTORE ───
+async function softDelete(id){
+  if(!confirm('Переместить договор в удалённые?')) return;
+  const FB=window.FB;
+  const c=G.clients.find(x=>x.id===id);
+  await FB.updateDoc(FB.doc(FB.db,'clients',id),{status:'удалён'});
+  await logAction('Удаление',`Договор №${c?.contractId} — ${c?.name}`);
+  showToast('Договор удалён','ok');
+  if(G.curClient===id) showPage('clients');
+}
+async function restoreClient(id){
+  const FB=window.FB;
+  const c=G.clients.find(x=>x.id===id);
+  await FB.updateDoc(FB.doc(FB.db,'clients',id),{status:'активный'});
+  await logAction('Восстановление',`Договор №${c?.contractId} — ${c?.name}`);
+  showToast('Договор восстановлен!','ok');
+}
+
+// ─── SETTINGS ───
+async function loadSettings(){
+  const FB=window.FB;
   try {
-    // ШАГ 1: Удаляем платёж из Firebase
-    await C.deleteDoc(C.doc(C.db, 'payments', paymentId));
-
-    // ШАГ 2: Получаем актуальные данные клиента из Firebase
-    const clientSnap = await C.getDoc(C.doc(C.db, 'clients', clientId));
-    if (!clientSnap.exists()) { showToast('Клиент не найден', 'error'); return; }
-    const clientData = clientSnap.data();
-    const months = parseInt(clientData.months) || 0;
-
-    // ШАГ 3: Считаем сколько осталось оплачено (из кэша C.payments который уже обновлён onSnapshot)
-    // Если onSnapshot ещё не обновил — берём из Firebase напрямую
-    const allPaysSnap = await C.getDocs(C.collection(C.db, 'payments'));
-    const remaining_pays = allPaysSnap.docs
-      .map(d => ({...d.data()}))
-      .filter(p => p.contractId === contractId && p.type !== 'Предоплата' && p.type !== 'Скидка');
-    
-    const totalPaid = remaining_pays.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-
-    // ШАГ 4: Пересчитываем взносы исходя из totalPaid
-    const updateData = {};
-    let leftToDistribute = totalPaid;
-    
-    for (let m = 0; m < 12; m++) {
-      const key = 'взнос' + (m + 1);
-      if (m < months) {
-        const size = parseFloat(clientData['размер' + (m + 1)]) || 0;
-        if (leftToDistribute >= size) {
-          updateData[key] = size;
-          leftToDistribute -= size;
-        } else {
-          updateData[key] = Math.round(leftToDistribute * 100) / 100;
-          leftToDistribute = 0;
-        }
-      } else {
-        updateData[key] = 0;
-      }
-    }
-
-    // ШАГ 5: Если договор был завершён — возвращаем активный
-    if (clientData.status === 'завершён') updateData.status = 'активный';
-
-    // ШАГ 6: Пишем в Firebase
-    await C.updateDoc(C.doc(C.db, 'clients', clientId), updateData);
-
-    // ШАГ 7: Сразу обновляем локальный кэш
-    const localClient = C.clients.find(x => x.id === clientId);
-    if (localClient) {
-      Object.assign(localClient, updateData);
-    }
-
-    // ШАГ 8: Обновляем C.payments кэш
-    C.payments = allPaysSnap.docs.map(d => ({id: d.id, ...d.data()}))
-      .sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
-
-    // ШАГ 9: Журнал
-    await logAction('Отмена платежа', `Договор №${clientData.contractId} — ${C.fmt(amount)} ₽ отменён`);
-
-    // ШАГ 10: Перерисовываем всё
-    renderDashboard();
-    renderClients();
-    if (C.currentClientId === clientId && localClient) {
-      renderClientDetail(localClient);
-      setTimeout(() => loadClientPayments(clientId, contractId), 200);
-    }
-
-    showToast('Платёж отменён!', 'success');
-
-  } catch(err) {
-    console.error('cancelPayment error:', err);
-    showToast('Ошибка: ' + err.message, 'error');
-  }
+    const snap=await FB.getDocs(FB.collection(FB.db,'settings'));
+    snap.docs.forEach(d=>{
+      if(d.id==='partners') G.partners=d.data().list||G.partners;
+      if(d.id==='payTypes') G.payTypes=d.data().list||G.payTypes;
+    });
+  } catch(e){}
+  renderSettings();
+}
+function renderSettings(){
+  document.getElementById('partnersList').innerHTML=G.partners.map((p,i)=>`<div class="sitem"><div style="font-size:13px;font-weight:600">${p}</div><button class="btn btn-r btn-sm" onclick="removePartner(${i})">Удалить</button></div>`).join('');
+  document.getElementById('cardsList').innerHTML=G.payTypes.map((p,i)=>`<div class="sitem"><div style="font-size:13px;font-weight:600">${p}</div><button class="btn btn-r btn-sm" onclick="removePayType(${i})">Удалить</button></div>`).join('');
+}
+function updateSelects(){
+  const ps=document.getElementById('f_partner');
+  if(ps) ps.innerHTML=G.partners.map(p=>`<option>${p}</option>`).join('');
+  updatePayTypeSelect('f_prepayType');
+}
+function updatePayTypeSelect(id){
+  const el=document.getElementById(id);
+  if(el) el.innerHTML=G.payTypes.map(p=>`<option>${p}</option>`).join('');
+}
+async function addPartner(){
+  const v=document.getElementById('newPartner').value.trim();
+  if(!v) return;
+  G.partners.push(v);
+  await window.FB.setDoc(window.FB.doc(window.FB.db,'settings','partners'),{list:G.partners});
+  document.getElementById('newPartner').value='';
+  renderSettings();
+  showToast('Партнёр добавлен','ok');
+}
+async function removePartner(i){
+  G.partners.splice(i,1);
+  await window.FB.setDoc(window.FB.doc(window.FB.db,'settings','partners'),{list:G.partners});
+  renderSettings();
+}
+async function addPayType(){
+  const v=document.getElementById('newPayType').value.trim();
+  if(!v) return;
+  G.payTypes.push(v);
+  await window.FB.setDoc(window.FB.doc(window.FB.db,'settings','payTypes'),{list:G.payTypes});
+  document.getElementById('newPayType').value='';
+  renderSettings();
+  showToast('Способ оплаты добавлен','ok');
+}
+async function removePayType(i){
+  G.payTypes.splice(i,1);
+  await window.FB.setDoc(window.FB.doc(window.FB.db,'settings','payTypes'),{list:G.payTypes});
+  renderSettings();
 }
 
-// ═══ JOURNAL OF ACTIONS ═══
-async function logAction(type, description){
-  const C=window.CRM;
-  await C.addDoc(C.collection(C.db,'journal'),{
-    type, description,
-    date: new Date(),
-    dateStr: C.formatDate(new Date()),
-    time: new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})
-  });
-}
-
-// ═══ EXPORT EXCEL ═══
+// ─── EXPORT ───
 function exportExcel(){
-  const C=window.CRM;
-  const rows=[['№ Договора','Дата','ФИО','Телефоны','Поручитель','Тел.поручителя','Адрес клиента','Адрес поручителя','Товар','Партнёр','Себестоимость','Цена','Предоплата','Месяцев','Статус','Остаток','Просрочка',
-    'Дата1','Размер1','Взнос1','Дата2','Размер2','Взнос2','Дата3','Размер3','Взнос3','Дата4','Размер4','Взнос4','Дата5','Размер5','Взнос5','Дата6','Размер6','Взнос6',
-    'Дата7','Размер7','Взнос7','Дата8','Размер8','Взнос8','Дата9','Размер9','Взнос9','Дата10','Размер10','Взнос10','Дата11','Размер11','Взнос11','Дата12','Размер12','Взнос12']];
-
-  C.clients.forEach(c=>{
-    const payments=C.calcPayments(c);
-    const balance=C.calcBalance(c);
-    const overdue=C.calcOverdue(payments);
-    const row=[
-      c.contractId||'',c.date||'',c.name||(c.phones||[]).join(', '),
-      (c.gphones||[]).join(', '),c.guarantor||'',c.address||'',c.guarantorAddress||'',
-      c.product||'',c.partner||'',c.cost||0,c.price||0,c.prepay||0,c.months||0,
-      c.status||'активный',balance,overdue
-    ];
-    for(let m=0;m<12;m++){
-      row.push(c['дата'+(m+1)]||'',c['размер'+(m+1)]||0,c['взнос'+(m+1)]||0);
-    }
-    rows.push(row);
+  const FB=window.FB;
+  const rows=[['№','Дата','ФИО','Телефоны','Поручитель','Тел.поручителя','Адрес','Адрес поручителя','Товар','Партнёр','Себестоимость','Цена','Предоплата','Месяцев','Статус','Остаток','Просрочка']];
+  G.clients.forEach(c=>{
+    const s=getStats(c);
+    rows.push([c.contractId,c.date,c.name,(c.phones||[]).join(', '),c.gname,(c.gphones||[]).join(', '),c.addr,c.gaddr,c.product,c.partner,c.cost,c.price,c.prepay,c.months,autoStatus(c,s),s.balance,s.overdue]);
   });
-
   const ws=XLSX.utils.aoa_to_sheet(rows);
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Клиенты');
-
-  // Лист платежей
-  const pRows=[['Дата','№ Договора','ФИО','Сумма','Тип','Способ']];
-  C.payments.forEach(p=>pRows.push([p.dateStr||'',p.contractId||'',p.name||'',p.amount||0,p.type||'',p.payType||'']));
-  const ws2=XLSX.utils.aoa_to_sheet(pRows);
-  XLSX.utils.book_append_sheet(wb,ws2,'Платежи');
-
+  const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];
+  G.payments.forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel||p.type,p.payType]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');
   XLSX.writeFile(wb,`Amana_CRM_${new Date().toLocaleDateString('ru-RU').replace(/\./g,'-')}.xlsx`);
-  showToast('Excel файл скачан!','success');
+  showToast('Excel скачан!','ok');
 }
 
-// ═══ UTILS ═══
-function openModal(id){
-  document.getElementById(id).classList.add('show');
-  if(id==='modalClient'){
-    document.getElementById('f_date').value=new Date().toISOString().split('T')[0];
-    updatePartnerSelect();
-    calcSchedule();
-    // Reset phones
-    document.getElementById('f_phones').innerHTML='<div class="phone-row"><input class="f-input no-mb" type="tel" placeholder="89001234567"/><button class="btn-icon btn-add" onclick="addPhone(\'f_phones\')">+</button></div>';
-    document.getElementById('f_gphones').innerHTML='<div class="phone-row"><input class="f-input no-mb" type="tel" placeholder="89001234567"/><button class="btn-icon btn-add" onclick="addPhone(\'f_gphones\')">+</button></div>';
-  }
+// ─── UTILS ───
+function openModal(id){document.getElementById(id).classList.add('on');}
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),3000);
 }
-function closeModal(id){document.getElementById(id).classList.remove('show');}
-function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
-document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');});});
-window.addEventListener('firebaseReady',()=>{const C=window.CRM;window.collection=C.collection;window.getDocs=C.getDocs;window.orderBy=C.orderBy;window.query=C.query;window.doc=C.doc;window.updateDoc=C.updateDoc;window.addDoc=C.addDoc;window.onSnapshot=C.onSnapshot;});
+document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+window.addEventListener('fbReady',()=>{ /* FB ready */ });
 </script>
 </body>
 </html>
