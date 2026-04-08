@@ -439,6 +439,13 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 
 <div class="toast" id="toast"></div>
 
+<!-- FILTER OVERLAY -->
+<div id="fdOverlay">
+  <div class="fdo-title" id="fdo_title"></div>
+  <div id="fdo_body"></div>
+  <button class="fdo-apply" id="fdo_apply">Применить</button>
+</div>
+
 <script>
 // ════════════════════════════════
 // STATE
@@ -631,39 +638,96 @@ function setTab(t,btn){
   renderClients();
 }
 
+let _curFilterCol = '';
+
+function closeAllDrops(){
+  document.getElementById('fdOverlay').classList.remove('on');
+  _curFilterCol='';
+}
+
+function toggleDrop(col, el){
+  event.stopPropagation();
+  if(_curFilterCol===col){ closeAllDrops(); return; }
+  _curFilterCol = col;
+  const cf = S.colFilters;
+  const ov = document.getElementById('fdOverlay');
+  const titles = {id:'№ Договора',date:'Дата',name:'Клиент',product:'Товар',bal:'Остаток',over:'Просрочка',status:'Статус'};
+  document.getElementById('fdo_title').textContent = titles[col]||col;
+
+  // Build body HTML
+  let body = '';
+  if(col==='id'){
+    body=`<input class="fdo-inp" id="fdi_id" placeholder="Поиск по номеру..." value="${cf.id||''}"/>`;
+  } else if(col==='date'){
+    body=`<label class="fdo-lbl">Поиск</label>
+    <input class="fdo-inp" id="fdi_date_q" placeholder="напр. 2026" value="${cf.date_q||''}"/>
+    <label class="fdo-lbl">От</label>
+    <input class="fdo-inp" id="fdi_date_from" type="date" value="${cf.date_from||''}"/>
+    <label class="fdo-lbl">До</label>
+    <input class="fdo-inp" id="fdi_date_to" type="date" value="${cf.date_to||''}"/>`;
+  } else if(col==='name'){
+    body=`<input class="fdo-inp" id="fdi_name" placeholder="Поиск по ФИО..." value="${cf.name||''}"/>`;
+  } else if(col==='product'){
+    body=`<input class="fdo-inp" id="fdi_product" placeholder="Поиск по товару..." value="${cf.product||''}"/>`;
+  } else if(col==='bal'){
+    body=`<label class="fdo-lbl">Поиск</label>
+    <input class="fdo-inp" id="fdi_bal_q" placeholder="напр. 50000" value="${cf.bal_q||''}"/>
+    <label class="fdo-lbl">Диапазон</label>
+    <div class="fdo-row">
+      <input class="fdo-inp" id="fdi_bal_from" type="number" placeholder="От" value="${cf.bal_from||''}"/>
+      <input class="fdo-inp" id="fdi_bal_to" type="number" placeholder="До" value="${cf.bal_to||''}"/>
+    </div>`;
+  } else if(col==='over'){
+    body=`<label class="fdo-lbl">Поиск</label>
+    <input class="fdo-inp" id="fdi_over_q" placeholder="напр. 20000" value="${cf.over_q||''}"/>
+    <label class="fdo-lbl">Диапазон</label>
+    <div class="fdo-row">
+      <input class="fdo-inp" id="fdi_over_from" type="number" placeholder="От" value="${cf.over_from||''}"/>
+      <input class="fdo-inp" id="fdi_over_to" type="number" placeholder="До" value="${cf.over_to||''}"/>
+    </div>`;
+  } else if(col==='status'){
+    body=`<select class="fdo-inp fdo-sel" id="fdi_status">
+      <option value="" ${!cf.status?'selected':''}>Все</option>
+      <option value="активный" ${cf.status==='активный'?'selected':''}>Активный</option>
+      <option value="завершён" ${cf.status==='завершён'?'selected':''}>Завершён</option>
+      <option value="удалён" ${cf.status==='удалён'?'selected':''}>Удалён</option>
+    </select>`;
+  }
+  document.getElementById('fdo_body').innerHTML = body;
+  document.getElementById('fdo_apply').onclick = ()=>applyFilter(col);
+
+  // Position overlay near button
+  const rect = el.getBoundingClientRect();
+  ov.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+  let left = rect.left + window.scrollX;
+  if(left + 220 > window.innerWidth) left = window.innerWidth - 230;
+  ov.style.left = left + 'px';
+  ov.classList.add('on');
+  // Focus first input
+  setTimeout(()=>{ const fi=ov.querySelector('input,select'); if(fi) fi.focus(); }, 50);
+}
+
 function applyFilter(col){
   const cf = S.colFilters;
-  if(col==='id')   { cf.id=FP.id; }
-  if(col==='date') { cf.date_from=FP.date_from; cf.date_to=FP.date_to; cf.date_q=FP.date_q; }
-  if(col==='name') { cf.name=FP.name; }
-  if(col==='product'){ cf.product=FP.product; }
-  if(col==='bal')  { cf.bal_from=FP.bal_from; cf.bal_to=FP.bal_to; cf.bal_q=FP.bal_q; }
-  if(col==='over') { cf.over_from=FP.over_from; cf.over_to=FP.over_to; cf.over_q=FP.over_q; }
-  if(col==='status'){ cf.status=FP.status; }
+  const g = id => { const e=document.getElementById('fdi_'+id); return e?e.value:''; };
+  if(col==='id')      { cf.id=g('id'); }
+  if(col==='date')    { cf.date_q=g('date_q'); cf.date_from=g('date_from'); cf.date_to=g('date_to'); }
+  if(col==='name')    { cf.name=g('name'); }
+  if(col==='product') { cf.product=g('product'); }
+  if(col==='bal')     { cf.bal_q=g('bal_q'); cf.bal_from=g('bal_from'); cf.bal_to=g('bal_to'); }
+  if(col==='over')    { cf.over_q=g('over_q'); cf.over_from=g('over_from'); cf.over_to=g('over_to'); }
+  if(col==='status')  { cf.status=g('status'); }
   closeAllDrops();
   renderClients();
 }
 
-function closeAllDrops(){
-  document.querySelectorAll('.fdrop').forEach(d=>d.style.display='none');
-}
-
-function toggleDrop(col, btn){
-  event.stopPropagation();
-  const drop = document.getElementById('fd_'+col);
-  if(!drop) return;
-  const isOpen = drop.style.display === 'block';
-  closeAllDrops();
-  if(isOpen) return;
-  // Pre-fill from applied filters
-  const cf = S.colFilters;
-  const keys = col==='id'?['id']:col==='date'?['date_from','date_to','date_q']:col==='name'?['name']:col==='product'?['product']:col==='bal'?['bal_from','bal_to','bal_q']:col==='over'?['over_from','over_to','over_q']:col==='status'?['status']:[];
-  keys.forEach(k=>{ const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=cf[k]||''; FP[k]=cf[k]||''; });
-  drop.style.display = 'block';
-}
-
 document.addEventListener('click', e=>{
-  if(!e.target.closest('th')) closeAllDrops();
+  if(!e.target.closest('#fdOverlay') && !e.target.closest('th')) closeAllDrops();
+});
+// Enter key applies filter
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && _curFilterCol) applyFilter(_curFilterCol);
+  if(e.key==='Escape') closeAllDrops();
 });
 
 function isFiltered(col){
@@ -683,12 +747,36 @@ function thCell(col, label, sortKey){
   const sorted = S.sortCol===sortKey;
   const sortArr = sortKey ? `<span class="sarr ${sorted?'on':''}">${sorted?(S.sortDir===1?'↑':'↓'):'↕'}</span>` : '';
   const sortClick = sortKey ? `onclick="event.stopPropagation();sortBy('${sortKey}')"` : '';
-  return `<th style="position:relative">
+  return `<th>
     <div class="th-cell" onclick="toggleDrop('${col}',this)">
       <span class="th-name ${filtered?'filtered':''}" ${sortClick}>${label} ${sortArr}</span>
       <span class="th-farrow ${filtered?'active':''}">▾</span>
     </div>
-    ${dropHtml(col)}
+  </th>`;
+}
+
+function isFiltered(col){
+  const cf=S.colFilters;
+  if(col==='id') return !!cf.id;
+  if(col==='date') return !!(cf.date_from||cf.date_to||cf.date_q);
+  if(col==='name') return !!cf.name;
+  if(col==='product') return !!cf.product;
+  if(col==='bal') return !!(cf.bal_from||cf.bal_to||cf.bal_q);
+  if(col==='over') return !!(cf.over_from||cf.over_to||cf.over_q);
+  if(col==='status') return !!cf.status;
+  return false;
+}
+
+function thCell(col, label, sortKey){
+  const filtered = isFiltered(col);
+  const sorted = S.sortCol===sortKey;
+  const sortArr = sortKey ? `<span class="sarr ${sorted?'on':''}">${sorted?(S.sortDir===1?'↑':'↓'):'↕'}</span>` : '';
+  const sortClick = sortKey ? `onclick="event.stopPropagation();sortBy('${sortKey}')"` : '';
+  return `<th>
+    <div class="th-cell" onclick="toggleDrop('${col}',this)">
+      <span class="th-name ${filtered?'filtered':''}" ${sortClick}>${label} ${sortArr}</span>
+      <span class="th-farrow ${filtered?'active':''}">▾</span>
+    </div>
   </th>`;
 }
 
