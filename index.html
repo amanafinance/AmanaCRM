@@ -645,29 +645,25 @@ function applyFilter(col){
 }
 
 function closeAllDrops(){
-  document.querySelectorAll('.fdrop.on').forEach(d=>d.classList.remove('on'));
+  document.querySelectorAll('.fdrop').forEach(d=>d.style.display='none');
 }
 
 function toggleDrop(col, btn){
-  closeAllDrops();
+  event.stopPropagation();
   const drop = document.getElementById('fd_'+col);
   if(!drop) return;
-  // Pre-fill pending values from current applied filters
+  const isOpen = drop.style.display === 'block';
+  closeAllDrops();
+  if(isOpen) return;
+  // Pre-fill from applied filters
   const cf = S.colFilters;
-  if(col==='id')    { FP.id=cf.id; const el=drop.querySelector('[data-fp="id"]'); if(el) el.value=FP.id; }
-  if(col==='date')  { FP.date_from=cf.date_from; FP.date_to=cf.date_to; FP.date_q=cf.date_q||'';
-    ['date_from','date_to','date_q'].forEach(k=>{ const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=FP[k]; }); }
-  if(col==='name')  { FP.name=cf.name; const el=drop.querySelector('[data-fp="name"]'); if(el) el.value=FP.name; }
-  if(col==='product'){ FP.product=cf.product; const el=drop.querySelector('[data-fp="product"]'); if(el) el.value=FP.product; }
-  if(col==='bal')   { ['bal_from','bal_to','bal_q'].forEach(k=>{ FP[k]=cf[k]||''; const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=FP[k]; }); }
-  if(col==='over')  { ['over_from','over_to','over_q'].forEach(k=>{ FP[k]=cf[k]||''; const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=FP[k]; }); }
-  if(col==='status'){ FP.status=cf.status; const el=drop.querySelector('[data-fp="status"]'); if(el) el.value=FP.status; }
-  drop.classList.add('on');
+  const keys = col==='id'?['id']:col==='date'?['date_from','date_to','date_q']:col==='name'?['name']:col==='product'?['product']:col==='bal'?['bal_from','bal_to','bal_q']:col==='over'?['over_from','over_to','over_q']:col==='status'?['status']:[];
+  keys.forEach(k=>{ const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=cf[k]||''; FP[k]=cf[k]||''; });
+  drop.style.display = 'block';
 }
 
-// Close dropdowns when clicking outside
 document.addEventListener('click', e=>{
-  if(!e.target.closest('.tbl th')) closeAllDrops();
+  if(!e.target.closest('th')) closeAllDrops();
 });
 
 function isFiltered(col){
@@ -697,56 +693,55 @@ function thCell(col, label, sortKey){
 }
 
 function dropHtml(col){
-  if(col==='id') return `<div class="fdrop" id="fd_id">
-    <div class="fdrop-title">Фильтр: № Договора</div>
+  const H = 'style="display:none"';
+  if(col==='id') return `<div class="fdrop" id="fd_id" ${H}>
+    <div class="fdrop-title">№ Договора</div>
     <input class="fi" placeholder="Поиск по номеру..." data-fp="id" oninput="FP.id=this.value"/>
     <button class="fdrop-apply" onclick="applyFilter('id')">Применить</button>
   </div>`;
-  if(col==='date') return `<div class="fdrop" id="fd_date" style="min-width:220px">
-    <div class="fdrop-title">Фильтр: Дата</div>
+  if(col==='date') return `<div class="fdrop" id="fd_date" ${H} style="display:none;min-width:200px">
+    <div class="fdrop-title">Дата</div>
     <label class="fi-label">Поиск</label>
     <input class="fi" placeholder="напр. 2026" data-fp="date_q" oninput="FP.date_q=this.value"/>
-    <label class="fi-label">Диапазон</label>
-    <div class="fi-row">
-      <input class="fi" type="date" title="От" data-fp="date_from" onchange="FP.date_from=this.value"/>
-      <input class="fi" type="date" title="До" data-fp="date_to" onchange="FP.date_to=this.value"/>
-    </div>
+    <label class="fi-label" style="margin-top:4px">Диапазон</label>
+    <input class="fi" type="date" title="От" data-fp="date_from" onchange="FP.date_from=this.value" style="margin-bottom:4px"/>
+    <input class="fi" type="date" title="До" data-fp="date_to" onchange="FP.date_to=this.value"/>
     <button class="fdrop-apply" onclick="applyFilter('date')">Применить</button>
   </div>`;
-  if(col==='name') return `<div class="fdrop" id="fd_name">
-    <div class="fdrop-title">Фильтр: Клиент</div>
+  if(col==='name') return `<div class="fdrop" id="fd_name" ${H}>
+    <div class="fdrop-title">Клиент</div>
     <input class="fi" placeholder="Поиск по ФИО..." data-fp="name" oninput="FP.name=this.value"/>
     <button class="fdrop-apply" onclick="applyFilter('name')">Применить</button>
   </div>`;
-  if(col==='product') return `<div class="fdrop" id="fd_product">
-    <div class="fdrop-title">Фильтр: Товар</div>
+  if(col==='product') return `<div class="fdrop" id="fd_product" ${H}>
+    <div class="fdrop-title">Товар</div>
     <input class="fi" placeholder="Поиск по товару..." data-fp="product" oninput="FP.product=this.value"/>
     <button class="fdrop-apply" onclick="applyFilter('product')">Применить</button>
   </div>`;
-  if(col==='bal') return `<div class="fdrop" id="fd_bal" style="min-width:220px">
-    <div class="fdrop-title">Фильтр: Остаток</div>
+  if(col==='bal') return `<div class="fdrop" id="fd_bal" ${H} style="display:none;min-width:200px">
+    <div class="fdrop-title">Остаток</div>
     <label class="fi-label">Поиск</label>
     <input class="fi" placeholder="напр. 50000" data-fp="bal_q" oninput="FP.bal_q=this.value"/>
-    <label class="fi-label">Диапазон</label>
-    <div class="fi-row">
-      <input class="fi" type="number" placeholder="От" data-fp="bal_from" oninput="FP.bal_from=this.value"/>
-      <input class="fi" type="number" placeholder="До" data-fp="bal_to" oninput="FP.bal_to=this.value"/>
+    <label class="fi-label" style="margin-top:4px">Диапазон</label>
+    <div class="fi-row" style="gap:6px">
+      <input class="fi" type="number" placeholder="От" data-fp="bal_from" oninput="FP.bal_from=this.value" style="margin-bottom:0;width:50%"/>
+      <input class="fi" type="number" placeholder="До" data-fp="bal_to" oninput="FP.bal_to=this.value" style="margin-bottom:0;width:50%"/>
     </div>
     <button class="fdrop-apply" onclick="applyFilter('bal')">Применить</button>
   </div>`;
-  if(col==='over') return `<div class="fdrop" id="fd_over" style="min-width:220px">
-    <div class="fdrop-title">Фильтр: Просрочка</div>
+  if(col==='over') return `<div class="fdrop" id="fd_over" ${H} style="display:none;min-width:200px">
+    <div class="fdrop-title">Просрочка</div>
     <label class="fi-label">Поиск</label>
     <input class="fi" placeholder="напр. 20000" data-fp="over_q" oninput="FP.over_q=this.value"/>
-    <label class="fi-label">Диапазон</label>
-    <div class="fi-row">
-      <input class="fi" type="number" placeholder="От" data-fp="over_from" oninput="FP.over_from=this.value"/>
-      <input class="fi" type="number" placeholder="До" data-fp="over_to" oninput="FP.over_to=this.value"/>
+    <label class="fi-label" style="margin-top:4px">Диапазон</label>
+    <div class="fi-row" style="gap:6px">
+      <input class="fi" type="number" placeholder="От" data-fp="over_from" oninput="FP.over_from=this.value" style="margin-bottom:0;width:50%"/>
+      <input class="fi" type="number" placeholder="До" data-fp="over_to" oninput="FP.over_to=this.value" style="margin-bottom:0;width:50%"/>
     </div>
     <button class="fdrop-apply" onclick="applyFilter('over')">Применить</button>
   </div>`;
-  if(col==='status') return `<div class="fdrop" id="fd_status">
-    <div class="fdrop-title">Фильтр: Статус</div>
+  if(col==='status') return `<div class="fdrop" id="fd_status" ${H}>
+    <div class="fdrop-title">Статус</div>
     <select class="fi fi-sel" data-fp="status" onchange="FP.status=this.value">
       <option value="">Все</option>
       <option value="активный">Активный</option>
