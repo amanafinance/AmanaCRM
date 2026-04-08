@@ -447,7 +447,7 @@ const S = {
   clients: [], payments: [], partners: ['Хайр Строй','Иса кирпич','Прочий'],
   payTypes: ['Нал','Безнал'], curClient: null, tab: 'all',
   sortCol: '', sortDir: 1,
-  colFilters: { id:'', date_from:'', date_to:'', name:'', product:'', bal_from:'', bal_to:'', over_from:'', over_to:'', status:'' }
+  colFilters: { id:'', date_from:'', date_to:'', date_q:'', name:'', product:'', bal_from:'', bal_to:'', bal_q:'', over_from:'', over_to:'', over_q:'', status:'' }
 };
 let _cid = null, _midx = null;
 
@@ -621,11 +621,141 @@ function renderDash(){
 // ════════════════════════════════
 // CLIENTS TABLE
 // ════════════════════════════════
+// Pending filter values (in dropdown, not yet applied)
+const FP = { id:'', date_from:'', date_to:'', date_q:'', name:'', product:'', bal_from:'', bal_to:'', bal_q:'', over_from:'', over_to:'', over_q:'', status:'' };
+
 function setTab(t,btn){
   S.tab=t;
   document.querySelectorAll('.ft').forEach(x=>x.classList.remove('on'));
   btn.classList.add('on');
   renderClients();
+}
+
+function applyFilter(col){
+  const cf = S.colFilters;
+  if(col==='id')   { cf.id=FP.id; }
+  if(col==='date') { cf.date_from=FP.date_from; cf.date_to=FP.date_to; cf.date_q=FP.date_q; }
+  if(col==='name') { cf.name=FP.name; }
+  if(col==='product'){ cf.product=FP.product; }
+  if(col==='bal')  { cf.bal_from=FP.bal_from; cf.bal_to=FP.bal_to; cf.bal_q=FP.bal_q; }
+  if(col==='over') { cf.over_from=FP.over_from; cf.over_to=FP.over_to; cf.over_q=FP.over_q; }
+  if(col==='status'){ cf.status=FP.status; }
+  closeAllDrops();
+  renderClients();
+}
+
+function closeAllDrops(){
+  document.querySelectorAll('.fdrop.on').forEach(d=>d.classList.remove('on'));
+}
+
+function toggleDrop(col, btn){
+  closeAllDrops();
+  const drop = document.getElementById('fd_'+col);
+  if(!drop) return;
+  // Pre-fill pending values from current applied filters
+  const cf = S.colFilters;
+  if(col==='id')    { FP.id=cf.id; const el=drop.querySelector('[data-fp="id"]'); if(el) el.value=FP.id; }
+  if(col==='date')  { FP.date_from=cf.date_from; FP.date_to=cf.date_to; FP.date_q=cf.date_q||'';
+    ['date_from','date_to','date_q'].forEach(k=>{ const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=FP[k]; }); }
+  if(col==='name')  { FP.name=cf.name; const el=drop.querySelector('[data-fp="name"]'); if(el) el.value=FP.name; }
+  if(col==='product'){ FP.product=cf.product; const el=drop.querySelector('[data-fp="product"]'); if(el) el.value=FP.product; }
+  if(col==='bal')   { ['bal_from','bal_to','bal_q'].forEach(k=>{ FP[k]=cf[k]||''; const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=FP[k]; }); }
+  if(col==='over')  { ['over_from','over_to','over_q'].forEach(k=>{ FP[k]=cf[k]||''; const e=drop.querySelector('[data-fp="'+k+'"]'); if(e) e.value=FP[k]; }); }
+  if(col==='status'){ FP.status=cf.status; const el=drop.querySelector('[data-fp="status"]'); if(el) el.value=FP.status; }
+  drop.classList.add('on');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.tbl th')) closeAllDrops();
+});
+
+function isFiltered(col){
+  const cf=S.colFilters;
+  if(col==='id') return !!cf.id;
+  if(col==='date') return !!(cf.date_from||cf.date_to||cf.date_q);
+  if(col==='name') return !!cf.name;
+  if(col==='product') return !!cf.product;
+  if(col==='bal') return !!(cf.bal_from||cf.bal_to||cf.bal_q);
+  if(col==='over') return !!(cf.over_from||cf.over_to||cf.over_q);
+  if(col==='status') return !!cf.status;
+  return false;
+}
+
+function thCell(col, label, sortKey){
+  const filtered = isFiltered(col);
+  const sorted = S.sortCol===sortKey;
+  const sortArr = sortKey ? `<span class="sarr ${sorted?'on':''}">${sorted?(S.sortDir===1?'↑':'↓'):'↕'}</span>` : '';
+  const sortClick = sortKey ? `onclick="event.stopPropagation();sortBy('${sortKey}')"` : '';
+  return `<th style="position:relative">
+    <div class="th-cell" onclick="toggleDrop('${col}',this)">
+      <span class="th-name ${filtered?'filtered':''}" ${sortClick}>${label} ${sortArr}</span>
+      <span class="th-farrow ${filtered?'active':''}">▾</span>
+    </div>
+    ${dropHtml(col)}
+  </th>`;
+}
+
+function dropHtml(col){
+  if(col==='id') return `<div class="fdrop" id="fd_id">
+    <div class="fdrop-title">Фильтр: № Договора</div>
+    <input class="fi" placeholder="Поиск по номеру..." data-fp="id" oninput="FP.id=this.value"/>
+    <button class="fdrop-apply" onclick="applyFilter('id')">Применить</button>
+  </div>`;
+  if(col==='date') return `<div class="fdrop" id="fd_date" style="min-width:220px">
+    <div class="fdrop-title">Фильтр: Дата</div>
+    <label class="fi-label">Поиск</label>
+    <input class="fi" placeholder="напр. 2026" data-fp="date_q" oninput="FP.date_q=this.value"/>
+    <label class="fi-label">Диапазон</label>
+    <div class="fi-row">
+      <input class="fi" type="date" title="От" data-fp="date_from" onchange="FP.date_from=this.value"/>
+      <input class="fi" type="date" title="До" data-fp="date_to" onchange="FP.date_to=this.value"/>
+    </div>
+    <button class="fdrop-apply" onclick="applyFilter('date')">Применить</button>
+  </div>`;
+  if(col==='name') return `<div class="fdrop" id="fd_name">
+    <div class="fdrop-title">Фильтр: Клиент</div>
+    <input class="fi" placeholder="Поиск по ФИО..." data-fp="name" oninput="FP.name=this.value"/>
+    <button class="fdrop-apply" onclick="applyFilter('name')">Применить</button>
+  </div>`;
+  if(col==='product') return `<div class="fdrop" id="fd_product">
+    <div class="fdrop-title">Фильтр: Товар</div>
+    <input class="fi" placeholder="Поиск по товару..." data-fp="product" oninput="FP.product=this.value"/>
+    <button class="fdrop-apply" onclick="applyFilter('product')">Применить</button>
+  </div>`;
+  if(col==='bal') return `<div class="fdrop" id="fd_bal" style="min-width:220px">
+    <div class="fdrop-title">Фильтр: Остаток</div>
+    <label class="fi-label">Поиск</label>
+    <input class="fi" placeholder="напр. 50000" data-fp="bal_q" oninput="FP.bal_q=this.value"/>
+    <label class="fi-label">Диапазон</label>
+    <div class="fi-row">
+      <input class="fi" type="number" placeholder="От" data-fp="bal_from" oninput="FP.bal_from=this.value"/>
+      <input class="fi" type="number" placeholder="До" data-fp="bal_to" oninput="FP.bal_to=this.value"/>
+    </div>
+    <button class="fdrop-apply" onclick="applyFilter('bal')">Применить</button>
+  </div>`;
+  if(col==='over') return `<div class="fdrop" id="fd_over" style="min-width:220px">
+    <div class="fdrop-title">Фильтр: Просрочка</div>
+    <label class="fi-label">Поиск</label>
+    <input class="fi" placeholder="напр. 20000" data-fp="over_q" oninput="FP.over_q=this.value"/>
+    <label class="fi-label">Диапазон</label>
+    <div class="fi-row">
+      <input class="fi" type="number" placeholder="От" data-fp="over_from" oninput="FP.over_from=this.value"/>
+      <input class="fi" type="number" placeholder="До" data-fp="over_to" oninput="FP.over_to=this.value"/>
+    </div>
+    <button class="fdrop-apply" onclick="applyFilter('over')">Применить</button>
+  </div>`;
+  if(col==='status') return `<div class="fdrop" id="fd_status">
+    <div class="fdrop-title">Фильтр: Статус</div>
+    <select class="fi fi-sel" data-fp="status" onchange="FP.status=this.value">
+      <option value="">Все</option>
+      <option value="активный">Активный</option>
+      <option value="завершён">Завершён</option>
+      <option value="удалён">Удалён</option>
+    </select>
+    <button class="fdrop-apply" onclick="applyFilter('status')">Применить</button>
+  </div>`;
+  return '';
 }
 
 function renderClients(){
@@ -643,12 +773,15 @@ function renderClients(){
 
   // Column filters
   if(cf.id) list=list.filter(c=>(c.contractId||'').includes(cf.id));
+  if(cf.date_q) list=list.filter(c=>(c.date||'').includes(cf.date_q));
   if(cf.date_from) list=list.filter(c=>c.date&&c.date>=cf.date_from);
   if(cf.date_to) list=list.filter(c=>c.date&&c.date<=cf.date_to);
   if(cf.name) list=list.filter(c=>(c.name||'').toLowerCase().includes(cf.name.toLowerCase()));
   if(cf.product) list=list.filter(c=>(c.product||'').toLowerCase().includes(cf.product.toLowerCase()));
+  if(cf.bal_q!==undefined&&cf.bal_q!=='') list=list.filter(c=>String(Math.round(c._bal)).includes(cf.bal_q));
   if(cf.bal_from!=='') list=list.filter(c=>c._bal>=(parseFloat(cf.bal_from)||0));
   if(cf.bal_to!=='') list=list.filter(c=>c._bal<=(parseFloat(cf.bal_to)||0));
+  if(cf.over_q!==undefined&&cf.over_q!=='') list=list.filter(c=>String(Math.round(c._over)).includes(cf.over_q));
   if(cf.over_from!=='') list=list.filter(c=>c._over>=(parseFloat(cf.over_from)||0));
   if(cf.over_to!=='') list=list.filter(c=>c._over<=(parseFloat(cf.over_to)||0));
   if(cf.status) list=list.filter(c=>c._st===cf.status);
@@ -661,74 +794,45 @@ function renderClients(){
   });
 
   document.getElementById('cCount').textContent=list.length+' клиентов';
-  if(!list.length){document.getElementById('cList').innerHTML='<div class="empty">Ничего не найдено</div>';return;}
 
-  const sa=col=>`style="cursor:pointer" onclick="sortBy('${col}')"`;
-  const arr=col=>S.sortCol===col?`<span class="sarr on">${S.sortDir===1?'↑':'↓'}</span>`:`<span class="sarr">↕</span>`;
-  const fv=(k,v)=>{S.colFilters[k]=v;renderClients();};
+  const tbody = list.length ? `<tbody>${list.map(c=>{
+    const dups=findDups(c.name,c.phones||[]).filter(x=>x.id!==c.id);
+    const isR=dups.length>0;
+    return `<tr>
+      <td class="crow" onclick="openC('${c.id}')" style="font-weight:700;color:var(--t2)">${c.contractId||'—'}</td>
+      <td class="crow" onclick="openC('${c.id}')" style="color:var(--t2)">${c.date||'—'}</td>
+      <td class="crow" onclick="openC('${c.id}')">
+        <div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+          ${c.name}${isR?`<span class="repeat-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Повторный</span>`:''}
+        </div>
+        <div style="font-size:10px;color:var(--t3)">${(c.phones||[])[0]||''}</div>
+      </td>
+      <td class="crow" onclick="openC('${c.id}')" style="color:var(--t2)">${c.product||'—'}</td>
+      <td class="crow" onclick="openC('${c.id}')"><span class="amt">${fmt(c._bal)} ₽</span></td>
+      <td class="crow" onclick="openC('${c.id}')">${c._over>0?`<span class="amt cr">${fmt(c._over)} ₽</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td class="crow" onclick="openC('${c.id}')">${stBadge(c._st)}</td>
+      <td><div style="display:flex;gap:3px;justify-content:flex-end">
+        ${c._st!=='удалён'?`
+          <button class="ib ig" onclick="event.stopPropagation();openEdit('${c.id}')" title="Изменить"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="ib ir" onclick="event.stopPropagation();softDel('${c.id}')" title="Удалить"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+        `:`<button class="ib ig" onclick="event.stopPropagation();restoreC('${c.id}')" title="Восстановить"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg></button>`}
+      </div></td>
+    </tr>`;
+  }).join('')}</tbody>` : `<tbody><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>`;
 
   document.getElementById('cList').innerHTML=`<table class="tbl">
     <thead><tr>
-      <th><div class="th-inner">
-        <div class="th-label" ${sa('contractId')}>№ ${arr('contractId')}</div>
-        <div class="th-filter"><input class="tf-inp" placeholder="Поиск..." value="${cf.id}" oninput="S.colFilters.id=this.value;renderClients()"/></div>
-      </div></th>
-      <th><div class="th-inner">
-        <div class="th-label" ${sa('date')}>Дата ${arr('date')}</div>
-        <div class="th-filter"><div class="tf-range"><input class="tf-inp" type="date" title="От" value="${cf.date_from}" onchange="S.colFilters.date_from=this.value;renderClients()"/><input class="tf-inp" type="date" title="До" value="${cf.date_to}" onchange="S.colFilters.date_to=this.value;renderClients()"/></div></div>
-      </div></th>
-      <th><div class="th-inner">
-        <div class="th-label" ${sa('name')}>Клиент ${arr('name')}</div>
-        <div class="th-filter"><input class="tf-inp" placeholder="Поиск..." value="${cf.name}" oninput="S.colFilters.name=this.value;renderClients()"/></div>
-      </div></th>
-      <th><div class="th-inner">
-        <div class="th-label" ${sa('product')}>Товар ${arr('product')}</div>
-        <div class="th-filter"><input class="tf-inp" placeholder="Поиск..." value="${cf.product}" oninput="S.colFilters.product=this.value;renderClients()"/></div>
-      </div></th>
-      <th><div class="th-inner">
-        <div class="th-label" ${sa('_bal')}>Остаток ${arr('_bal')}</div>
-        <div class="th-filter"><div class="tf-range"><input class="tf-inp" type="number" placeholder="От" value="${cf.bal_from}" oninput="S.colFilters.bal_from=this.value;renderClients()"/><input class="tf-inp" type="number" placeholder="До" value="${cf.bal_to}" oninput="S.colFilters.bal_to=this.value;renderClients()"/></div></div>
-      </div></th>
-      <th><div class="th-inner">
-        <div class="th-label" ${sa('_over')}>Просрочка ${arr('_over')}</div>
-        <div class="th-filter"><div class="tf-range"><input class="tf-inp" type="number" placeholder="От" value="${cf.over_from}" oninput="S.colFilters.over_from=this.value;renderClients()"/><input class="tf-inp" type="number" placeholder="До" value="${cf.over_to}" oninput="S.colFilters.over_to=this.value;renderClients()"/></div></div>
-      </div></th>
-      <th><div class="th-inner">
-        <div class="th-label">Статус</div>
-        <div class="th-filter"><select class="tf-sel" onchange="S.colFilters.status=this.value;renderClients()">
-          <option value="">Все</option>
-          <option value="активный" ${cf.status==='активный'?'selected':''}>Активный</option>
-          <option value="завершён" ${cf.status==='завершён'?'selected':''}>Завершён</option>
-          <option value="удалён" ${cf.status==='удалён'?'selected':''}>Удалён</option>
-        </select></div>
-      </div></th>
+      ${thCell('id','№','contractId')}
+      ${thCell('date','Дата','date')}
+      ${thCell('name','Клиент','name')}
+      ${thCell('product','Товар','product')}
+      ${thCell('bal','Остаток','_bal')}
+      ${thCell('over','Просрочка','_over')}
+      ${thCell('status','Статус','')}
       <th style="width:70px"></th>
     </tr></thead>
-    <tbody>${list.map(c=>{
-      const dups = findDups(c.name, c.phones||[]).filter(x=>x.id!==c.id);
-      const isRepeat = dups.length>0;
-      return `<tr>
-        <td class="crow" onclick="openC('${c.id}')" style="font-weight:700;color:var(--t2)">${c.contractId||'—'}</td>
-        <td class="crow" onclick="openC('${c.id}')" style="color:var(--t2)">${c.date||'—'}</td>
-        <td class="crow" onclick="openC('${c.id}')">
-          <div style="font-weight:600;display:flex;align-items:center;gap:4px">
-            ${c.name}
-            ${isRepeat?`<span class="repeat-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Повторный</span>`:''}
-          </div>
-          <div style="font-size:10px;color:var(--t3)">${(c.phones||[])[0]||''}</div>
-        </td>
-        <td class="crow" onclick="openC('${c.id}')" style="color:var(--t2)">${c.product||'—'}</td>
-        <td class="crow" onclick="openC('${c.id}')"><span class="amt">${fmt(c._bal)} ₽</span></td>
-        <td class="crow" onclick="openC('${c.id}')">${c._over>0?`<span class="amt cr">${fmt(c._over)} ₽</span>`:'<span style="color:var(--t3)">—</span>'}</td>
-        <td class="crow" onclick="openC('${c.id}')">${stBadge(c._st)}</td>
-        <td><div style="display:flex;gap:3px;justify-content:flex-end">
-          ${c._st!=='удалён'?`
-            <button class="ib ig" onclick="event.stopPropagation();openEdit('${c.id}')" title="Изменить"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-            <button class="ib ir" onclick="event.stopPropagation();softDel('${c.id}')" title="Удалить"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
-          `:`<button class="ib ig" onclick="event.stopPropagation();restoreC('${c.id}')" title="Восстановить"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg></button>`}
-        </div></td>
-      </tr>`;
-    }).join('')}</tbody></table>`;
+    ${tbody}
+  </table>`;
 }
 
 function sortBy(col){
