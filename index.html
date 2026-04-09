@@ -459,17 +459,18 @@ function getStats(c, allPayments) {
   for(let m=0; m<months; m++){
     const ds = c['дата'+(m+1)];
     const size = parseFloat(c['размер'+(m+1)])||0;
-    if(!ds||!size) break;
-    const d = parseD(ds); if(!d) break;
-    const diff = Math.round((d-t)/86400000);
+    // FIX: don't break on empty date/size — show all months
+    if(!size && !ds){ schedule.push({month:m+1,date:'—',size:0,paid:0,st:'upcoming',diff:999,defer:null}); continue; }
+    if(!size){ schedule.push({month:m+1,date:ds||'—',size:0,paid:0,st:'upcoming',diff:999,defer:null}); continue; }
+    const d = ds ? parseD(ds) : null;
+    const diff = d ? Math.round((d-t)/86400000) : 999;
     let paid, st;
     if(rem>=size){paid=size;rem-=size;st='paid';}
-    else if(rem>0){paid=rem;rem=0;st=d<=t?'partial':'partial_future';}
-    else{paid=0;st=d<=t?'overdue':diff<=1?'warning':'upcoming';}
+    else if(rem>0){paid=rem;rem=0;st=d&&d<=t?'partial':'partial_future';}
+    else{paid=0;st=d&&d<=t?'overdue':diff<=1?'warning':'upcoming';}
     const defer = c.defers&&c.defers[m]?c.defers[m]:null;
-    // FIX: deferred платёж не считается просроченным
     if(defer && st!=='paid') st='deferred';
-    schedule.push({month:m+1,date:ds,size,paid,st,diff,defer});
+    schedule.push({month:m+1,date:ds||'—',size,paid,st,diff,defer});
   }
   const overdue = schedule
     .filter(p=>p.st==='overdue'||p.st==='partial')
@@ -858,10 +859,20 @@ function toggleCph(id){
 // ─── CANCEL PAYMENT ───
 async function cancelPay(payId,clientId,amount){
   if(!confirm(`Отменить платёж ${fmt(amount)} ₽?`)) return;
-  const {db,doc,deleteDoc}=window.DB;
+  const {db,doc,deleteDoc,updateDoc}=window.DB;
   try{
     await deleteDoc(doc(db,'payments',payId));
-    await logA('Отмена платежа',`${S.clients.find(x=>x.id===clientId)?.name||clientId} — ${fmt(amount)} ₽`);
+    // FIX: after cancelling payment, revert status if needed
+    const c=S.clients.find(x=>x.id===clientId);
+    if(c && c.status==='завершён'){
+      // Recalculate without the deleted payment
+      const remainingPays = S.payments.filter(p=>p.id!==payId);
+      const s = getStats(c, remainingPays);
+      if(s.balance > 0){
+        await updateDoc(doc(db,'clients',clientId),{status:'активный'});
+      }
+    }
+    await logA('Отмена платежа',`${c?.name||clientId} — ${fmt(amount)} ₽`);
     toast('Платёж отменён!','tok');
   }catch(e){toast('Ошибка: '+e.message,'ter');}
 }
@@ -998,12 +1009,8 @@ async function saveClient(){
   const name=document.getElementById('f_name').value.trim();
   const price=parseFloat(document.getElementById('f_price').value)||0;
   if(!name||!price){toast('Заполните обязательные поля','ter');return;}
-  // Validate that at least some dates are filled
   const rows=document.querySelectorAll('#schedBody tr');
   const months=parseInt(document.getElementById('f_months').value);
-  if(rows.length>0 && !rows[0].querySelector('.dt').value){
-    toast('Укажите даты платежей','ter'); return;
-  }
   _saving=true;
   const btn=document.getElementById('mCBtn');
   btn.classList.add('saving'); btn.textContent='Сохраняю...';
