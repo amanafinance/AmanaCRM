@@ -483,11 +483,11 @@ function getStats(c, allPayments) {
 }
 
 // FIX: effStatus computed correctly
-function effStatus(c) {
+function effStatus(c, cachedStats) {
   if(c.status==='удалён') return 'удалён';
   const price=parseFloat(c.price)||0;
   if(price>0){
-    const s=getStats(c);
+    const s=cachedStats||getStats(c);
     if(s.balance<=0) return 'завершён';
   }
   return c.status||'активный';
@@ -607,9 +607,13 @@ function renderClients(){
   const cf=S.CF;
   // FIX: cache stats to avoid O(n²)
   let list=S.clients.map(c=>{
-    const st=effStatus(c);
     const s=getStats(c);
-    return {...c,_st:st,_bal:s.balance,_over:s.overdue};
+    // Compute status from stats (single pass, no double calculation)
+    let _st;
+    if(c.status==='удалён') _st='удалён';
+    else if((parseFloat(c.price)||0)>0 && s.balance<=0) _st='завершён';
+    else _st=c.status||'активный';
+    return {...c,_st,_bal:s.balance,_over:s.overdue};
   });
   // Tab
   if(S.tab==='all') list=list.filter(c=>c._st!=='удалён');
@@ -644,7 +648,7 @@ function renderClients(){
       <td class="crow" onclick="openC('${c.id}')" style="color:var(--t2)">${c.product||'—'}</td>
       <td class="crow" onclick="openC('${c.id}')"><span class="amt">${fmt(c._bal)} ₽</span></td>
       <td class="crow" onclick="openC('${c.id}')">${c._over>0?`<span class="amt cr">${fmt(c._over)} ₽</span>`:'<span style="color:var(--t3)">—</span>'}</td>
-      <td class="crow" onclick="openC('${c.id}')">${stBadge(c._st)}</td>
+      <td class="crow" onclick="openC('${c.id}')">${stBadge(c._st,c._over)}</td>
       <td><div style="display:flex;gap:3px;justify-content:flex-end">
         ${c._st!=='удалён'?`
           <button class="ib ig" onclick="event.stopPropagation();openEdit('${c.id}')" title="Изменить"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -663,7 +667,7 @@ function renderClients(){
 
 function thCell(col,label){
   const f=isF(col);
-  return `<th><div class="th-cell" onclick="toggleDrop('${col}',this)">
+  return `<th><div class="th-cell" onclick="toggleDrop(event,'${col}',this)">
     <span class="th-name${f?' filtered':''}">${label}</span>
     <span class="th-farrow${f?' active':''}">▾</span>
   </div></th>`;
@@ -679,9 +683,10 @@ function isF(col){
   if(col==='status') return !!cf.status;
   return false;
 }
-function stBadge(st){
+function stBadge(st, over){
   if(st==='завершён') return '<span class="badge bd">Завершён</span>';
   if(st==='удалён') return '<span class="badge bu">Удалён</span>';
+  if(over>0) return '<span class="badge bo">Просрочен</span>';
   return '<span class="badge ba">Активный</span>';
 }
 
@@ -690,8 +695,8 @@ function closeDrops(){
   document.getElementById('fdOverlay').classList.remove('on');
   _fdCol='';
 }
-function toggleDrop(col,el){
-  event.stopPropagation();
+function toggleDrop(ev,col,el){
+  ev.stopPropagation();
   if(_fdCol===col){closeDrops();return;}
   _fdCol=col;
   const cf=S.CF;
@@ -755,7 +760,7 @@ function openC(id){
 
 function renderDetail(c){
   const s=getStats(c);
-  const st=effStatus(c);
+  const st=effStatus(c,s);
   const paidCnt=s.schedule.filter(p=>p.st==='paid').length;
   const phones=(c.phones||[]).join(', ')||'—';
   const gphones=(c.gphones||[]).join(', ')||'—';
@@ -769,10 +774,10 @@ function renderDetail(c){
         <div style="font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;margin-bottom:6px;display:flex;align-items:center;gap:8px">
           ${c.name}${dups.length?`<span class="rbadge">Повторный</span>`:''}
         </div>
-        <div style="font-size:11px;color:var(--t2)">${phones} · №${c.contractId||'—'} · ${c.date||'—'} ${stBadge(st)}</div>
+        <div style="font-size:11px;color:var(--t2)">${phones} · №${c.contractId||'—'} · ${c.date||'—'} ${stBadge(st,s.overdue)}</div>
       </div>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <button class="btn bg bsm" onclick="openPay('${c.id}')">+ Оплата</button>
+        ${st!=='завершён'&&st!=='удалён'?`<button class="btn bg bsm" onclick="openPay('${c.id}')">+ Оплата</button>`:''}
         ${st!=='завершён'&&st!=='удалён'?`<button class="btn by bsm" onclick="openDisc('${c.id}')">Скидка</button>`:''}
         <button class="btn bgh bsm" onclick="openEdit('${c.id}')">Изменить</button>
         ${st==='удалён'?`<button class="btn bgh bsm" onclick="restoreC('${c.id}')">Восстановить</button>`:`<button class="btn br bsm" onclick="softDel('${c.id}')">Удалить</button>`}
@@ -787,8 +792,10 @@ function renderDetail(c){
         <div class="ig2">
           <div class="ii"><div class="il">Товар</div><div class="iv">${c.product||'—'}</div></div>
           <div class="ii"><div class="il">Партнёр</div><div class="iv">${c.partner||'—'}</div></div>
-          <div class="ii"><div class="il">Цена</div><div class="iv">${fmt(c.price)} ₽</div></div>
+          <div class="ii"><div class="il">Цена продажи</div><div class="iv">${fmt(c.price)} ₽</div></div>
           <div class="ii"><div class="il">Предоплата</div><div class="iv">${fmt(c.prepay)} ₽</div></div>
+          ${c.cost?`<div class="ii"><div class="il">Себестоимость</div><div class="iv">${fmt(c.cost)} ₽</div></div>`:''}
+          ${c.cost?`<div class="ii"><div class="il">Маржа</div><div class="iv cg">${fmt((parseFloat(c.price)||0)-(parseFloat(c.cost)||0))} ₽</div></div>`:''}
           <div class="ii"><div class="il">Поручитель</div><div class="iv">${c.gname||'—'}</div></div>
           <div class="ii"><div class="il">Тел. поручителя</div><div class="iv">${gphones}</div></div>
           <div class="ii"><div class="il">Адрес клиента</div><div class="iv">${c.addr||'—'}</div></div>
@@ -839,8 +846,8 @@ function payRow(p,i,cid){
   const rows={paid:'pp',overdue:'po',warning:'pw',deferred:'pdef'};
   const sts={paid:'Оплачен',overdue:`Просрочен — ${fmt(p.size-p.paid)} ₽`,warning:'Завтра!',partial:`Частично: ${fmt(p.paid)} из ${fmt(p.size)} ₽`,partial_future:`Частично: ${fmt(p.paid)} из ${fmt(p.size)} ₽`,upcoming:'Ожидается',deferred:`Отсрочка до ${p.defer?.date||''}`};
   const stc={paid:'stg',overdue:'str',warning:'sty',partial:'sty',partial_future:'sty',upcoming:'st3',deferred:'stb'};
-  // FIX: defer button only for overdue/warning/partial, not upcoming far ahead
-  const showDefer = p.st!=='paid' && ['overdue','warning','partial','partial_future','deferred'].includes(p.st);
+  // Show defer button only for overdue/warning/partial/deferred (not upcoming without date)
+  const showDefer = p.st!=='paid' && p.date!=='—' && ['overdue','warning','partial','partial_future','deferred'].includes(p.st);
   return `<div class="pr ${rows[p.st]||''}">
     <div class="pdot ${dots[p.st]||'dt3'}"></div>
     <div class="pn">${p.month} мес.</div>
@@ -864,18 +871,34 @@ async function cancelPay(payId,clientId,amount){
   if(!confirm(`Отменить платёж ${fmt(amount)} ₽?`)) return;
   const {db,doc,deleteDoc,updateDoc}=window.DB;
   try{
+    // Find payment before deleting to check type
+    const payRec = S.payments.find(p=>p.id===payId);
     await deleteDoc(doc(db,'payments',payId));
-    // FIX: after cancelling payment, revert status if needed
-    const c=S.clients.find(x=>x.id===clientId);
-    if(c && c.status==='завершён'){
-      // Recalculate without the deleted payment
-      const remainingPays = S.payments.filter(p=>p.id!==payId);
-      const s = getStats(c, remainingPays);
-      if(s.balance > 0){
-        await updateDoc(doc(db,'clients',clientId),{status:'активный'});
-      }
+
+    const c = S.clients.find(x=>x.id===clientId);
+    if(!c){ toast('Платёж отменён!','tok'); return; }
+
+    const upd = {};
+
+    // BUG 13 FIX: if cancelling prepay record, also zero out c.prepay
+    if(payRec && payRec.type==='prepay'){
+      upd.prepay = 0;
     }
-    await logA('Отмена платежа',`${c?.name||clientId} — ${fmt(amount)} ₽`);
+
+    // Revert status to активный if balance > 0 after cancellation
+    if(c.status==='завершён'){
+      const remainingPays = S.payments.filter(p=>p.id!==payId);
+      // Apply prepay=0 to temp client object if needed
+      const tempC = payRec?.type==='prepay' ? {...c, prepay:0} : c;
+      const s = getStats(tempC, remainingPays);
+      if(s.balance > 0) upd.status = 'активный';
+    }
+
+    if(Object.keys(upd).length > 0){
+      await updateDoc(doc(db,'clients',clientId), upd);
+    }
+
+    await logA('Отмена платежа',`${c.name} — ${fmt(amount)} ₽`);
     toast('Платёж отменён!','tok');
   }catch(e){toast('Ошибка: '+e.message,'ter');}
 }
@@ -1020,8 +1043,9 @@ async function saveClient(){
   try{
     const phones=[...document.querySelectorAll('#fPhones input')].map(i=>i.value.trim()).filter(Boolean);
     const gphones=[...document.querySelectorAll('#fGphones input')].map(i=>i.value.trim()).filter(Boolean);
+    const dateVal = document.getElementById('f_date').value;
     const data={
-      date:fmtD(new Date(document.getElementById('f_date').value)), // FIX: always store as DD.MM.YYYY
+      date: dateVal ? fmtD(new Date(dateVal)) : '',
       name,phones,gphones,
       gname:document.getElementById('f_gname').value,
       addr:document.getElementById('f_addr').value,
@@ -1030,7 +1054,8 @@ async function saveClient(){
       partner:document.getElementById('f_partner').value,
       cost:parseFloat(document.getElementById('f_cost').value)||0,
       price,prepay:parseFloat(document.getElementById('f_prepay').value)||0,
-      months,status:'активный'
+      months
+      // NOTE: status NOT included here — set separately below
     };
     for(let m=0;m<12;m++){
       if(m<months&&rows[m]){
@@ -1040,11 +1065,13 @@ async function saveClient(){
       }else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}
     }
     if(_cid){
+      // For edits: preserve existing status, don't overwrite it
       await updateDoc(doc(db,'clients',_cid),data);
       await logA('Изменение',`№${S.clients.find(x=>x.id===_cid)?.contractId||''} — ${name}`);
       toast('Договор обновлён!','tok');
     }else{
-      // FIX: contractId based on max existing + 1, not length
+      // New client: set status активный
+      data.status = 'активный';
       const maxId=S.clients.reduce((m,c)=>Math.max(m,parseInt(c.contractId)||0),0);
       data.contractId=String(maxId+1).padStart(5,'0');
       data.createdAt=new Date();
