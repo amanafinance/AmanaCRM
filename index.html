@@ -99,18 +99,37 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 .ft{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--brd);background:transparent;color:var(--t2);transition:.2s}
 .ft.on{background:var(--green);color:#09100b;border-color:var(--green)}
 
+/* FILTER DROPDOWN OVERLAY */
+#fdOverlay{
+  position:fixed;z-index:9999;display:none;
+  background:var(--card);
+  border:1px solid rgba(149,193,31,0.3);
+  border-radius:var(--r2);
+  box-shadow:0 8px 32px rgba(0,0,0,0.7);
+  padding:14px;min-width:190px;
+}
+#fdOverlay.on{display:block}
+.fdo-title{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;color:var(--green);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase}
+.fdo-lbl{font-size:10px;color:var(--t3);font-weight:600;margin-bottom:4px;margin-top:8px;display:block}
+.fdo-inp{width:100%;padding:8px 11px;background:var(--bg3);border:1.5px solid var(--brd);border-radius:6px;font-family:'Manrope',sans-serif;font-size:12px;color:var(--text);outline:none;display:block;margin-bottom:0}
+.fdo-inp:focus{border-color:var(--green)}
+.fdo-row{display:flex;gap:6px;margin-top:4px}
+.fdo-row .fdo-inp{flex:1}
+.fdo-sel{appearance:none;cursor:pointer}
+.fdo-apply{width:100%;padding:9px;background:var(--green);color:#09100b;border:none;border-radius:6px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;cursor:pointer;margin-top:12px;transition:.2s}
+.fdo-apply:hover{background:#a8d422}
+
 /* TABLE */
 .tbl-wrap{overflow-x:auto}
 .tbl{width:100%;border-collapse:collapse}
 .tbl th{border-bottom:2px solid var(--brd2);white-space:nowrap;background:var(--card)}
-.th-cell{display:flex;align-items:center;gap:6px;padding:10px 12px;cursor:pointer;user-select:none;transition:.15s}
-.th-cell:hover{background:var(--bg3)}
+.th-cell{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;transition:.15s;min-height:42px}
+.th-cell:hover{background:rgba(149,193,31,0.05)}
 .th-name{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;transition:.15s}
 .th-name.filtered{color:var(--green)}
-.th-cell:hover .th-name{color:var(--t2)}
-.th-farrow{font-size:11px;color:var(--t3);transition:.15s;flex-shrink:0}
+.th-cell:hover .th-name,.th-cell:hover .th-farrow{color:var(--green)}
+.th-farrow{font-size:14px;color:var(--t3);transition:.15s;flex-shrink:0;line-height:1}
 .th-farrow.active{color:var(--green)}
-.sarr{font-size:9px;opacity:.4;margin-left:2px}.sarr.on{opacity:1;color:var(--green)}
 .tbl td{padding:12px;border-bottom:1px solid var(--brd2);font-size:12px;vertical-align:middle}
 .tbl tbody tr:hover td{background:var(--bg3);transition:.1s}
 .tbl tbody tr:last-child td{border-bottom:none}
@@ -742,12 +761,9 @@ function isFiltered(col){
 
 function thCell(col, label, sortKey){
   const filtered = isFiltered(col);
-  const sorted = S.sortCol===sortKey;
-  const sortArr = sortKey ? `<span class="sarr ${sorted?'on':''}">${sorted?(S.sortDir===1?'↑':'↓'):'↕'}</span>` : '';
-  const sortClick = sortKey ? `onclick="event.stopPropagation();sortBy('${sortKey}')"` : '';
   return `<th>
     <div class="th-cell" onclick="toggleDrop('${col}',this)">
-      <span class="th-name ${filtered?'filtered':''}" ${sortClick}>${label} ${sortArr}</span>
+      <span class="th-name ${filtered?'filtered':''}">${label}</span>
       <span class="th-farrow ${filtered?'active':''}">▾</span>
     </div>
   </th>`;
@@ -767,12 +783,9 @@ function isFiltered(col){
 
 function thCell(col, label, sortKey){
   const filtered = isFiltered(col);
-  const sorted = S.sortCol===sortKey;
-  const sortArr = sortKey ? `<span class="sarr ${sorted?'on':''}">${sorted?(S.sortDir===1?'↑':'↓'):'↕'}</span>` : '';
-  const sortClick = sortKey ? `onclick="event.stopPropagation();sortBy('${sortKey}')"` : '';
   return `<th>
     <div class="th-cell" onclick="toggleDrop('${col}',this)">
-      <span class="th-name ${filtered?'filtered':''}" ${sortClick}>${label} ${sortArr}</span>
+      <span class="th-name ${filtered?'filtered':''}">${label}</span>
       <span class="th-farrow ${filtered?'active':''}">▾</span>
     </div>
   </th>`;
