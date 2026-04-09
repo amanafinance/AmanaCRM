@@ -417,10 +417,14 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 <div class="mover" id="mDefer">
   <div class="modal msm">
     <div class="mtitle">Отсрочка платежа</div>
-    <div style="font-size:12px;color:var(--t2);margin-bottom:14px" id="mdefInfo"></div>
-    <div class="fgp" style="margin-bottom:10px"><label class="lbl">Новая дата</label><input class="inp" type="date" id="mdefDate"/></div>
-    <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="mdefComment" placeholder="Обещал оплатить..."/></div>
-    <div class="mft"><button class="btn bgh" onclick="closeM('mDefer')">Отмена</button><button class="btn bg" onclick="saveDefer()">Сохранить</button></div>
+    <div id="mdefList" style="margin-bottom:14px"></div>
+    <div id="mdefForm" style="display:none">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:14px" id="mdefInfo"></div>
+      <div class="fgp" style="margin-bottom:10px"><label class="lbl">Новая дата</label><input class="inp" type="date" id="mdefDate"/></div>
+      <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="mdefComment" placeholder="Обещал оплатить..."/></div>
+      <div class="mft"><button class="btn bgh" onclick="mdefBack()">Назад</button><button class="btn bg" onclick="saveDefer()">Сохранить</button></div>
+    </div>
+    <div id="mdefClose" class="mft"><button class="btn bgh" onclick="closeM('mDefer')">Закрыть</button></div>
   </div>
 </div>
 
@@ -548,6 +552,8 @@ function effStatus(c, cachedStats) {
   if(price > 0){
     const s = cachedStats || getStats(c);
     if(s.balance <= 0) return 'завершён';
+    // FIX: if balance > 0, always активный regardless of stored status
+    return 'активный';
   }
   return c.status || 'активный';
 }
@@ -756,7 +762,7 @@ function renderClients(){
     if(c.status==='удалён') _st='удалён';
     else if((parseFloat(c.price)||0)>0 && s.balance<=0) _st='завершён';
     else _st=c.status||'активный';
-    return {...c,_st,_bal:s.balance,_over:s.overdue};
+    return {...c,_st,_bal:s.balance,_over:s.overdue,_defers:s.schedule.filter(p=>p.st==='deferred')};
   });
   // Tab
   if(S.tab==='all') list=list.filter(c=>c._st!=='удалён');
@@ -819,7 +825,7 @@ function renderClients(){
       </td>
       <td class="crow" onclick="openC('${c.id}')" style="color:var(--t2)">${c.product||'—'}</td>
       <td class="crow" onclick="openC('${c.id}')"><span class="amt">${fmt(c._bal)} ₽</span></td>
-      <td class="crow" onclick="openC('${c.id}')">${c._over>0?`<span class="amt cr">${fmt(c._over)} ₽</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td class="crow" onclick="openC('${c.id}')">${c._over>0?`<span class="amt cr">${fmt(c._over)} ₽</span>`:c._defers.length?`<span style="font-size:10px;color:var(--blue)">Отсрочка (${c._defers.length})</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td class="crow" onclick="openC('${c.id}')">${stBadge(c._st,c._over)}</td>
       <td><div style="display:flex;gap:3px;justify-content:flex-end">
         ${c._st!=='удалён'?`
@@ -941,11 +947,17 @@ function renderDetail(c){
   const gphones=(c.gphones||[]).join(', ')||'—';
   const dups=findDups(c.name,c.phones||[],c.id);
   const histOpen=document.getElementById('cphb_'+c.id)?.classList.contains('on');
+  const schedOpen=document.getElementById('schedb_'+c.id)?.classList.contains('on');
 
-  // BUG #15 FIX: always show cost/margin
   const price = parseFloat(c.price)||0;
   const cost = parseFloat(c.cost)||0;
   const margin = price - cost;
+
+  // Collect active deferrals for display
+  const activeDeferrals = s.schedule.filter(p=>p.defer).map(p=>({month:p.month,date:p.defer.date,comment:p.defer.comment||''}));
+  // Collect overdue items with deferral info
+  const overdueItems = s.schedule.filter(p=>p.st==='overdue'||p.st==='partial');
+  const deferredItems = s.schedule.filter(p=>p.st==='deferred');
 
   document.getElementById('cDetail').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap">
@@ -958,6 +970,7 @@ function renderDetail(c){
       <div style="display:flex;gap:7px;flex-wrap:wrap">
         ${st!=='завершён'&&st!=='удалён'?`<button class="btn bg bsm" onclick="openPay('${c.id}')">+ Оплата</button>`:''}
         ${st!=='завершён'&&st!=='удалён'?`<button class="btn by bsm" onclick="openDisc('${c.id}')">Скидка</button>`:''}
+        ${st!=='завершён'&&st!=='удалён'?`<button class="btn bsm" style="background:rgba(91,143,249,0.1);color:var(--blue);border:1px solid rgba(91,143,249,0.2)" onclick="openDeferList('${c.id}')">Отсрочка</button>`:''}
         <button class="btn bgh bsm" onclick="openEdit('${c.id}')">Изменить</button>
         ${st==='удалён'?`<button class="btn bgh bsm" onclick="restoreC('${c.id}')">Восстановить</button>`:`<button class="btn br bsm" onclick="softDel('${c.id}')">Удалить</button>`}
       </div>
@@ -968,27 +981,54 @@ function renderDetail(c){
     </div>`:''}
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
       <div>
-        <div class="ig2">
-          <div class="ii"><div class="il">Товар</div><div class="iv">${c.product||'—'}</div></div>
-          <div class="ii"><div class="il">Партнёр</div><div class="iv">${c.partner||'—'}</div></div>
-          <div class="ii"><div class="il">Цена продажи</div><div class="iv">${fmt(price)} ₽</div></div>
-          <div class="ii"><div class="il">Предоплата</div><div class="iv">${fmt(c.prepay)} ₽</div></div>
-          <div class="ii"><div class="il">Себестоимость</div><div class="iv">${cost?fmt(cost)+' ₽':'Не указана'}</div></div>
-          <div class="ii"><div class="il">Маржа</div><div class="iv ${cost?'cg':''}">${cost?fmt(margin)+' ₽':'—'}</div></div>
-          <div class="ii"><div class="il">Поручитель</div><div class="iv">${c.gname||'—'}</div></div>
-          <div class="ii"><div class="il">Тел. поручителя</div><div class="iv">${gphones}</div></div>
-          <div class="ii"><div class="il">Адрес клиента</div><div class="iv">${c.addr||'—'}</div></div>
-          <div class="ii"><div class="il">Адрес поручителя</div><div class="iv">${c.gaddr||'—'}</div></div>
-        </div>
+        <!-- КЛИЕНТ -->
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div class="ct" style="margin-bottom:0">График платежей</div>
+          <div class="ct">Данные клиента</div>
+          <div class="ig2">
+            <div class="ii"><div class="il">ФИО</div><div class="iv">${c.name||'—'}</div></div>
+            <div class="ii"><div class="il">Телефоны</div><div class="iv">${phones}</div></div>
+            <div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">${c.addr||'—'}</div></div>
           </div>
-          <div style="font-size:10px;color:var(--t3);margin-bottom:5px">Оплачено ${paidCnt} из ${c.months||0}</div>
-          <div class="pbar"><div class="pfill" style="width:${Math.round(paidCnt/Math.max(c.months||1,1)*100)}%"></div></div>
-          ${s.schedule.map((p,i)=>payRow(p,i,c.id)).join('')}
         </div>
+        <!-- ПОРУЧИТЕЛЬ -->
+        <div class="card">
+          <div class="ct">Поручитель</div>
+          <div class="ig2">
+            <div class="ii"><div class="il">ФИО</div><div class="iv">${c.gname||'—'}</div></div>
+            <div class="ii"><div class="il">Телефоны</div><div class="iv">${gphones}</div></div>
+            <div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">${c.gaddr||'—'}</div></div>
+          </div>
+        </div>
+        <!-- ТОВАР И ФИНАНСЫ -->
+        <div class="card">
+          <div class="ct">Товар и финансы</div>
+          <div class="ig2">
+            <div class="ii"><div class="il">Товар</div><div class="iv">${c.product||'—'}</div></div>
+            <div class="ii"><div class="il">Партнёр</div><div class="iv">${c.partner||'—'}</div></div>
+            <div class="ii"><div class="il">Цена продажи</div><div class="iv">${fmt(price)} ₽</div></div>
+            <div class="ii"><div class="il">Предоплата</div><div class="iv">${fmt(c.prepay)} ₽</div></div>
+            <div class="ii"><div class="il">Себестоимость</div><div class="iv">${cost?fmt(cost)+' ₽':'Не указана'}</div></div>
+            <div class="ii"><div class="il">Маржа</div><div class="iv ${cost?'cg':''}">${cost?fmt(margin)+' ₽':'—'}</div></div>
+          </div>
+        </div>
+        <!-- ГРАФИК ПЛАТЕЖЕЙ — выпадающий -->
         <div class="cph">
+          <div class="cphhdr" onclick="toggleSched('${c.id}')">
+            <div style="font-size:11px;font-weight:700;color:var(--t2);display:flex;align-items:center;gap:7px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              График платежей · Оплачено ${paidCnt} из ${c.months||0}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="pbar" style="width:80px;margin:0"><div class="pfill" style="width:${Math.round(paidCnt/Math.max(c.months||1,1)*100)}%"></div></div>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="schedarr_${c.id}"><polyline points="${schedOpen?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/></svg>
+            </div>
+          </div>
+          <div class="cphbody${schedOpen?' on':''}" id="schedb_${c.id}" style="margin-top:4px">
+            ${s.schedule.map((p,i)=>payRow(p,i,c.id)).join('')}
+          </div>
+        </div>
+        <!-- ИСТОРИЯ ПЛАТЕЖЕЙ — выпадающий -->
+        <div class="cph" style="margin-top:8px">
           <div class="cphhdr" onclick="toggleCph('${c.id}')">
             <div style="font-size:11px;font-weight:700;color:var(--t2);display:flex;align-items:center;gap:7px">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -1014,10 +1054,23 @@ function renderDetail(c){
       </div>
       <div>
         <div class="sc" style="margin-bottom:10px"><div class="sl">Остаток долга</div><div class="sv cg" style="font-size:17px">${fmt(s.balance)} ₽</div><div class="ss">из ${fmt(price)} ₽</div></div>
-        <div class="sc" style="margin-bottom:10px"><div class="sl">Просрочка</div><div class="sv cr" style="font-size:17px">${fmt(s.overdue)} ₽</div></div>
+        <div class="sc" style="margin-bottom:10px">
+          <div class="sl">Просрочка</div>
+          <div class="sv cr" style="font-size:17px">${fmt(s.overdue)} ₽</div>
+          ${overdueItems.length?`<div style="margin-top:6px">${overdueItems.map(p=>`<div style="font-size:10px;color:var(--red);margin-top:3px">${p.month} мес. · ${p.date} · ${fmt(p.size-p.paid)} ₽</div>`).join('')}</div>`:''}
+          ${deferredItems.length?`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--brd2)"><div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Отсрочки</div>${deferredItems.map(p=>`<div style="font-size:10px;color:var(--blue);margin-top:3px">${p.month} мес. → ${p.defer?.date||''} ${p.defer?.comment?'· '+p.defer.comment:''}</div>`).join('')}</div>`:''}
+        </div>
         <div class="sc"><div class="sl">Срок</div><div class="sv" style="font-size:17px">${c.months||0} мес.</div></div>
       </div>
     </div>`;
+}
+
+// Toggle schedule dropdown
+function toggleSched(id){
+  const b=document.getElementById('schedb_'+id);
+  const a=document.getElementById('schedarr_'+id);
+  if(b.classList.contains('on')){b.classList.remove('on');a.innerHTML='<polyline points="6 9 12 15 18 9"/>';}
+  else{b.classList.add('on');a.innerHTML='<polyline points="18 15 12 9 6 15"/>';}
 }
 
 function payRow(p,i,cid){
@@ -1025,15 +1078,12 @@ function payRow(p,i,cid){
   const rows={paid:'pp',overdue:'po',warning:'pw',deferred:'pdef'};
   const sts={paid:'Оплачен',overdue:`Просрочен — ${fmt(p.size-p.paid)} ₽`,warning:'Завтра!',partial:`Частично: ${fmt(p.paid)} из ${fmt(p.size)} ₽`,partial_future:`Частично: ${fmt(p.paid)} из ${fmt(p.size)} ₽`,upcoming:'Ожидается',deferred:`Отсрочка до ${p.defer?.date||''}`};
   const stc={paid:'stg',overdue:'str',warning:'sty',partial:'sty',partial_future:'sty',upcoming:'st3',deferred:'stb'};
-  const showDefer = p.st!=='paid' && p.date!=='—' && ['overdue','warning','partial','partial_future','deferred'].includes(p.st);
   return `<div class="pr ${rows[p.st]||''}">
     <div class="pdot ${dots[p.st]||'dt3'}"></div>
     <div class="pn">${p.month} мес.</div>
     <div class="pd2">${p.date}${p.defer?`<div style="font-size:10px;color:var(--blue)">${p.defer.comment||''}</div>`:''}</div>
     <div class="ps2">${fmt(p.size)} ₽</div>
     <div class="pst ${stc[p.st]||'st3'}">${sts[p.st]||'Ожидается'}</div>
-    ${showDefer?`<button class="ib ig" style="width:22px;height:22px;margin-left:4px" onclick="openDefer('${cid}',${i})" title="${p.defer?'Изменить отсрочку':'Отсрочка'}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>`:''}
-    ${p.defer?`<button class="ib ir" style="width:22px;height:22px" onclick="removeDefer('${cid}',${i})" title="Убрать отсрочку"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`:''}
   </div>`;
 }
 
@@ -1446,7 +1496,34 @@ async function saveDisc(amount, reason){
   }finally{_saving=false;}
 }
 
-// ═══ DEFERRAL — BUG #11 & #12 FIX ═══
+// ═══ DEFERRAL — list-based ═══
+function openDeferList(cid){
+  _cid=cid;
+  const c=S.clients.find(x=>x.id===cid);
+  const s=getStats(c);
+  // Show list of non-paid payments
+  const items = s.schedule.filter(p=>p.st!=='paid');
+  if(!items.length){toast('Все платежи оплачены','tok');return;}
+  document.getElementById('mdefForm').style.display='none';
+  document.getElementById('mdefClose').style.display='flex';
+  document.getElementById('mdefList').style.display='block';
+  document.getElementById('mdefList').innerHTML=items.map(p=>{
+    const idx = p.month-1;
+    const hasDefer = !!p.defer;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--bg3);border-radius:var(--r2);margin-bottom:5px;border:1px solid ${hasDefer?'rgba(91,143,249,0.2)':'var(--brd2)'}">
+      <div>
+        <div style="font-size:12px;font-weight:600">${p.month} мес. · ${p.date} · ${fmt(p.size)} ₽</div>
+        ${hasDefer?`<div style="font-size:10px;color:var(--blue);margin-top:2px">Отсрочка до ${p.defer.date} ${p.defer.comment?'· '+p.defer.comment:''}</div>`:''}
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="btn bsm" style="background:rgba(91,143,249,0.1);color:var(--blue);border:1px solid rgba(91,143,249,0.2)" onclick="event.stopPropagation();openDefer('${cid}',${idx})">${hasDefer?'Изменить':'Дать отсрочку'}</button>
+        ${hasDefer?`<button class="btn br bsm" onclick="event.stopPropagation();removeDefer('${cid}',${idx})">Убрать</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  openM('mDefer');
+}
+
 function openDefer(cid,midx){
   _cid=cid;_midx=midx;
   const c=S.clients.find(x=>x.id===cid);
@@ -1456,8 +1533,16 @@ function openDefer(cid,midx){
   const d=c.defers&&c.defers[midx];
   document.getElementById('mdefDate').value=d?toInput(d.date):'';
   document.getElementById('mdefComment').value=d?.comment||'';
-  openM('mDefer');
+  document.getElementById('mdefList').style.display='none';
+  document.getElementById('mdefClose').style.display='none';
+  document.getElementById('mdefForm').style.display='block';
 }
+
+function mdefBack(){
+  document.getElementById('mdefForm').style.display='none';
+  openDeferList(_cid);
+}
+
 async function saveDefer(){
   const {db,doc,updateDoc}=window.DB;
   const dateVal=document.getElementById('mdefDate').value;
@@ -1468,8 +1553,9 @@ async function saveDefer(){
   defers[_midx]={date:fmtD(safeDateFromInput(dateVal)),comment};
   await updateDoc(doc(db,'clients',_cid),{defers});
   await logA('Отсрочка',`№${c.contractId} — платёж ${_midx+1} → ${fmtD(safeDateFromInput(dateVal))}`);
-  closeM('mDefer');
   toast('Отсрочка сохранена!','tok');
+  // Return to list
+  setTimeout(()=>openDeferList(_cid),300);
 }
 async function removeDefer(cid,midx){
   const {db,doc,updateDoc}=window.DB;
@@ -1477,9 +1563,10 @@ async function removeDefer(cid,midx){
   const defers={...c.defers||{}};
   delete defers[midx];
   await updateDoc(doc(db,'clients',cid),{defers});
-  // BUG #12 FIX: log removal
   await logA('Отсрочка убрана',`№${c.contractId} — платёж ${midx+1}`);
   toast('Отсрочка убрана','tok');
+  // Refresh list
+  setTimeout(()=>openDeferList(cid),300);
 }
 
 // ═══ DELETE / RESTORE ═══
