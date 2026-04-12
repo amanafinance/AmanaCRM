@@ -272,6 +272,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <button class="nb on" id="nav-dashboard" onclick="goTo('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Дашборд</button>
 <div class="sg">Работа</div>
 <button class="nb" id="nav-clients" onclick="goTo('clients')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Клиенты</button>
+<button class="nb" id="nav-investors" onclick="goTo('investors')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><circle cx="12" cy="12" r="10" opacity="0.3"/></svg>Инвесторы</button>
 <button class="nb" id="nav-payments" onclick="goTo('payments')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Платежи</button>
 <button class="nb" id="nav-kassa" onclick="goTo('kassa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Касса</button>
 <button class="nb" id="nav-journal" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>История действий</button>
@@ -290,6 +291,8 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="ftabs" id="kTabs"><button class="ft on" onclick="setKTab('all',this)">Все</button><button class="ft" onclick="setKTab('income',this)">Приход</button><button class="ft" onclick="setKTab('expense',this)">Расход</button><button class="ft" onclick="setKTab('invest',this)">Вложение</button><button class="ft" onclick="setKTab('withdraw',this)">Вывод</button><button class="ft" onclick="setKTab('transfer',this)">Перевод</button><button class="ft" onclick="setKTab('cashout',this)">Обнал</button></div>
 <div class="card" style="padding:0;overflow:hidden"><div id="kList"></div></div>
 </div>
+<div id="page-investors" class="page" style="display:none"><div class="ph"><div><div class="pt">Инвесторы</div><div class="ps" id="invCount"></div></div><div class="pa"><button class="btn bg" onclick="openNewInv()">+ Новый инвестор</button></div></div><div class="card" style="padding:0;overflow:hidden" id="invListWrap"><div id="invList"><div class="loading"><div class="spin"></div></div></div></div></div>
+<div id="page-investor" class="page" style="display:none"><button class="bback" onclick="goTo('investors')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="invDetail"></div></div>
 <div id="page-journal" class="page" style="display:none"><div class="ph"><div class="pt">История действий</div></div><div class="card" style="padding:0;overflow:hidden"><div id="jList"></div></div></div>
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div class="pt">Настройки</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 <div class="card"><div class="ct">Партнёры</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
@@ -322,13 +325,52 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="mft"><button class="btn bgh" onclick="closeM('mKassa')">Отмена</button><button class="btn bg" onclick="saveKassaOp()">Сохранить</button></div>
 </div></div>
 
+<div class="mover" id="mInv"><div class="modal msm">
+<div class="mtitle" id="mInvTitle">Новый инвестор</div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">ФИО *</label><input class="inp" type="text" id="inv_name" placeholder="Ахмедов Ахмед"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Телефоны</label><div id="invPhones"><div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh('invPhones')">+</button></div></div></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><textarea class="inp" id="inv_comment" rows="2"></textarea></div>
+<div class="mft"><button class="btn bgh" onclick="closeM('mInv')">Отмена</button><button class="btn bg" id="mInvBtn" onclick="saveInv()">Сохранить</button></div>
+</div></div>
+
+<div class="mover" id="mInvContract"><div class="modal">
+<div class="mtitle" id="mIcTitle">Новый договор инвестиции</div>
+<div style="font-size:13px;color:var(--t2);margin-bottom:14px" id="mIcInv"></div>
+<div class="sdiv">Основное</div>
+<div class="fg">
+<div class="fgp"><label class="lbl">Дата начала *</label><input class="inp" type="date" id="ic_date" oninput="icCalcEnd()"/></div>
+<div class="fgp"><label class="lbl">Сумма вложения (₽) *</label><input class="inp" type="number" id="ic_amount"/></div>
+<div class="fgp"><label class="lbl">Срок (месяцев) *</label><input class="inp" type="number" id="ic_months" min="1" max="120" oninput="icCalcEnd()"/></div>
+<div class="fgp"><label class="lbl">Дата окончания</label><input class="inp" type="text" id="ic_endDate" readonly style="opacity:0.7"/></div>
+<div class="fgp"><label class="lbl">Доля управляющего (тебе) %</label><input class="inp" type="number" id="ic_managerShare" min="0" max="100" step="0.1" value="50"/></div>
+<div class="fgp"><label class="lbl">Тип выплаты прибыли *</label><select class="inp sel" id="ic_payoutType"><option value="monthly">Ежемесячно</option><option value="end">В конце срока (реинвестирование)</option></select></div>
+<div class="fgp"><label class="lbl">Кошелёк для поступления *</label><select class="inp sel" id="ic_wallet"></select></div>
+<div class="fgp"><label class="lbl">Комментарий</label><input class="inp" type="text" id="ic_comment"/></div>
+</div>
+<div class="sdiv">План возврата тела <button class="btn bgh bsm" onclick="icAddReturn()" style="font-size:10px">+ добавить</button><button class="btn bgh bsm" onclick="icAutoReturn()" style="font-size:10px">всю сумму в конце</button></div>
+<div style="font-size:11px;color:var(--t3);margin-bottom:8px">Распиши даты и суммы возвратов тела. Сумма возвратов должна равняться сумме вложения.</div>
+<table class="stbl"><thead><tr><th>Дата</th><th>Сумма</th><th style="width:40px"></th></tr></thead><tbody id="icReturns"></tbody></table>
+<div style="font-size:11px;color:var(--t3);margin-top:8px" id="icSumCheck"></div>
+<div class="mft"><button class="btn bgh" onclick="closeM('mInvContract')">Отмена</button><button class="btn bg" id="mIcBtn" onclick="saveInvContract()">Сохранить</button></div>
+</div></div>
+
+<div class="mover" id="mInvReturn"><div class="modal msm">
+<div class="mtitle">Возврат тела инвестору</div>
+<div style="font-size:13px;font-weight:600;margin-bottom:4px" id="mIrInv"></div>
+<div style="font-size:11px;color:var(--t3);margin-bottom:14px" id="mIrInfo"></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма возврата (₽) *</label><input class="inp" type="number" id="ir_amount"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">С какого кошелька *</label><select class="inp sel" id="ir_wallet"></select></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="ir_comment"/></div>
+<div class="mft"><button class="btn bgh" onclick="closeM('mInvReturn')">Отмена</button><button class="btn bg" onclick="saveInvReturn()">Записать</button></div>
+</div></div>
+
 <div class="toast" id="toast"></div>
 <div id="fdOverlay"><div class="fdo-title" id="fdo_title"></div><div id="fdo_body"></div><div class="fdo-btns"><button class="fdo-reset" id="fdo_reset">Сбросить</button><button class="fdo-apply" id="fdo_apply">Применить</button></div></div>
 <div id="confirmLayer"></div>
 
 <script>
 // ---------- STATE ----------
-const S={clients:[],payments:[],partners:['Сторонний'],wallets:[],kassaOps:[],curClient:null,tab:'all',kTab:'all',
+const S={clients:[],payments:[],partners:['Сторонний'],wallets:[],kassaOps:[],investors:[],invContracts:[],invReturns:[],curClient:null,curInvestor:null,tab:'all',kTab:'all',
   CF:{id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''},
   PF:{date_q:'',date_from:'',date_to:'',contract:'',name:'',amount_q:'',amount_from:'',amount_to:'',type:'',payType:''},
   JF:{date_q:'',date_from:'',date_to:'',type:'',desc:''}};
@@ -419,9 +461,9 @@ function doLogout(){if(_authMode==='firebase')window.SIGN_OUT(window.AUTH);locat
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
 function initApp(){if(_inited)return;_inited=true;document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
-function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();},()=>{});}
+function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();},()=>{});onSnapshot(collection(db,'investors'),s=>{S.investors=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invContracts'),s=>{S.invContracts=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invReturns'),s=>{S.invReturns=s.docs.map(d=>({id:d.id,...d.data()}));if(S.curInvestor)renderInvestorDetail();},()=>{});}
 function refreshAll(){renderDash();renderClients();renderPayments();renderKassa();if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
-function goTo(p){document.querySelectorAll('.page').forEach(x=>x.style.display='none');document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.getElementById('page-'+p).style.display='block';const n=document.getElementById('nav-'+p);if(n)n.classList.add('on');if(p==='journal')loadJournal();if(p==='settings')renderSettings();}
+function goTo(p){document.querySelectorAll('.page').forEach(x=>x.style.display='none');document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.getElementById('page-'+p).style.display='block';const n=document.getElementById('nav-'+p);if(n)n.classList.add('on');if(p==='journal')loadJournal();if(p==='settings')renderSettings();if(p==='investors'){S.curInvestor=null;renderInvestors();}}
 
 // ---------- DASHBOARD ----------
 function renderDash(){let debt=0,over=0,act=0,done=0;const ovL=[],todL=[],upL=[];S.clients.forEach(c=>{const s=getStats(c),st=effStatus(c,s);if(st==='завершён'){done++;return;}act++;debt+=s.balance;over+=s.overdue;if(s.overdue>0)ovL.push({c,s});s.schedule.forEach(p=>{if(p.diff===0&&p.st!=='paid')todL.push({c,p});if(p.diff>0&&p.diff<=3&&p.st!=='paid')upL.push({c,p});});});document.getElementById('dStats').innerHTML='<div class="sc"><div class="sl">Активных</div><div class="sv cg">'+act+'</div><div class="ss">Завершённых: '+done+'</div></div><div class="sc"><div class="sl">Общий долг</div><div class="sv">'+fmt(debt)+' ₽</div></div><div class="sc"><div class="sl">Просрочка</div><div class="sv cr">'+fmt(over)+' ₽</div><div class="ss">'+ovL.length+' клиентов</div></div><div class="sc"><div class="sl">Сегодня</div><div class="sv cy">'+todL.length+'</div><div class="ss">платежей</div></div>';document.getElementById('dOver').innerHTML=ovL.length?ovL.map(({c,s})=>'<div class="di dio" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+fmt(s.balance)+' ₽</div></div><div class="amt cr">'+fmt(s.overdue)+' ₽</div></div>').join(''):'<div class="empty" style="padding:12px">Нет</div>';document.getElementById('dToday').innerHTML=todL.length?todL.map(({c,p})=>'<div class="di dit" onclick="openC(\''+c.id+'\')"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div class="amt cy">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';document.getElementById('dUp').innerHTML=upL.length?upL.map(({c,p})=>'<div class="di diu" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+p.date+' · через '+p.diff+' дн.</div></div><div class="amt" style="font-size:11px">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';}
@@ -768,6 +810,277 @@ async function addWallet(){
   }
 }
 async function removeWallet(id,bal){const w=S.wallets.find(x=>x.id===id);if(w&&(w.isDefault||(w.name==='Наличные'&&w.type==='cash'))){toast('Нельзя удалить стандартный','ter');return;}if(bal>0){toast('Баланс не 0 — нельзя удалить','ter');return;}if(!confirm('Удалить кошелёк?'))return;await window.DB.deleteDoc(window.DB.doc(window.DB.db,'wallets',id));toast('Удалён','tok');}
+
+// ---------- INVESTORS ----------
+// Вспомогательные: суммы по договору
+function getContractStats(ic){
+  const returns=S.invReturns.filter(r=>r.contractId===ic.id);
+  const returned=returns.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+  const remaining=Math.max(0,(parseFloat(ic.amount)||0)-returned);
+  // запланированные возвраты
+  const planned=(ic.returnPlan||[]).map(p=>({...p,done:false}));
+  return{returned,remaining,planned,returns};
+}
+function getInvestorStats(inv){
+  const contracts=S.invContracts.filter(c=>c.investorId===inv.id);
+  const active=contracts.filter(c=>c.status!=='closed');
+  const totalInvested=active.reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+  const totalReturned=contracts.reduce((s,c)=>{const st=getContractStats(c);return s+st.returned;},0);
+  const totalRemaining=active.reduce((s,c)=>{const st=getContractStats(c);return s+st.remaining;},0);
+  return{contracts,active,totalInvested,totalReturned,totalRemaining};
+}
+
+function renderInvestors(){
+  const el=document.getElementById('invList');if(!el)return;
+  const list=S.investors.map(inv=>({...inv,_s:getInvestorStats(inv)}));
+  document.getElementById('invCount').textContent=list.length+' инвесторов · активных договоров: '+list.reduce((s,i)=>s+i._s.active.length,0);
+  if(!list.length){el.innerHTML='<div class="empty">Пока нет инвесторов. Нажмите "+ Новый инвестор"</div>';return;}
+  const rows=list.map(inv=>{
+    const ph=(inv.phones||[])[0]||'—';
+    const status=inv._s.active.length?'<span class="badge ba">'+inv._s.active.length+' активн.</span>':'<span class="badge bd">нет активных</span>';
+    return'<tr class="crow" onclick="openInvestor(\''+inv.id+'\')"><td><div style="font-weight:600">'+inv.name+'</div><div style="font-size:10px;color:var(--t3)">'+ph+'</div></td><td><span class="amt">'+fmt(inv._s.totalRemaining)+' ₽</span><div style="font-size:10px;color:var(--t3)">из '+fmt(inv._s.totalInvested)+' ₽</div></td><td>'+status+'</td></tr>';
+  }).join('');
+  el.innerHTML='<table class="tbl"><thead><tr><th class="plain">Инвестор</th><th class="plain">Остаток тела</th><th class="plain">Статус</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function openInvestor(id){S.curInvestor=id;goTo('investor');document.getElementById('nav-investors').classList.add('on');renderInvestorDetail();}
+function renderInvestorDetail(){
+  const inv=S.investors.find(x=>x.id===S.curInvestor);if(!inv)return;
+  const s=getInvestorStats(inv);
+  const el=document.getElementById('invDetail');
+  const ph=(inv.phones||[]).join(', ')||'—';
+  const contractsHtml=s.contracts.length?s.contracts.map(ic=>{
+    const cs=getContractStats(ic);
+    const closed=ic.status==='closed'||cs.remaining<=0;
+    const planRows=(ic.returnPlan||[]).map(p=>'<tr><td style="font-size:11px">'+p.date+'</td><td style="font-size:11px">'+fmt(p.amount)+' ₽</td></tr>').join('');
+    const retRows=cs.returns.map(r=>'<tr><td style="font-size:11px;color:var(--t2)">'+(r.dateStr||'')+'</td><td><span class="amt cg" style="font-size:11px">'+fmt(r.amount)+' ₽</span></td><td style="font-size:11px">'+(r.walletName||'')+'</td><td style="font-size:11px">'+(r.comment||'')+'</td></tr>').join('');
+    return'<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px;flex-wrap:wrap"><div><div style="font-size:13px;font-weight:700">Договор №'+(ic.contractNum||'—')+' '+(closed?'<span class="badge bd" style="margin-left:6px">Закрыт</span>':'<span class="badge ba" style="margin-left:6px">Активен</span>')+'</div><div style="font-size:11px;color:var(--t3);margin-top:3px">'+(ic.date||'')+' → '+(ic.endDate||'')+' · '+(ic.months||0)+' мес.</div></div>'+(!closed?'<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn bg bsm" onclick="openInvReturn(\''+ic.id+'\')">Возврат тела</button><button class="btn br bsm" onclick="delInvContract(\''+ic.id+'\')">Удалить</button></div>':'<button class="btn br bsm" onclick="delInvContract(\''+ic.id+'\')">Удалить</button>')+'</div><div class="ig2"><div class="ii"><div class="il">Сумма вложения</div><div class="iv">'+fmt(ic.amount)+' ₽</div></div><div class="ii"><div class="il">Остаток тела</div><div class="iv cg">'+fmt(cs.remaining)+' ₽</div></div><div class="ii"><div class="il">Возвращено</div><div class="iv">'+fmt(cs.returned)+' ₽</div></div><div class="ii"><div class="il">Доля управляющего</div><div class="iv">'+(ic.managerShare||50)+' %</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Тип выплаты прибыли</div><div class="iv">'+(ic.payoutType==='end'?'В конце срока (реинвестирование)':'Ежемесячно')+'</div></div>'+(ic.comment?'<div class="ii" style="grid-column:1/-1"><div class="il">Комментарий</div><div class="iv" style="font-size:12px;font-weight:400">'+ic.comment+'</div></div>':'')+'</div>'+(planRows?'<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px">План возврата тела</div><table class="stbl"><thead><tr><th>Дата</th><th>Сумма</th></tr></thead><tbody>'+planRows+'</tbody></table>':'')+(retRows?'<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px">Фактические возвраты</div><table class="tbl" style="font-size:11px"><thead><tr><th class="plain">Дата</th><th class="plain">Сумма</th><th class="plain">Кошелёк</th><th class="plain">Комм.</th></tr></thead><tbody>'+retRows+'</tbody></table>':'')+'</div>';
+  }).join(''):'<div class="empty" style="padding:24px">Нет договоров инвестиций. Нажмите "+ Новый договор"</div>';
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap"><div><div style="font-family:Unbounded,sans-serif;font-size:18px;font-weight:900;margin-bottom:6px">'+inv.name+'</div><div style="font-size:11px;color:var(--t2)">'+ph+'</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn bg bsm" onclick="openNewInvContract(\''+inv.id+'\')">+ Новый договор</button><button class="btn bgh bsm" onclick="openEditInv(\''+inv.id+'\')">Изменить</button><button class="btn br bsm" onclick="delInvestor(\''+inv.id+'\')">Удалить</button></div></div>'+(inv.comment?'<div class="card" style="margin-bottom:14px;border-color:rgba(91,143,249,0.2)"><div class="ct">Комментарий</div><div style="font-size:12px;color:var(--t2);line-height:1.5">'+inv.comment+'</div></div>':'')+'<div class="sg4" style="margin-bottom:14px"><div class="sc"><div class="sl">Всего вложено (активно)</div><div class="sv">'+fmt(s.totalInvested)+' ₽</div></div><div class="sc"><div class="sl">Остаток тела</div><div class="sv cg">'+fmt(s.totalRemaining)+' ₽</div></div><div class="sc"><div class="sl">Возвращено всего</div><div class="sv">'+fmt(s.totalReturned)+' ₽</div></div><div class="sc"><div class="sl">Договоров</div><div class="sv">'+s.contracts.length+'</div><div class="ss">активных: '+s.active.length+'</div></div></div><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">Договоры инвестиций</div>'+contractsHtml;
+}
+
+// --- Инвестор (создание/редактирование) ---
+let _invId=null;
+function openNewInv(){
+  _invId=null;
+  document.getElementById('mInvTitle').textContent='Новый инвестор';
+  document.getElementById('inv_name').value='';
+  document.getElementById('inv_comment').value='';
+  document.getElementById('invPhones').innerHTML='<div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh(\'invPhones\')">+</button></div>';
+  openM('mInv');
+}
+function openEditInv(id){
+  const inv=S.investors.find(x=>x.id===id);if(!inv)return;
+  _invId=id;
+  document.getElementById('mInvTitle').textContent='Редактировать инвестора';
+  document.getElementById('inv_name').value=inv.name||'';
+  document.getElementById('inv_comment').value=inv.comment||'';
+  const ph=inv.phones&&inv.phones.length?inv.phones:[''];
+  document.getElementById('invPhones').innerHTML=ph.map((p,i)=>'<div class="phr"><input class="inp" type="tel" value="'+p+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'invPhones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');
+  openM('mInv');
+}
+async function saveInv(){
+  if(_saving)return;
+  const name=document.getElementById('inv_name').value.trim();
+  if(!name){toast('Укажите ФИО','ter');return;}
+  const phones=[...document.querySelectorAll('#invPhones input')].map(i=>i.value.trim()).filter(Boolean);
+  const comment=document.getElementById('inv_comment').value.trim();
+  _saving=true;const btn=document.getElementById('mInvBtn');btn.classList.add('saving');btn.textContent='...';
+  try{
+    const data={name,phones,comment};
+    if(_invId){
+      await window.DB.updateDoc(window.DB.doc(window.DB.db,'investors',_invId),data);
+      await logA('Изменение инвестора',name);
+      toast('Сохранено','tok');
+    }else{
+      data.createdAt=new Date();
+      await window.DB.addDoc(window.DB.collection(window.DB.db,'investors'),data);
+      await logA('Новый инвестор',name);
+      toast('Инвестор добавлен','tok');
+    }
+    closeM('mInv');
+  }catch(e){toast('Ошибка: '+e.message,'ter');}
+  finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}
+}
+async function delInvestor(id){
+  const inv=S.investors.find(x=>x.id===id);if(!inv)return;
+  const hasContracts=S.invContracts.some(c=>c.investorId===id);
+  if(hasContracts){toast('Сначала удалите все договоры инвестиций','ter');return;}
+  showConfirm('Удалить инвестора?','<strong>'+inv.name+'</strong>',async()=>{
+    try{
+      await window.DB.deleteDoc(window.DB.doc(window.DB.db,'investors',id));
+      await logA('Удаление инвестора',inv.name);
+      toast('Удалён','tok');
+      if(S.curInvestor===id)goTo('investors');
+    }catch(e){toast('Ошибка','ter');}
+  });
+}
+
+// --- Договор инвестиции ---
+let _icId=null,_icInvestorId=null;
+function icCalcEnd(){
+  const d=document.getElementById('ic_date').value;
+  const m=parseInt(document.getElementById('ic_months').value)||0;
+  if(!d||!m){document.getElementById('ic_endDate').value='';return;}
+  const b=safeDateFromInput(d);if(!b)return;
+  const end=new Date(b.getFullYear(),b.getMonth()+m,b.getDate());
+  document.getElementById('ic_endDate').value=fmtD(end);
+}
+function icRenderReturns(rows){
+  const tb=document.getElementById('icReturns');
+  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="si irdate" type="date" value="'+(r.date||'')+'"/></td><td><input class="si iramt" type="number" value="'+(r.amount||0)+'" oninput="icUpdSumCheck()"/></td><td><button class="ib ir" onclick="this.closest(\'tr\').remove();icUpdSumCheck()">×</button></td></tr>').join('');
+  icUpdSumCheck();
+}
+function icAddReturn(){
+  const tb=document.getElementById('icReturns');
+  const r=document.createElement('tr');
+  r.innerHTML='<td><input class="si irdate" type="date"/></td><td><input class="si iramt" type="number" value="0" oninput="icUpdSumCheck()"/></td><td><button class="ib ir" onclick="this.closest(\'tr\').remove();icUpdSumCheck()">×</button></td>';
+  tb.appendChild(r);icUpdSumCheck();
+}
+function icAutoReturn(){
+  const amount=parseFloat(document.getElementById('ic_amount').value)||0;
+  const endDate=document.getElementById('ic_endDate').value;
+  if(!amount||!endDate){toast('Укажите сумму и срок','ter');return;}
+  const endIso=(()=>{const p=endDate.split('.');return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:'';})();
+  icRenderReturns([{date:endIso,amount:amount}]);
+}
+function icUpdSumCheck(){
+  const tot=[...document.querySelectorAll('#icReturns .iramt')].reduce((s,i)=>s+(parseFloat(i.value)||0),0);
+  const amt=parseFloat(document.getElementById('ic_amount').value)||0;
+  const el=document.getElementById('icSumCheck');
+  if(Math.abs(tot-amt)<0.01){el.innerHTML='<span style="color:var(--green)">✓ Суммы сходятся: '+fmt(tot)+' ₽</span>';}
+  else{el.innerHTML='<span style="color:var(--red)">Сумма возвратов '+fmt(tot)+' ₽ ≠ сумме вложения '+fmt(amt)+' ₽ (разница '+fmt(tot-amt)+' ₽)</span>';}
+}
+function openNewInvContract(investorId){
+  _icId=null;_icInvestorId=investorId;
+  const inv=S.investors.find(x=>x.id===investorId);
+  document.getElementById('mIcTitle').textContent='Новый договор инвестиции';
+  document.getElementById('mIcInv').textContent='Инвестор: '+(inv?.name||'');
+  document.getElementById('ic_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ic_amount').value='';
+  document.getElementById('ic_months').value=12;
+  document.getElementById('ic_managerShare').value=50;
+  document.getElementById('ic_payoutType').value='monthly';
+  document.getElementById('ic_comment').value='';
+  document.getElementById('ic_wallet').innerHTML=S.wallets.map(w=>'<option value="'+w.id+'">'+w.name+'</option>').join('');
+  icCalcEnd();icRenderReturns([]);
+  openM('mInvContract');
+}
+async function saveInvContract(){
+  if(_saving)return;
+  const date=document.getElementById('ic_date').value;
+  const amount=parseFloat(document.getElementById('ic_amount').value)||0;
+  const months=parseInt(document.getElementById('ic_months').value)||0;
+  const managerShare=parseFloat(document.getElementById('ic_managerShare').value)||50;
+  const payoutType=document.getElementById('ic_payoutType').value;
+  const walletId=document.getElementById('ic_wallet').value;
+  const comment=document.getElementById('ic_comment').value.trim();
+  if(!date||!amount||!months){toast('Заполните обязательные поля','ter');return;}
+  if(!walletId){toast('Выберите кошелёк','ter');return;}
+  if(managerShare<0||managerShare>100){toast('Доля должна быть 0–100%','ter');return;}
+  // План возврата
+  const returnPlan=[];
+  let planSum=0;
+  document.querySelectorAll('#icReturns tr').forEach(r=>{
+    const d=r.querySelector('.irdate').value,a=parseFloat(r.querySelector('.iramt').value)||0;
+    if(d&&a>0){returnPlan.push({date:fmtD(safeDateFromInput(d)),amount:a});planSum+=a;}
+  });
+  if(!returnPlan.length){toast('Укажите хотя бы один возврат тела','ter');return;}
+  if(Math.abs(planSum-amount)>0.01){toast('Сумма возвратов должна равняться сумме вложения','ter');return;}
+  const w=S.wallets.find(x=>x.id===walletId);
+  if(!w){toast('Кошелёк не найден','ter');return;}
+  const b=safeDateFromInput(date);
+  const endDate=new Date(b.getFullYear(),b.getMonth()+months,b.getDate());
+  // номер договора
+  const contractNum=String((S.invContracts.reduce((m,c)=>Math.max(m,parseInt(c.contractNum)||0),0))+1).padStart(4,'0');
+  const inv=S.investors.find(x=>x.id===_icInvestorId);
+  _saving=true;const btn=document.getElementById('mIcBtn');btn.classList.add('saving');btn.textContent='...';
+  try{
+    const data={investorId:_icInvestorId,investorName:inv?.name||'',contractNum,date:fmtD(b),endDate:fmtD(endDate),amount,months,managerShare,payoutType,walletId,walletName:w.name,returnPlan,comment,status:'active',createdAt:new Date()};
+    const ref=await window.DB.addDoc(window.DB.collection(window.DB.db,'invContracts'),data);
+    // Приход в кассу
+    await window.DB.addDoc(window.DB.collection(window.DB.db,'kassaOps'),{type:'invest',amount,wallet:walletId,walletName:w.name,desc:'Инвестиция: '+(inv?.name||'')+' (договор №'+contractNum+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'invContract',refId:ref.id});
+    // Обновить баланс кошелька
+    await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets',walletId),{balance:(parseFloat(w.balance)||0)+amount});
+    await logA('Новая инвестиция','№'+contractNum+' '+(inv?.name||'')+' — '+fmt(amount)+' ₽');
+    toast('Договор №'+contractNum+' создан','tok');
+    closeM('mInvContract');
+  }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}
+}
+
+async function delInvContract(id){
+  const ic=S.invContracts.find(x=>x.id===id);if(!ic)return;
+  const cs=getContractStats(ic);
+  const hasReturns=cs.returns.length>0;
+  showConfirm('Удалить договор инвестиции?','<strong>№'+(ic.contractNum||'')+' — '+fmt(ic.amount)+' ₽</strong><br>'+(hasReturns?'Внимание: уже есть '+cs.returns.length+' возвратов. Они тоже будут удалены и откачены из кассы.<br>':'')+'Поступление '+fmt(ic.amount)+' ₽ также будет откачено из кассы',async()=>{
+    try{
+      const{db,doc,deleteDoc,collection,getDocs,query,where,writeBatch,updateDoc}=window.DB;
+      // откатить приход в кошелёк
+      const w=S.wallets.find(x=>x.id===ic.walletId);
+      if(w){await updateDoc(doc(db,'wallets',ic.walletId),{balance:(parseFloat(w.balance)||0)-(parseFloat(ic.amount)||0)});}
+      // удалить кассовые операции связанные
+      const kq=await getDocs(query(collection(db,'kassaOps'),where('refId','==',id)));
+      const batch=writeBatch(db);
+      kq.docs.forEach(d=>batch.delete(d.ref));
+      // удалить возвраты и откатить их кошельки
+      for(const r of cs.returns){
+        if(r.walletId){
+          const wr=S.wallets.find(x=>x.id===r.walletId);
+          if(wr){await updateDoc(doc(db,'wallets',r.walletId),{balance:(parseFloat(wr.balance)||0)+(parseFloat(r.amount)||0)});}
+        }
+        batch.delete(doc(db,'invReturns',r.id));
+      }
+      batch.delete(doc(db,'invContracts',id));
+      await batch.commit();
+      await logA('Удаление договора инвестиции','№'+(ic.contractNum||'')+' '+(ic.investorName||''));
+      toast('Удалено','tok');
+    }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  });
+}
+
+// --- Возврат тела ---
+let _irContractId=null;
+function openInvReturn(contractId){
+  _irContractId=contractId;
+  const ic=S.invContracts.find(x=>x.id===contractId);if(!ic)return;
+  const cs=getContractStats(ic);
+  document.getElementById('mIrInv').textContent=(ic.investorName||'')+' · Договор №'+(ic.contractNum||'');
+  document.getElementById('mIrInfo').innerHTML='Остаток тела: <strong>'+fmt(cs.remaining)+' ₽</strong> из '+fmt(ic.amount)+' ₽';
+  document.getElementById('ir_amount').value='';
+  document.getElementById('ir_amount').max=cs.remaining;
+  document.getElementById('ir_comment').value='';
+  document.getElementById('ir_wallet').innerHTML=S.wallets.map(w=>'<option value="'+w.id+'">'+w.name+' ('+fmt(w.balance||0)+' ₽)</option>').join('');
+  openM('mInvReturn');
+}
+async function saveInvReturn(){
+  if(_saving)return;
+  const amt=parseFloat(document.getElementById('ir_amount').value)||0;
+  const wid=document.getElementById('ir_wallet').value;
+  const comment=document.getElementById('ir_comment').value.trim();
+  if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
+  const ic=S.invContracts.find(x=>x.id===_irContractId);if(!ic){toast('Договор не найден','ter');return;}
+  const cs=getContractStats(ic);
+  if(amt>cs.remaining+0.01){toast('Больше остатка тела ('+fmt(cs.remaining)+' ₽)','ter');return;}
+  const w=S.wallets.find(x=>x.id===wid);if(!w){toast('Выберите кошелёк','ter');return;}
+  if((parseFloat(w.balance)||0)<amt){toast('На кошельке "'+w.name+'" недостаточно средств ('+fmt(w.balance)+' ₽)','ter');return;}
+  _saving=true;
+  try{
+    const{db,collection,addDoc,doc,updateDoc}=window.DB;
+    const retData={contractId:_irContractId,investorId:ic.investorId,investorName:ic.investorName,contractNum:ic.contractNum,amount:amt,walletId:wid,walletName:w.name,comment,date:new Date(),dateStr:fmtD(new Date())};
+    const ref=await addDoc(collection(db,'invReturns'),retData);
+    // Расход в кассе
+    await addDoc(collection(db,'kassaOps'),{type:'withdraw',amount:amt,wallet:wid,walletName:w.name,desc:'Возврат тела: '+ic.investorName+' (договор №'+ic.contractNum+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'invReturn',refId:ref.id});
+    await updateDoc(doc(db,'wallets',wid),{balance:(parseFloat(w.balance)||0)-amt});
+    // Если тело возвращено полностью — закрыть договор
+    const newRemaining=cs.remaining-amt;
+    if(newRemaining<=0.01){await updateDoc(doc(db,'invContracts',_irContractId),{status:'closed'});}
+    await logA('Возврат тела','№'+ic.contractNum+' '+ic.investorName+' — '+fmt(amt)+' ₽');
+    toast('Записано','tok');
+    closeM('mInvReturn');
+  }catch(e){toast('Ошибка: '+e.message,'ter');}
+  finally{_saving=false;}
+}
 
 // ---------- KASSA ----------
 const kTypeNames={income:'Приход',expense:'Расход',invest:'Вложение',withdraw:'Вывод',transfer:'Перевод',cashout:'Обнал'};
