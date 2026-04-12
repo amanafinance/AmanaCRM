@@ -288,7 +288,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div id="page-kassa" class="page" style="display:none">
 <div class="ph"><div><div class="pt">Касса</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
 <div id="kWallets" class="sg4"></div>
-<div class="ftabs" id="kTabs"><button class="ft on" onclick="setKTab('all',this)">Все</button><button class="ft" onclick="setKTab('income',this)">Приход</button><button class="ft" onclick="setKTab('expense',this)">Расход</button><button class="ft" onclick="setKTab('invest',this)">Вложение</button><button class="ft" onclick="setKTab('withdraw',this)">Вывод</button><button class="ft" onclick="setKTab('transfer',this)">Перевод</button><button class="ft" onclick="setKTab('cashout',this)">Обнал</button></div>
+<div class="ftabs" id="kTabs"><button class="ft on" onclick="setKTab('all',this)">Все</button><button class="ft" onclick="setKTab('payment',this)">Оплаты</button><button class="ft" onclick="setKTab('purchase',this)">Закупки</button><button class="ft" onclick="setKTab('invest',this)">Инвестиции</button><button class="ft" onclick="setKTab('withdraw',this)">Выводы</button><button class="ft" onclick="setKTab('salary',this)">Зарплата</button><button class="ft" onclick="setKTab('opex',this)">Расходы</button><button class="ft" onclick="setKTab('transfer',this)">Переводы</button></div>
 <div class="card" style="padding:0;overflow:hidden"><div id="kList"></div></div>
 </div>
 <div id="page-investors" class="page" style="display:none"><div class="ph"><div><div class="pt">Инвесторы</div><div class="ps" id="invCount"></div></div><div class="pa"><button class="btn bg" onclick="openNewInv()">+ Новый инвестор</button></div></div><div class="card" style="padding:0;overflow:hidden" id="invListWrap"><div id="invList"><div class="loading"><div class="spin"></div></div></div></div></div>
@@ -317,11 +317,19 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 
 <div class="mover" id="mKassa"><div class="modal msm">
 <div class="mtitle">Операция в кассе</div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Тип операции *</label><select class="inp sel" id="koType" onchange="kassaTypeChanged()"><option value="income">Приход</option><option value="expense">Расход</option><option value="invest">Вложение</option><option value="withdraw">Вывод</option><option value="transfer">Перевод</option><option value="cashout">Обналичивание</option></select></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Тип операции *</label><select class="inp sel" id="koType" onchange="kassaTypeChanged()">
+<option value="purchase">Закупка товара</option>
+<option value="opex">Операционный расход</option>
+<option value="salary">Зарплата сотруднику</option>
+<option value="withdraw">Вывод себе / дивиденды</option>
+<option value="transfer">Перевод между кошельками</option>
+<option value="invest_self">Мой вклад в бизнес</option>
+</select></div>
+<div class="fgp" style="margin-bottom:10px;display:none" id="koClientRow"><label class="lbl">Договор клиента *</label><select class="inp sel" id="koClient"></select><div style="font-size:10px;color:var(--t3);margin-top:3px" id="koClientHint"></div></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp" type="number" id="koAmt"/></div>
 <div class="fgp" style="margin-bottom:10px" id="koWalletRow"><label class="lbl" id="koWalletLbl">Кошелёк</label><select class="inp sel" id="koWallet"></select></div>
 <div class="fgp" style="margin-bottom:10px;display:none" id="koWalletToRow"><label class="lbl">Куда</label><select class="inp sel" id="koWalletTo"></select></div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Описание</label><input class="inp" type="text" id="koDesc" placeholder="Закупка товара..."/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Описание</label><input class="inp" type="text" id="koDesc" placeholder="Назначение, комментарий..."/></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mKassa')">Отмена</button><button class="btn bg" onclick="saveKassaOp()">Сохранить</button></div>
 </div></div>
 
@@ -724,7 +732,32 @@ function payRow(p){
   return'<div class="pr '+(rows[p.st]||'')+'"><div class="pdot '+(dots[p.st]||'dt3')+'"></div><div class="pn">'+p.month+' мес.</div><div class="pd2">'+p.date+'</div><div class="ps2">'+fmt(p.size)+' ₽</div><div class="pst '+(stc[p.st]||'st3')+'">'+stsText+'</div></div>';
 }
 
-async function cancelPay(pid,cid,amt,pt){if(pt==='prepay'){toast('Предоплату нельзя удалить из истории. Измените её в договоре.','ter');return;}showConfirm('Отменить?','<strong>'+fmt(amt)+' ₽</strong>',async()=>{const{db,doc,deleteDoc,updateDoc}=window.DB;try{await deleteDoc(doc(db,'payments',pid));const c=S.clients.find(x=>x.id===cid);await logA('Отмена платежа',(c?.name||'')+' — '+fmt(amt)+' ₽');toast('Отменён!','tok');}catch(e){toast('Ошибка','ter');}});}
+async function cancelPay(pid,cid,amt,pt){
+  if(pt==='prepay'){toast('Предоплату нельзя удалить из истории. Измените её в договоре.','ter');return;}
+  showConfirm('Отменить платёж?','<strong>'+fmt(amt)+' ₽</strong><br>Баланс кошелька будет скорректирован',async()=>{
+    const{db,doc,deleteDoc,updateDoc}=window.DB;
+    try{
+      const c=S.clients.find(x=>x.id===cid);
+      // Найти и откатить связанную кассовую операцию
+      const p=S.payments.find(x=>x.id===pid);
+      if(p&&p.type==='payment'){
+        // Ищем kassaOp с таким же refId и суммой (созданные этим платежом)
+        // Берём последнюю созданную (auto) операцию типа payment_in для этого клиента с такой же суммой
+        const kOps=S.kassaOps.filter(o=>o.refType==='client'&&o.refId===cid&&o.type==='payment_in'&&Math.abs((parseFloat(o.amount)||0)-amt)<0.01);
+        // Выбираем самую позднюю (после сортировки по date)
+        if(kOps.length){
+          const target=kOps[0]; // уже отсортировано по date desc
+          const w=S.wallets.find(x=>x.id===target.wallet);
+          if(w){await updateDoc(doc(db,'wallets',target.wallet),{balance:(parseFloat(w.balance)||0)-amt});}
+          await deleteDoc(doc(db,'kassaOps',target.id));
+        }
+      }
+      await deleteDoc(doc(db,'payments',pid));
+      await logA('Отмена платежа',(c?.name||'')+' — '+fmt(amt)+' ₽');
+      toast('Отменён!','tok');
+    }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  });
+}
 
 // ---------- PAYMENTS PAGE (без скидок!) ----------
 function renderPayments(){
@@ -833,16 +866,47 @@ function recalcDates(){
 function updSels(){const p=document.getElementById('f_partner');if(p)p.innerHTML=S.partners.map(x=>'<option>'+x+'</option>').join('');updPt('f_prepayPt');updPt('mpPt');}
 function updPt(id){const e=document.getElementById(id);if(e)e.innerHTML=S.wallets.map(w=>'<option>'+w.name+'</option>').join('');}
 async function getNextContractId(){const{db,doc,runTransaction}=window.DB,ref=doc(db,'settings','counter');try{return String(await runTransaction(db,async tx=>{const s=await tx.get(ref),cur=s.exists()?(s.data().lastId||0):0,n=cur+1;tx.set(ref,{lastId:n},{merge:true});return n;})).padStart(5,'0');}catch(e){return String(S.clients.reduce((m,c)=>Math.max(m,parseInt(c.contractId)||0),0)+1).padStart(5,'0');}}
-async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseFloat(document.getElementById('f_price').value)||0,cost=parseFloat(document.getElementById('f_cost').value)||0;if(!name||!price){toast('Заполните ФИО и цену','ter');return;}if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getElementById('f_months').value);_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{const phones=[...document.querySelectorAll('#fPhones input')].map(i=>i.value.trim()).filter(Boolean),gphones=[...document.querySelectorAll('#fGphones input')].map(i=>i.value.trim()).filter(Boolean),dv=document.getElementById('f_date').value,pt=document.getElementById('f_prepayPt').value,payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',name,phones,gphones,gname:document.getElementById('f_gname').value,addr:document.getElementById('f_addr').value,gaddr:document.getElementById('f_gaddr').value,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,cost,price,prepay:parseFloat(document.getElementById('f_prepay').value)||0,months:mo,payDay,prepayPt:pt};for(let m=0;m<12;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseFloat(rows[m].querySelector('.sz').value)||0;const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(_cid){const old=S.clients.find(x=>x.id===_cid);if((parseFloat(old?.prepay)||0)!==data.prepay){const pr=S.payments.find(p=>p.clientId===_cid&&p.type==='prepay');if(pr&&data.prepay>0)await updateDoc(doc(db,'payments',pr.id),{amount:data.prepay});else if(pr&&data.prepay===0)await window.DB.deleteDoc(doc(db,'payments',pr.id));else if(!pr&&data.prepay>0)await addDoc(collection(db,'payments'),{clientId:_cid,contractId:old.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});}await updateDoc(doc(db,'clients',_cid),data);await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{data.contractId=await getNextContractId();data.createdAt=new Date();const ref=await addDoc(collection(db,'clients'),data);if(data.prepay>0)await addDoc(collection(db,'payments'),{clientId:ref.id,contractId:data.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
+async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseFloat(document.getElementById('f_price').value)||0,cost=parseFloat(document.getElementById('f_cost').value)||0;if(!name||!price){toast('Заполните ФИО и цену','ter');return;}if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getElementById('f_months').value);_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{const phones=[...document.querySelectorAll('#fPhones input')].map(i=>i.value.trim()).filter(Boolean),gphones=[...document.querySelectorAll('#fGphones input')].map(i=>i.value.trim()).filter(Boolean),dv=document.getElementById('f_date').value,pt=document.getElementById('f_prepayPt').value,payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',name,phones,gphones,gname:document.getElementById('f_gname').value,addr:document.getElementById('f_addr').value,gaddr:document.getElementById('f_gaddr').value,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,cost,price,prepay:parseFloat(document.getElementById('f_prepay').value)||0,months:mo,payDay,prepayPt:pt};for(let m=0;m<12;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseFloat(rows[m].querySelector('.sz').value)||0;const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(_cid){const old=S.clients.find(x=>x.id===_cid);if((parseFloat(old?.prepay)||0)!==data.prepay){const oldPrepay=parseFloat(old?.prepay)||0;const pr=S.payments.find(p=>p.clientId===_cid&&p.type==='prepay');const prKassa=S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===_cid);if(pr&&data.prepay>0)await updateDoc(doc(db,'payments',pr.id),{amount:data.prepay});else if(pr&&data.prepay===0)await window.DB.deleteDoc(doc(db,'payments',pr.id));else if(!pr&&data.prepay>0)await addDoc(collection(db,'payments'),{clientId:_cid,contractId:old.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const diff=data.prepay-oldPrepay;if(prKassa){const wOld=S.wallets.find(x=>x.id===prKassa.wallet);if(data.prepay>0){await updateDoc(doc(db,'kassaOps',prKassa.id),{amount:data.prepay});if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)+diff});}else{await window.DB.deleteDoc(doc(db,'kassaOps',prKassa.id));if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)-oldPrepay});}}else if(data.prepay>0){const wNew=S.wallets.find(x=>x.name===pt);if(wNew){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wNew.id,walletName:pt,desc:'Предоплата от '+name+' (№'+old.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:name,contractId:old.contractId});await updateDoc(doc(db,'wallets',wNew.id),{balance:(parseFloat(wNew.balance)||0)+data.prepay});}}}await updateDoc(doc(db,'clients',_cid),data);await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{data.contractId=await getNextContractId();data.createdAt=new Date();const ref=await addDoc(collection(db,'clients'),data);if(data.prepay>0){await addDoc(collection(db,'payments'),{clientId:ref.id,contractId:data.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const wP=S.wallets.find(x=>x.name===pt);if(wP){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wP.id,walletName:pt,desc:'Предоплата от '+name+' (№'+data.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:ref.id,clientName:name,contractId:data.contractId});await updateDoc(doc(db,'wallets',wP.id),{balance:(parseFloat(wP.balance)||0)+data.prepay});}}await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
 
 // ---------- PAY / DISCOUNT ----------
 function openPay(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mpName').innerHTML=(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mpAmt').value='';document.getElementById('mpAmt').max=s.balance;updPt('mpPt');openM('mPay');}
 function confirmPay(){const a=parseFloat(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const pt=document.getElementById('mpPt').value;closeM('mPay');showConfirm('Подтвердить?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽ · '+pt,()=>savePay(a,pt));}
-async function savePay(a,pt){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'payment',typeLabel:'Ежемес. платеж',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const w=S.wallets.find(x=>x.name===pt);if(w){await addDoc(collection(db,'kassaOps'),{type:'income',amount:a,wallet:w.id,walletName:pt,desc:'Оплата от '+c.name+' (№'+c.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true});await window.DB.updateDoc(window.DB.doc(db,'wallets',w.id),{balance:(parseFloat(w.balance)||0)+a});}await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+pt+')');toast('Записано!','tok');}finally{_saving=false;}}
+async function savePay(a,pt){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'payment',typeLabel:'Ежемес. платеж',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const w=S.wallets.find(x=>x.name===pt);if(w){await addDoc(collection(db,'kassaOps'),{type:'payment_in',amount:a,wallet:w.id,walletName:pt,desc:'Оплата от '+c.name+' (№'+c.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:c.name,contractId:c.contractId});await window.DB.updateDoc(window.DB.doc(db,'wallets',w.id),{balance:(parseFloat(w.balance)||0)+a});}await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+pt+')');toast('Записано!','tok');}finally{_saving=false;}}
 function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mdName').innerHTML=(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mdAmt').value='';document.getElementById('mdAmt').max=s.balance;document.getElementById('mdReason').value='';openM('mDisc');}
 function confirmDisc(){const a=parseFloat(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
 async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}finally{_saving=false;}}
-async function delClient(id){if(!confirm('Удалить договор навсегда?'))return;const{db,doc,deleteDoc,collection,getDocs,query,where}=window.DB,c=S.clients.find(x=>x.id===id);try{const ps=await getDocs(query(collection(db,'payments'),where('clientId','==',id))),batch=window.DB.writeBatch(db);ps.docs.forEach(d=>batch.delete(d.ref));batch.delete(doc(db,'clients',id));await batch.commit();await logA('Удаление','№'+(c?.contractId||'')+' — '+(c?.name||''));toast('Удалён','tok');if(S.curClient===id)goTo('clients');}catch(e){toast('Ошибка','ter');}}
+async function delClient(id){
+  const c=S.clients.find(x=>x.id===id);if(!c)return;
+  const linkedOps=S.kassaOps.filter(o=>o.refType==='client'&&o.refId===id);
+  const linkedSum=linkedOps.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+  showConfirm('Удалить договор навсегда?','<strong>№'+(c.contractId||'')+' · '+c.name+'</strong>'+(linkedOps.length?'<br>Связанных операций в кассе: '+linkedOps.length+' на сумму '+fmt(linkedSum)+' ₽. Все балансы кошельков будут откачены.':''),async()=>{
+    const{db,doc,deleteDoc,collection,getDocs,query,where,writeBatch,updateDoc}=window.DB;
+    try{
+      // Откатываем балансы кошельков по связанным операциям
+      for(const o of linkedOps){
+        const meta=kMeta(o.type);
+        const w=S.wallets.find(x=>x.id===o.wallet);
+        if(w){
+          const wb=parseFloat(w.balance)||0;
+          if(meta.dir==='in')await updateDoc(doc(db,'wallets',o.wallet),{balance:wb-(parseFloat(o.amount)||0)});
+          else if(meta.dir==='out')await updateDoc(doc(db,'wallets',o.wallet),{balance:wb+(parseFloat(o.amount)||0)});
+        }
+      }
+      const batch=writeBatch(db);
+      // Удаляем платежи
+      const ps=await getDocs(query(collection(db,'payments'),where('clientId','==',id)));
+      ps.docs.forEach(d=>batch.delete(d.ref));
+      // Удаляем связанные кассовые операции
+      linkedOps.forEach(o=>batch.delete(doc(db,'kassaOps',o.id)));
+      // Удаляем самого клиента
+      batch.delete(doc(db,'clients',id));
+      await batch.commit();
+      await logA('Удаление','№'+(c.contractId||'')+' — '+(c.name||''));
+      toast('Удалён','tok');
+      if(S.curClient===id)goTo('clients');
+    }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  });
+}
 
 // ---------- SETTINGS ----------
 async function loadSettings(){
@@ -1096,7 +1160,7 @@ async function saveInvContract(){
     const data={investorId:_icInvestorId,investorName:inv?.name||'',contractNum,date:fmtD(b),endDate:fmtD(endDate),amount,months,managerShare,payoutType,walletId,walletName:w.name,returnPlan,comment,status:'active',createdAt:new Date()};
     const ref=await window.DB.addDoc(window.DB.collection(window.DB.db,'invContracts'),data);
     // Приход в кассу
-    await window.DB.addDoc(window.DB.collection(window.DB.db,'kassaOps'),{type:'invest',amount,wallet:walletId,walletName:w.name,desc:'Инвестиция: '+(inv?.name||'')+' (договор №'+contractNum+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'invContract',refId:ref.id});
+    await window.DB.addDoc(window.DB.collection(window.DB.db,'kassaOps'),{type:'invest_in',amount,wallet:walletId,walletName:w.name,desc:'Инвестиция: '+(inv?.name||'')+' (договор №'+contractNum+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'invContract',refId:ref.id});
     // Обновить баланс кошелька
     await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets',walletId),{balance:(parseFloat(w.balance)||0)+amount});
     await logA('Новая инвестиция','№'+contractNum+' '+(inv?.name||'')+' — '+fmt(amount)+' ₽');
@@ -1167,7 +1231,7 @@ async function saveInvReturn(){
     const retData={contractId:_irContractId,investorId:ic.investorId,investorName:ic.investorName,contractNum:ic.contractNum,amount:amt,walletId:wid,walletName:w.name,comment,date:new Date(),dateStr:fmtD(new Date())};
     const ref=await addDoc(collection(db,'invReturns'),retData);
     // Расход в кассе
-    await addDoc(collection(db,'kassaOps'),{type:'withdraw',amount:amt,wallet:wid,walletName:w.name,desc:'Возврат тела: '+ic.investorName+' (договор №'+ic.contractNum+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'invReturn',refId:ref.id});
+    await addDoc(collection(db,'kassaOps'),{type:'invest_return',amount:amt,wallet:wid,walletName:w.name,desc:'Возврат тела: '+ic.investorName+' (договор №'+ic.contractNum+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'invReturn',refId:ref.id});
     await updateDoc(doc(db,'wallets',wid),{balance:(parseFloat(w.balance)||0)-amt});
     // Если тело возвращено полностью — закрыть договор
     const newRemaining=cs.remaining-amt;
@@ -1180,8 +1244,43 @@ async function saveInvReturn(){
 }
 
 // ---------- KASSA ----------
-const kTypeNames={income:'Приход',expense:'Расход',invest:'Вложение',withdraw:'Вывод',transfer:'Перевод',cashout:'Обнал'};
+// Все типы операций
+// Автоматические (нельзя редактировать/удалять вручную):
+//   payment_in — оплата от клиента (с признанием прибыли)
+//   prepay_in — предоплата от клиента
+//   invest_in — поступление инвестиции
+//   invest_return — возврат тела инвестору
+//   invest_profit — выплата прибыли инвестору (пока не используется)
+// Ручные:
+//   purchase — закупка товара (привязан к договору клиента)
+//   opex — операционный расход (влияет на прибыль)
+//   salary — зарплата сотруднику (влияет на прибыль)
+//   withdraw — вывод себе / дивиденды (не влияет на прибыль)
+//   invest_self — мой вклад в бизнес (не влияет на прибыль, увеличивает мой капитал)
+//   transfer — перевод между кошельками
+
+const kTypeMeta={
+  payment_in:{name:'Оплата клиента',dir:'in',group:'payment',color:'ba',auto:true},
+  prepay_in:{name:'Предоплата',dir:'in',group:'payment',color:'ba',auto:true},
+  invest_in:{name:'Инвестиция',dir:'in',group:'invest',color:'bd',auto:true},
+  invest_return:{name:'Возврат тела',dir:'out',group:'invest',color:'bd',auto:true},
+  invest_profit:{name:'Выплата прибыли',dir:'out',group:'invest',color:'bd',auto:true},
+  purchase:{name:'Закупка товара',dir:'out',group:'purchase',color:'by2',auto:false},
+  opex:{name:'Опер. расход',dir:'out',group:'opex',color:'bo',auto:false},
+  salary:{name:'Зарплата',dir:'out',group:'salary',color:'bo',auto:false},
+  withdraw:{name:'Вывод себе',dir:'out',group:'withdraw',color:'by2',auto:false},
+  invest_self:{name:'Мой вклад',dir:'in',group:'invest',color:'bd',auto:false},
+  transfer:{name:'Перевод',dir:'neutral',group:'transfer',color:'brp',auto:false},
+  // Старые типы (для совместимости)
+  income:{name:'Приход',dir:'in',group:'payment',color:'ba',auto:true},
+  expense:{name:'Расход',dir:'out',group:'opex',color:'bo',auto:false},
+  invest:{name:'Вложение',dir:'in',group:'invest',color:'bd',auto:true},
+  cashout:{name:'Обнал',dir:'out',group:'transfer',color:'by2',auto:false}
+};
+function kMeta(t){return kTypeMeta[t]||{name:t,dir:'neutral',group:'other',color:'brp',auto:false};}
+
 function setKTab(t,b){S.kTab=t;document.querySelectorAll('#kTabs .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderKassa();}
+
 function renderKassa(){
   const el=document.getElementById('kWallets');if(!el)return;
   const totalBal=S.wallets.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
@@ -1190,16 +1289,177 @@ function renderKassa(){
   el.innerHTML='<div class="sc"><div class="sl">Общий баланс</div><div class="sv cg" style="font-size:17px">'+fmt(totalBal)+' ₽</div></div><div class="sc"><div class="sl">Наличные</div><div class="sv" style="font-size:17px">'+fmt(cashBal)+' ₽</div></div><div class="sc"><div class="sl">На картах/счетах</div><div class="sv" style="font-size:17px">'+fmt(cardBal)+' ₽</div></div>'+S.wallets.map(w=>'<div class="sc"><div class="sl">'+w.name+'</div><div class="sv" style="font-size:15px">'+fmt(w.balance||0)+' ₽</div><div class="ss">'+(w.type==='cash'?'Нал':'Карта')+'</div></div>').join('');
   el.style.gridTemplateColumns='repeat('+Math.min(3+S.wallets.length,6)+',1fr)';
   document.getElementById('kassaDate').textContent=S.kassaOps.length+' операций';
-  let ops=S.kassaOps.slice();if(S.kTab!=='all')ops=ops.filter(o=>o.type===S.kTab);
-  if(!ops.length){document.getElementById('kList').innerHTML='<div class="empty">Нет операций</div>';return;}
+  let ops=S.kassaOps.slice();
+  // Фильтр по группе (таб)
+  if(S.kTab!=='all'){
+    ops=ops.filter(o=>{const m=kMeta(o.type);return m.group===S.kTab;});
+  }
+  const thead='<thead><tr><th class="plain">Дата</th><th class="plain">Тип</th><th class="plain">Сумма</th><th class="plain">Кошелёк</th><th class="plain">Описание</th><th style="width:40px"></th></tr></thead>';
+  if(!ops.length){document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody></table>';return;}
   let ld='',rows='';
-  ops.forEach(o=>{const d=o.dateStr||'';if(d!==ld){rows+='<tr class="day-sep"><td colspan="5">'+d+'</td></tr>';ld=d;}const sign=o.type==='income'||o.type==='invest'?'+':'−';const cl=o.type==='income'||o.type==='invest'?'cg':'cr';rows+='<tr><td style="color:var(--t2)">'+d+'</td><td><span class="badge '+(o.type==='income'?'ba':o.type==='expense'?'bo':o.type==='invest'?'bd':'by2')+'">'+(kTypeNames[o.type]||o.type)+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:11px;color:var(--t2)">'+(o.walletName||'')+(o.walletToName?' → '+o.walletToName:'')+'</td><td style="font-size:11px">'+(o.desc||'')+(o.auto?' <span style="color:var(--t3)">(авто)</span>':'')+'</td></tr>';});
-  document.getElementById('kList').innerHTML='<table class="tbl"><thead><tr><th class="plain">Дата</th><th class="plain">Тип</th><th class="plain">Сумма</th><th class="plain">Кошелёк</th><th class="plain">Описание</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  ops.forEach(o=>{
+    const m=kMeta(o.type);
+    const d=o.dateStr||'';
+    if(d!==ld){rows+='<tr class="day-sep"><td colspan="6">'+d+'</td></tr>';ld=d;}
+    const sign=m.dir==='in'?'+':m.dir==='out'?'−':'';
+    const cl=m.dir==='in'?'cg':m.dir==='out'?'cr':'';
+    const walletCell=o.walletToName?(o.walletName||'')+' → '+o.walletToName:(o.walletName||'');
+    const delBtn=(!m.auto&&!o.auto)?'<td><button class="ib ir" style="width:22px;height:22px" onclick="delKassaOp(\''+o.id+'\')" title="Удалить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>':'<td></td>';
+    rows+='<tr><td style="color:var(--t2)">'+d+'</td><td><span class="badge '+m.color+'">'+m.name+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:11px;color:var(--t2)">'+walletCell+'</td><td style="font-size:11px">'+(o.desc||'')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</td>'+delBtn+'</tr>';
+  });
+  document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table>';
 }
-function kassaTypeChanged(){const t=document.getElementById('koType').value;const r2=document.getElementById('koWalletToRow');const lbl=document.getElementById('koWalletLbl');r2.style.display=(t==='transfer'||t==='cashout')?'block':'none';lbl.textContent=(t==='transfer'||t==='cashout')?'Откуда':'Кошелёк';fillKoWallets();}
-function fillKoWallets(){const t=document.getElementById('koType').value;const w=document.getElementById('koWallet'),wt=document.getElementById('koWalletTo');w.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+x.name+' ('+fmt(x.balance||0)+' ₽)</option>').join('');if(t==='cashout'){wt.innerHTML=S.wallets.filter(x=>x.type==='cash').map(x=>'<option value="'+x.id+'">'+x.name+'</option>').join('');}else{wt.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+x.name+'</option>').join('');}}
-function openKassaOp(){if(!S.wallets.length){toast('Сначала добавьте кошельки в настройках','ter');return;}document.getElementById('koType').value='income';document.getElementById('koAmt').value='';document.getElementById('koDesc').value='';kassaTypeChanged();openM('mKassa');}
-async function saveKassaOp(){if(_saving)return;const{db,collection,addDoc,doc,updateDoc}=window.DB;const type=document.getElementById('koType').value,amt=parseFloat(document.getElementById('koAmt').value),wid=document.getElementById('koWallet').value,wtid=document.getElementById('koWalletTo').value,desc=document.getElementById('koDesc').value;if(!amt||amt<=0){toast('Сумма','ter');return;}if(!wid){toast('Выберите кошелёк','ter');return;}const w=S.wallets.find(x=>x.id===wid),wt=(type==='transfer'||type==='cashout')?S.wallets.find(x=>x.id===wtid):null;_saving=true;try{const op={type,amount:amt,wallet:wid,walletName:w?.name||'',desc,date:new Date(),dateStr:fmtD(new Date()),auto:false};if(wt){op.walletTo=wtid;op.walletToName=wt.name;}await addDoc(collection(db,'kassaOps'),op);const wb=parseFloat(w?.balance)||0;if(type==='income'||type==='invest')await updateDoc(doc(db,'wallets',wid),{balance:wb+amt});else if(type==='expense'||type==='withdraw')await updateDoc(doc(db,'wallets',wid),{balance:wb-amt});else if(type==='transfer'||type==='cashout'){await updateDoc(doc(db,'wallets',wid),{balance:wb-amt});const wtb=parseFloat(wt?.balance)||0;await updateDoc(doc(db,'wallets',wtid),{balance:wtb+amt});}await logA('Касса: '+(kTypeNames[type]||type),fmt(amt)+' ₽'+(w?' — '+w.name:''));closeM('mKassa');toast('Операция записана!','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;}}
+
+function kassaTypeChanged(){
+  const t=document.getElementById('koType').value;
+  const r2=document.getElementById('koWalletToRow');
+  const rClient=document.getElementById('koClientRow');
+  const lbl=document.getElementById('koWalletLbl');
+  // Поле договора клиента — только для закупки
+  rClient.style.display=(t==='purchase')?'block':'none';
+  // Второй кошелёк — только для перевода
+  r2.style.display=(t==='transfer')?'block':'none';
+  lbl.textContent=(t==='transfer')?'Откуда':'Кошелёк';
+  fillKoWallets();
+  if(t==='purchase')fillKoClients();
+}
+
+function fillKoWallets(){
+  const w=document.getElementById('koWallet'),wt=document.getElementById('koWalletTo');
+  w.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+x.name+' ('+fmt(x.balance||0)+' ₽)</option>').join('');
+  wt.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+x.name+'</option>').join('');
+}
+
+function fillKoClients(){
+  const sel=document.getElementById('koClient');
+  // Показываем только активные сделки (незакрытые)
+  const active=S.clients.filter(c=>{const fin=getFinancials(c);return!fin.isClosed;});
+  if(!active.length){sel.innerHTML='<option value="">— нет активных договоров —</option>';document.getElementById('koClientHint').textContent='';return;}
+  sel.innerHTML=active.map(c=>'<option value="'+c.id+'">№'+(c.contractId||'—')+' · '+c.name+' · '+(c.product||'')+' (себестоимость: '+fmt(c.cost)+' ₽)</option>').join('');
+  sel.onchange=koClientChanged;
+  koClientChanged();
+}
+
+function koClientChanged(){
+  const sel=document.getElementById('koClient');
+  const c=S.clients.find(x=>x.id===sel.value);
+  if(!c){document.getElementById('koClientHint').textContent='';return;}
+  // Подставляем себестоимость как сумму закупки
+  document.getElementById('koAmt').value=c.cost||0;
+  // Проверяем не была ли уже закупка
+  const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===c.id);
+  if(existing.length){
+    const total=existing.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+    document.getElementById('koClientHint').innerHTML='<span style="color:var(--yellow)">⚠ По этому договору уже есть закупки на '+fmt(total)+' ₽</span>';
+  }else{
+    document.getElementById('koClientHint').textContent='Себестоимость подставлена автоматически, можно изменить';
+  }
+}
+
+function openKassaOp(){
+  if(!S.wallets.length){toast('Сначала добавьте кошельки в настройках','ter');return;}
+  document.getElementById('koType').value='purchase';
+  document.getElementById('koAmt').value='';
+  document.getElementById('koDesc').value='';
+  kassaTypeChanged();
+  openM('mKassa');
+}
+
+async function saveKassaOp(){
+  if(_saving)return;
+  const{db,collection,addDoc,doc,updateDoc}=window.DB;
+  const type=document.getElementById('koType').value;
+  const amt=parseFloat(document.getElementById('koAmt').value)||0;
+  const wid=document.getElementById('koWallet').value;
+  const wtid=document.getElementById('koWalletTo').value;
+  const desc=document.getElementById('koDesc').value.trim();
+  const clientId=document.getElementById('koClient').value;
+  if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
+  if(!wid){toast('Выберите кошелёк','ter');return;}
+  const w=S.wallets.find(x=>x.id===wid);
+  if(!w){toast('Кошелёк не найден','ter');return;}
+  const meta=kMeta(type);
+  // Проверки
+  if(type==='purchase'&&!clientId){toast('Выберите договор клиента','ter');return;}
+  if(type==='transfer'){
+    if(!wtid){toast('Выберите кошелёк назначения','ter');return;}
+    if(wid===wtid){toast('Нельзя перевести на тот же кошелёк','ter');return;}
+  }
+  // Проверка баланса для расходов/переводов
+  const wb=parseFloat(w.balance)||0;
+  if(meta.dir==='out'||type==='transfer'){
+    if(wb<amt){
+      showConfirm('Недостаточно средств','<strong>На кошельке "'+w.name+'" всего '+fmt(wb)+' ₽</strong><br>Баланс уйдёт в минус на '+fmt(amt-wb)+' ₽. Продолжить?',async()=>{await doSaveKassa(type,amt,wid,wtid,desc,clientId,w);});
+      return;
+    }
+  }
+  await doSaveKassa(type,amt,wid,wtid,desc,clientId,w);
+}
+
+async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w){
+  _saving=true;
+  try{
+    const{db,collection,addDoc,doc,updateDoc}=window.DB;
+    const meta=kMeta(type);
+    const wt=(type==='transfer')?S.wallets.find(x=>x.id===wtid):null;
+    const op={type,amount:amt,wallet:wid,walletName:w.name||'',desc,date:new Date(),dateStr:fmtD(new Date()),auto:false};
+    if(wt){op.walletTo=wtid;op.walletToName=wt.name;}
+    // Привязка к договору клиента (для закупки)
+    if(clientId){
+      const c=S.clients.find(x=>x.id===clientId);
+      op.refType='client';op.refId=clientId;
+      if(c){op.clientName=c.name;op.contractId=c.contractId;if(!desc){op.desc='Закупка для '+c.name+' (№'+c.contractId+')';}}
+    }
+    await addDoc(collection(db,'kassaOps'),op);
+    // Обновить балансы кошельков
+    const wb=parseFloat(w.balance)||0;
+    if(meta.dir==='in'){await updateDoc(doc(db,'wallets',wid),{balance:wb+amt});}
+    else if(meta.dir==='out'){await updateDoc(doc(db,'wallets',wid),{balance:wb-amt});}
+    else if(type==='transfer'){
+      await updateDoc(doc(db,'wallets',wid),{balance:wb-amt});
+      const wtb=parseFloat(wt?.balance)||0;
+      await updateDoc(doc(db,'wallets',wtid),{balance:wtb+amt});
+    }
+    // Если закупка — обновить поле себестоимости клиента на фактическую сумму
+    if(type==='purchase'&&clientId){
+      const c=S.clients.find(x=>x.id===clientId);
+      if(c&&parseFloat(c.cost||0)!==amt){
+        await updateDoc(doc(db,'clients',clientId),{cost:amt});
+        await logA('Корректировка себестоимости','№'+c.contractId+' — стало '+fmt(amt)+' ₽ (по факту закупки)');
+      }
+    }
+    await logA('Касса: '+meta.name,fmt(amt)+' ₽ — '+(w.name||'')+(desc?' ('+desc+')':''));
+    closeM('mKassa');
+    toast('Операция записана','tok');
+  }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  finally{_saving=false;}
+}
+
+async function delKassaOp(id){
+  const op=S.kassaOps.find(x=>x.id===id);if(!op)return;
+  const meta=kMeta(op.type);
+  if(meta.auto||op.auto){toast('Автоматические операции нельзя удалить. Их нужно отменять через исходную сущность.','ter');return;}
+  showConfirm('Удалить операцию?','<strong>'+meta.name+' '+fmt(op.amount)+' ₽</strong><br>Баланс кошелька будет скорректирован',async()=>{
+    try{
+      const{db,doc,deleteDoc,updateDoc}=window.DB;
+      // Откатить баланс
+      const w=S.wallets.find(x=>x.id===op.wallet);
+      if(w){
+        const wb=parseFloat(w.balance)||0;
+        if(meta.dir==='in')await updateDoc(doc(db,'wallets',op.wallet),{balance:wb-(parseFloat(op.amount)||0)});
+        else if(meta.dir==='out')await updateDoc(doc(db,'wallets',op.wallet),{balance:wb+(parseFloat(op.amount)||0)});
+        else if(op.type==='transfer'){
+          await updateDoc(doc(db,'wallets',op.wallet),{balance:wb+(parseFloat(op.amount)||0)});
+          const wt=S.wallets.find(x=>x.id===op.walletTo);
+          if(wt){await updateDoc(doc(db,'wallets',op.walletTo),{balance:(parseFloat(wt.balance)||0)-(parseFloat(op.amount)||0)});}
+        }
+      }
+      await deleteDoc(doc(db,'kassaOps',id));
+      await logA('Удаление операции кассы',meta.name+' '+fmt(op.amount)+' ₽');
+      toast('Удалено','tok');
+    }catch(e){toast('Ошибка: '+e.message,'ter');}
+  });
+}
 
 function exportExcel(){const r=[['№','Дата','ФИО','Телефоны','Товар','Партнёр','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
 function openM(id){document.getElementById(id).classList.add('on');}
