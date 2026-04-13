@@ -291,7 +291,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="ftabs" id="kTabs"><button class="ft on" onclick="setKTab('all',this)">Все</button><button class="ft" onclick="setKTab('payment',this)">Оплаты</button><button class="ft" onclick="setKTab('purchase',this)">Закупки</button><button class="ft" onclick="setKTab('invest',this)">Инвестиции</button><button class="ft" onclick="setKTab('withdraw',this)">Выводы</button><button class="ft" onclick="setKTab('salary',this)">Зарплата</button><button class="ft" onclick="setKTab('opex',this)">Расходы</button><button class="ft" onclick="setKTab('transfer',this)">Переводы</button></div>
 <div class="card" style="padding:0;overflow:hidden"><div id="kList"></div></div>
 </div>
-<div id="page-investors" class="page" style="display:none"><div class="ph"><div><div class="pt">Инвесторы</div><div class="ps" id="invCount"></div></div><div class="pa"><button class="btn bg" onclick="openNewInv()">+ Новый инвестор</button></div></div><div class="card" style="padding:0;overflow:hidden" id="invListWrap"><div id="invList"><div class="loading"><div class="spin"></div></div></div></div></div>
+<div id="page-investors" class="page" style="display:none"><div class="ph"><div><div class="pt">Инвесторы</div><div class="ps" id="invCount"></div></div><div class="pa"><button class="btn bg" onclick="openNewInv()">+ Новый инвестор</button></div></div><div id="invFinance" style="margin-bottom:18px"></div><div class="card" style="padding:0;overflow:hidden" id="invListWrap"><div id="invList"><div class="loading"><div class="spin"></div></div></div></div></div>
 <div id="page-investor" class="page" style="display:none"><button class="bback" onclick="goTo('investors')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="invDetail"></div></div>
 <div id="page-journal" class="page" style="display:none"><div class="ph"><div class="pt">История действий</div></div><div class="card" style="padding:0;overflow:hidden"><div id="jList"></div></div></div>
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div class="pt">Настройки</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -372,13 +372,21 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="mft"><button class="btn bgh" onclick="closeM('mInvReturn')">Отмена</button><button class="btn bg" onclick="saveInvReturn()">Записать</button></div>
 </div></div>
 
+<div class="mover" id="mPayoutProfit"><div class="modal msm">
+<div class="mtitle">Выплата прибыли инвестору</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:4px" id="mPpInv"></div>
+<div style="font-size:12px;color:var(--t2);margin-bottom:14px" id="mPpAmt"></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">С какого кошелька *</label><select class="inp sel" id="mPpWallet"></select></div>
+<div class="mft"><button class="btn bgh" onclick="closeM('mPayoutProfit')">Отмена</button><button class="btn bg" onclick="savePayoutProfit()">Выплатить</button></div>
+</div></div>
+
 <div class="toast" id="toast"></div>
 <div id="fdOverlay"><div class="fdo-title" id="fdo_title"></div><div id="fdo_body"></div><div class="fdo-btns"><button class="fdo-reset" id="fdo_reset">Сбросить</button><button class="fdo-apply" id="fdo_apply">Применить</button></div></div>
 <div id="confirmLayer"></div>
 
 <script>
 // ---------- STATE ----------
-const S={clients:[],payments:[],partners:['Сторонний'],wallets:[],kassaOps:[],investors:[],invContracts:[],invReturns:[],curClient:null,curInvestor:null,tab:'all',kTab:'all',
+const S={clients:[],payments:[],partners:['Сторонний'],wallets:[],kassaOps:[],investors:[],invContracts:[],invReturns:[],invProfitAccruals:[],curClient:null,curInvestor:null,tab:'all',kTab:'all',
   CF:{id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''},
   PF:{date_q:'',date_from:'',date_to:'',contract:'',name:'',amount_q:'',amount_from:'',amount_to:'',type:'',payType:''},
   JF:{date_q:'',date_from:'',date_to:'',type:'',desc:''}};
@@ -531,7 +539,7 @@ function doLogout(){if(_authMode==='firebase')window.SIGN_OUT(window.AUTH);locat
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
 function initApp(){if(_inited)return;_inited=true;document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
-function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();},()=>{});onSnapshot(collection(db,'investors'),s=>{S.investors=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invContracts'),s=>{S.invContracts=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invReturns'),s=>{S.invReturns=s.docs.map(d=>({id:d.id,...d.data()}));if(S.curInvestor)renderInvestorDetail();},()=>{});}
+function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();},()=>{});onSnapshot(collection(db,'investors'),s=>{S.investors=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invContracts'),s=>{S.invContracts=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invReturns'),s=>{S.invReturns=s.docs.map(d=>({id:d.id,...d.data()}));if(S.curInvestor)renderInvestorDetail();renderInvestorsFinance();},()=>{});onSnapshot(collection(db,'invProfitAccruals'),s=>{S.invProfitAccruals=s.docs.map(d=>({id:d.id,...d.data()}));if(S.curInvestor)renderInvestorDetail();renderInvestorsFinance();},()=>{});}
 function refreshAll(){renderDash();renderClients();renderPayments();renderKassa();if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
 function goTo(p){document.querySelectorAll('.page').forEach(x=>x.style.display='none');document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.getElementById('page-'+p).style.display='block';const n=document.getElementById('nav-'+p);if(n)n.classList.add('on');if(p==='journal')loadJournal();if(p==='settings')renderSettings();if(p==='investors'){S.curInvestor=null;renderInvestors();}}
 
@@ -972,6 +980,276 @@ async function addWallet(){
 }
 async function removeWallet(id,bal){const w=S.wallets.find(x=>x.id===id);if(w&&(w.isDefault||(w.name==='Наличные'&&w.type==='cash'))){toast('Нельзя удалить стандартный','ter');return;}if(bal>0){toast('Баланс не 0 — нельзя удалить','ter');return;}if(!confirm('Удалить кошелёк?'))return;await window.DB.deleteDoc(window.DB.doc(window.DB.db,'wallets',id));toast('Удалён','tok');}
 
+// ============================================================
+// ФИНАНСОВЫЙ ДВИЖОК (Этап 4)
+// ============================================================
+
+// Возвращает дату в формате YYYY-MM-DD (для ключей)
+function dayKey(d){const dt=d instanceof Date?d:new Date(d);return dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);}
+function monthKey(d){const dt=d instanceof Date?d:new Date(d);return dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2);}
+function monthKeyFromStr(s){if(!s)return null;const d=parseD(s);return d?monthKey(d):null;}
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+// Парсит кассовую операцию — возвращает Date
+function opDate(op){if(!op||!op.date)return null;return op.date.toDate?op.date.toDate():new Date(op.date);}
+
+// ------------ СОБЫТИЯ КАПИТАЛА ------------
+// Собирает все события, меняющие состав капитала (хронологически)
+// Событие: {date, type, participantId ('self' или investorId), amount (+ или −), meta}
+function getCapitalEvents(){
+  const events=[];
+  // Мои вклады
+  S.kassaOps.filter(o=>o.type==='invest_self').forEach(o=>{
+    const d=opDate(o);if(!d)return;
+    events.push({date:d,type:'self_in',participantId:'self',amount:parseFloat(o.amount)||0,meta:{opId:o.id}});
+  });
+  // Выводы себе
+  S.kassaOps.filter(o=>o.type==='withdraw').forEach(o=>{
+    const d=opDate(o);if(!d)return;
+    events.push({date:d,type:'self_out',participantId:'self',amount:-(parseFloat(o.amount)||0),meta:{opId:o.id}});
+  });
+  // Инвестиции получены (тело)
+  S.invContracts.forEach(ic=>{
+    const d=parseD(ic.date);if(!d)return;
+    events.push({date:d,type:'inv_in',participantId:ic.investorId,amount:parseFloat(ic.amount)||0,meta:{contractId:ic.id,contractNum:ic.contractNum}});
+  });
+  // Возвраты тела инвесторам
+  S.invReturns.forEach(r=>{
+    const d=opDate(r);if(!d)return;
+    events.push({date:d,type:'inv_return',participantId:r.investorId,amount:-(parseFloat(r.amount)||0),meta:{returnId:r.id,contractId:r.contractId}});
+  });
+  // Сортируем по дате
+  events.sort((a,b)=>a.date-b.date);
+  return events;
+}
+
+// Возвращает состав капитала на заданную дату (до конца дня включительно)
+// {self: сумма, investors: {invId: сумма}, total: сумма, parts: [{id, name, amount, share}]}
+function getCapitalAt(targetDate){
+  const td=targetDate instanceof Date?targetDate:parseD(targetDate);
+  if(!td)return{self:0,investors:{},total:0,parts:[]};
+  const endOfDay=new Date(td.getFullYear(),td.getMonth(),td.getDate(),23,59,59,999);
+  const events=getCapitalEvents();
+  let self=0;const investors={};
+  events.forEach(e=>{
+    if(e.date>endOfDay)return;
+    if(e.participantId==='self')self+=e.amount;
+    else{
+      if(!investors[e.participantId])investors[e.participantId]=0;
+      investors[e.participantId]+=e.amount;
+    }
+  });
+  // Добавим реинвестированную прибыль (будет посчитана отдельно если надо)
+  const total=self+Object.values(investors).reduce((s,v)=>s+v,0);
+  const parts=[{id:'self',name:'Я (собственник)',amount:self,share:total>0?self/total:0}];
+  Object.keys(investors).forEach(iid=>{
+    if(investors[iid]===0)return;
+    const inv=S.investors.find(x=>x.id===iid);
+    parts.push({id:iid,name:inv?inv.name:'Инвестор',amount:investors[iid],share:total>0?investors[iid]/total:0});
+  });
+  return{self,investors,total,parts};
+}
+
+// Считает средневзвешенную долю каждого участника за месяц (Вариант A, по дням)
+// Возвращает {parts:[{id,name,avgShare,avgAmount}], totalDays, totalCapitalDays}
+function getMonthlyShares(year,month){
+  const lastDay=daysInMonth(year,month);
+  const events=getCapitalEvents();
+  // Накопим состояние на начало месяца
+  const startOfMonth=new Date(year,month,1,0,0,0,0);
+  let self=0;const investors={};
+  events.forEach(e=>{if(e.date<startOfMonth){
+    if(e.participantId==='self')self+=e.amount;
+    else{if(!investors[e.participantId])investors[e.participantId]=0;investors[e.participantId]+=e.amount;}
+  }});
+  // По дням: для каждого дня считаем капитал (self и investors), потом средневзвешиваем
+  const sumsByPart={self:0};
+  Object.keys(investors).forEach(iid=>{sumsByPart[iid]=0;});
+  let totalSum=0;
+  for(let d=1;d<=lastDay;d++){
+    const dayStart=new Date(year,month,d,0,0,0,0);
+    const dayEnd=new Date(year,month,d,23,59,59,999);
+    // Применяем все события которые произошли сегодня (в течение дня)
+    events.forEach(e=>{
+      if(e.date>=dayStart&&e.date<=dayEnd){
+        if(e.participantId==='self')self+=e.amount;
+        else{if(!investors[e.participantId])investors[e.participantId]=0;investors[e.participantId]+=e.amount;}
+      }
+    });
+    // Состояние на конец дня — засчитываем
+    if(sumsByPart.self===undefined)sumsByPart.self=0;
+    sumsByPart.self+=self;
+    Object.keys(investors).forEach(iid=>{
+      if(sumsByPart[iid]===undefined)sumsByPart[iid]=0;
+      sumsByPart[iid]+=investors[iid];
+    });
+    totalSum+=self+Object.values(investors).reduce((s,v)=>s+v,0);
+  }
+  const parts=[];
+  const selfAvg=sumsByPart.self/lastDay;
+  parts.push({id:'self',name:'Я (собственник)',avgAmount:selfAvg,avgShare:totalSum>0?sumsByPart.self/totalSum:0});
+  Object.keys(sumsByPart).forEach(iid=>{
+    if(iid==='self')return;
+    const inv=S.investors.find(x=>x.id===iid);
+    const avg=sumsByPart[iid]/lastDay;
+    if(avg===0&&(!investors[iid]||investors[iid]===0))return; // пропускаем полностью нулевых
+    parts.push({id:iid,name:inv?inv.name:'Инвестор',avgAmount:avg,avgShare:totalSum>0?sumsByPart[iid]/totalSum:0});
+  });
+  return{parts,totalDays:lastDay};
+}
+
+// ------------ ПРИЗНАНИЕ ПРИБЫЛИ ПО ПЛАТЕЖАМ ------------
+// Для каждого клиента и его платежей — возвращает прибыль, признанную каждым платежом
+// Вариант F: каждый платёж несёт долю маржи = маржа / (цена - предоплата - скидки)
+// Возвращает: [{paymentId, clientId, date, amount, marginPart, profitPart}]
+// profitPart может быть отрицательным если скидки больше маржи
+function getProfitByPayment(c){
+  const price=parseFloat(c.price)||0;
+  const cost=parseFloat(c.cost)||0;
+  const prepay=parseFloat(c.prepay)||0;
+  // Все платежи этого клиента (type=payment) отсортированные по дате
+  const pays=S.payments.filter(p=>p.clientId===c.id&&p.type==='payment').slice().sort((a,b)=>{
+    const da=a.date?.toDate?a.date.toDate():new Date(a.date||0);
+    const db=b.date?.toDate?b.date.toDate():new Date(b.date||0);
+    return da-db;
+  });
+  // Все скидки
+  const discounts=S.payments.filter(p=>p.clientId===c.id&&p.type==='discount').slice().sort((a,b)=>{
+    const da=a.date?.toDate?a.date.toDate():new Date(a.date||0);
+    const db=b.date?.toDate?b.date.toDate():new Date(b.date||0);
+    return da-db;
+  });
+  const totalDiscount=discounts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  // Эффективная маржа и коэффициент
+  const effectivePrice=price-totalDiscount;
+  const effectiveMargin=effectivePrice-cost;
+  const toBePaid=effectivePrice-prepay;
+  const marginRatio=toBePaid>0?effectiveMargin/toBePaid:0;
+  // Каждому платежу начисляем profitPart = amount * marginRatio
+  const result=[];
+  pays.forEach(p=>{
+    const amt=parseFloat(p.amount)||0;
+    const profitPart=amt*marginRatio;
+    const d=p.date?.toDate?p.date.toDate():new Date(p.date||0);
+    result.push({paymentId:p.id,clientId:c.id,clientName:c.name,contractId:c.contractId,date:d,amount:amt,marginRatio,profitPart});
+  });
+  // Скидки тоже влияют — они уже учтены в marginRatio (уменьшают его)
+  // Но если скидка произошла ПОЗЖЕ платежей — она "задним числом" уменьшает признанную прибыль.
+  // Для простоты: признание прибыли присваивается к дате платежа, и пересчитывается при любой новой скидке.
+  // Это значит что если в апреле пришла скидка, прибыль платежей марта изменится.
+  // Для отчётности за период: прибыль = сумма profitPart платежей в этом периоде по текущему состоянию договора.
+  return result;
+}
+
+// ------------ ПРИБЫЛЬ БИЗНЕСА ЗА ПЕРИОД ------------
+// Возвращает:
+// {recognizedProfit, opex, salary, losses, netProfit, breakdown:[...]}
+function getBusinessProfit(dateFrom,dateTo){
+  const from=dateFrom instanceof Date?dateFrom:parseD(dateFrom);
+  const to=dateTo instanceof Date?dateTo:parseD(dateTo);
+  if(!from||!to)return{recognizedProfit:0,opex:0,salary:0,losses:0,netProfit:0,breakdown:[]};
+  const fromMs=new Date(from.getFullYear(),from.getMonth(),from.getDate(),0,0,0,0).getTime();
+  const toMs=new Date(to.getFullYear(),to.getMonth(),to.getDate(),23,59,59,999).getTime();
+  let recognizedProfit=0,opex=0,salary=0,losses=0;
+  const breakdown=[];
+  // Прибыль по платежам
+  S.clients.forEach(c=>{
+    const pp=getProfitByPayment(c);
+    pp.forEach(x=>{
+      if(!x.date)return;
+      const ms=x.date.getTime();
+      if(ms>=fromMs&&ms<=toMs){
+        recognizedProfit+=x.profitPart;
+        breakdown.push({type:'payment_profit',date:x.date,clientName:c.name,contractId:c.contractId,amount:x.profitPart});
+      }
+    });
+  });
+  // Скидки: если сделка закрылась в убыток (сумма полученная < себестоимость) — записываем убыток.
+  // Проще: для каждой сделки с скидкой в этом периоде — считаем финальный эффект скидки как разницу между
+  //   "было прибыли" и "стало прибыли" после применения этой скидки.
+  // Но это усложнит модель. Для начала — считаем убытком только если сделка стала закрытой со скидкой и
+  //   финальная прибыль отрицательна; убыток = -finalProfit, засчитывается в дату последней скидки.
+  S.clients.forEach(c=>{
+    const s=getStats(c);if(!s)return;
+    const fin=getFinancials(c,s);
+    if(!fin.isClosed)return;
+    // Если сделка закрыта и finalProfit отрицателен, это убыток
+    if(fin.finalProfit<0){
+      // Дата закрытия = дата последнего события (платёж или скидка)
+      const lastEvent=s.cPays.length?s.cPays[0]:null; // уже отсортированы desc
+      if(lastEvent){
+        const d=lastEvent.date?.toDate?lastEvent.date.toDate():new Date(lastEvent.date||0);
+        const ms=d.getTime();
+        if(ms>=fromMs&&ms<=toMs){
+          // Убыток = -(finalProfit) минус уже признанная прибыль за этот период
+          // Упрощение: списываем -finalProfit целиком в этот период
+          const lossAmt=-fin.finalProfit;
+          // Вычитаем уже признанную прибыль этой сделки в этом периоде (чтобы не задваивать)
+          const alreadyRecognized=getProfitByPayment(c).filter(x=>{const m=x.date?.getTime();return m>=fromMs&&m<=toMs;}).reduce((s,x)=>s+x.profitPart,0);
+          const netLoss=Math.max(0,lossAmt-Math.max(0,alreadyRecognized));
+          if(netLoss>0){
+            losses+=netLoss;
+            breakdown.push({type:'loss',date:d,clientName:c.name,contractId:c.contractId,amount:-netLoss});
+          }
+        }
+      }
+    }
+  });
+  // Опер. расходы и зарплаты
+  S.kassaOps.forEach(o=>{
+    if(o.type!=='opex'&&o.type!=='salary')return;
+    const d=opDate(o);if(!d)return;
+    const ms=d.getTime();
+    if(ms<fromMs||ms>toMs)return;
+    const amt=parseFloat(o.amount)||0;
+    if(o.type==='opex'){opex+=amt;breakdown.push({type:'opex',date:d,desc:o.desc,amount:-amt});}
+    else{salary+=amt;breakdown.push({type:'salary',date:d,desc:o.desc,amount:-amt});}
+  });
+  const netProfit=recognizedProfit-opex-salary-losses;
+  return{recognizedProfit,opex,salary,losses,netProfit,breakdown};
+}
+
+// ------------ РАСПРЕДЕЛЕНИЕ ПРИБЫЛИ ЗА МЕСЯЦ ------------
+// Возвращает для каждого участника {id, name, share, amount, toInvestor, toManager (если это инвестор)}
+function getProfitDistribution(year,month){
+  const firstDay=new Date(year,month,1);
+  const lastDay=new Date(year,month,daysInMonth(year,month));
+  const profit=getBusinessProfit(firstDay,lastDay);
+  const shares=getMonthlyShares(year,month);
+  const result={year,month,netProfit:profit.netProfit,profit,shares,distribution:[]};
+  shares.parts.forEach(p=>{
+    const partProfit=profit.netProfit*p.avgShare;
+    if(p.id==='self'){
+      result.distribution.push({participantId:'self',name:p.name,share:p.avgShare,avgCapital:p.avgAmount,partProfit,toMe:partProfit,toInvestor:0,managerShare:0});
+    }else{
+      // Ищем договор инвестора (активный) — берём его managerShare
+      const contracts=S.invContracts.filter(c=>c.investorId===p.id&&(c.status!=='closed'||parseD(c.endDate)>=firstDay));
+      // Берём managerShare первого активного (они должны быть одинаковые у одного инвестора по смыслу, но могут отличаться)
+      // Лучше — взвешенный по размеру вложений
+      let totalW=0,sumMS=0;
+      contracts.forEach(ic=>{const w=parseFloat(ic.amount)||0;totalW+=w;sumMS+=w*(parseFloat(ic.managerShare)||50);});
+      const mshare=totalW>0?sumMS/totalW:50;
+      const toManager=partProfit*(mshare/100);
+      const toInvestor=partProfit-toManager;
+      result.distribution.push({participantId:p.id,name:p.name,share:p.avgShare,avgCapital:p.avgAmount,partProfit,toInvestor,toManager,managerShare:mshare});
+    }
+  });
+  return result;
+}
+
+// ------------ СВОБОДНЫЙ КАПИТАЛ ------------
+function getFreeCapital(){
+  const totalWallets=S.wallets.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
+  // Обязательства: тело активных инвестиций + начисленная но не выплаченная прибыль
+  let obligations=0;
+  S.invContracts.forEach(ic=>{
+    if(ic.status==='closed')return;
+    const returned=S.invReturns.filter(r=>r.contractId===ic.id).reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+    obligations+=Math.max(0,(parseFloat(ic.amount)||0)-returned);
+    // TODO: прибавить начисленную но не выплаченную прибыль (после внедрения начислений)
+  });
+  return{totalWallets,obligations,free:totalWallets-obligations};
+}
+
 // ---------- INVESTORS ----------
 // Вспомогательные: суммы по договору
 function getContractStats(ic){
@@ -991,8 +1269,74 @@ function getInvestorStats(inv){
   return{contracts,active,totalInvested,totalReturned,totalRemaining};
 }
 
+function openInvestor(id){S.curInvestor=id;goTo('investor');document.getElementById('nav-investors').classList.add('on');renderInvestorDetail();}
+
+// ------------ БЛОК «ФИНАНСЫ БИЗНЕСА» на странице Инвесторов ------------
+let _invFinPeriod=null; // {year, month} - выбранный период
+function initInvFinPeriod(){if(!_invFinPeriod){const d=new Date();_invFinPeriod={year:d.getFullYear(),month:d.getMonth()};}}
+function changeInvFinPeriod(delta){
+  initInvFinPeriod();
+  let m=_invFinPeriod.month+delta,y=_invFinPeriod.year;
+  while(m<0){m+=12;y--;}while(m>11){m-=12;y++;}
+  _invFinPeriod={year:y,month:m};
+  renderInvestorsFinance();
+}
+function renderInvestorsFinance(){
+  const el=document.getElementById('invFinance');if(!el)return;
+  initInvFinPeriod();
+  const{year,month}=_invFinPeriod;
+  const monthNames=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const today_=today();
+  const capNow=getCapitalAt(today_);
+  const free=getFreeCapital();
+  const dist=getProfitDistribution(year,month);
+  const pr=dist.profit;
+  // Мои начисления за период
+  const selfPart=dist.distribution.find(d=>d.participantId==='self');
+  let meTotal=selfPart?selfPart.toMe:0;
+  // Добавить все toManager от инвесторов (моя доля управляющего)
+  dist.distribution.filter(d=>d.participantId!=='self').forEach(d=>{meTotal+=d.toManager||0;});
+  // Список инвесторов с начислениями
+  const invRows=dist.distribution.filter(d=>d.participantId!=='self').map(d=>{
+    // Статус выплаты: начислено ли / выплачено ли в режиме monthly
+    const accrual=S.invProfitAccruals.find(a=>a.investorId===d.participantId&&a.year===year&&a.month===month);
+    const statusHtml=accrual?(accrual.paid?'<span class="badge ba">Выплачено</span>':accrual.reinvested?'<span class="badge bd">Реинвестировано</span>':'<span class="badge by2">Начислено</span>'):'<span class="badge bd">Не начислено</span>';
+    // Есть ли у инвестора активный договор на конец периода
+    const lastDayOfMonth=new Date(year,month,daysInMonth(year,month));
+    const activeContracts=S.invContracts.filter(c=>c.investorId===d.participantId&&parseD(c.date)<=lastDayOfMonth&&(c.status!=='closed'||parseD(c.endDate)>=lastDayOfMonth));
+    const payoutType=activeContracts[0]?.payoutType||'monthly';
+    const actionBtn=(!accrual&&d.toInvestor!==0)?'<button class="btn bg bsm" onclick="openAccrueProfit(\''+d.participantId+'\','+year+','+month+','+d.toInvestor+','+d.toManager+',\''+payoutType+'\')">Начислить</button>':(accrual&&!accrual.paid&&!accrual.reinvested&&payoutType==='monthly')?'<button class="btn bg bsm" onclick="openPayoutProfit(\''+accrual.id+'\')">Выплатить</button>':'';
+    return'<tr><td><div style="font-weight:600;cursor:pointer" onclick="openInvestor(\''+d.participantId+'\')">'+d.name+'</div><div style="font-size:10px;color:var(--t3)">ср. капитал: '+fmt(d.avgCapital)+' ₽ ('+(d.share*100).toFixed(1)+'%)</div></td><td><span class="amt '+(d.partProfit>=0?'cg':'cr')+'">'+(d.partProfit>=0?'':'−')+fmt(Math.abs(d.partProfit))+' ₽</span><div style="font-size:10px;color:var(--t3)">часть инвестора</div></td><td><span class="amt">'+fmt(d.toInvestor)+' ₽</span><div style="font-size:10px;color:var(--t3)">ему (после '+d.managerShare.toFixed(0)+'% управляющему)</div></td><td><span class="amt cg">'+fmt(d.toManager)+' ₽</span><div style="font-size:10px;color:var(--t3)">мне как управл.</div></td><td>'+statusHtml+'</td><td>'+actionBtn+'</td></tr>';
+  }).join('');
+  const selfRow=selfPart?'<tr style="background:rgba(149,193,31,0.03)"><td><div style="font-weight:700">Я (собственник)</div><div style="font-size:10px;color:var(--t3)">ср. капитал: '+fmt(selfPart.avgCapital)+' ₽ ('+(selfPart.share*100).toFixed(1)+'%)</div></td><td><span class="amt '+(selfPart.toMe>=0?'cg':'cr')+'">'+(selfPart.toMe>=0?'':'−')+fmt(Math.abs(selfPart.toMe))+' ₽</span><div style="font-size:10px;color:var(--t3)">моя часть собственника</div></td><td colspan="4" style="color:var(--t3);font-size:11px">—</td></tr>':'';
+  // Ссылка для навигации по месяцам
+  el.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">'+
+      '<div style="font-family:Unbounded,sans-serif;font-size:13px;font-weight:700">Финансы бизнеса</div>'+
+      '<div style="display:flex;align-items:center;gap:6px">'+
+        '<button class="btn bgh bsm" onclick="changeInvFinPeriod(-1)">←</button>'+
+        '<div style="font-weight:700;padding:0 10px;min-width:150px;text-align:center">'+monthNames[month]+' '+year+'</div>'+
+        '<button class="btn bgh bsm" onclick="changeInvFinPeriod(1)">→</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="sg4" style="margin-bottom:12px">'+
+      '<div class="sc"><div class="sl">Чистая прибыль за '+monthNames[month].toLowerCase()+'</div><div class="sv '+(pr.netProfit>=0?'cg':'cr')+'" style="font-size:17px">'+(pr.netProfit>=0?'':'−')+fmt(Math.abs(pr.netProfit))+' ₽</div><div class="ss">призн. по платежам: '+fmt(pr.recognizedProfit)+' ₽</div></div>'+
+      '<div class="sc"><div class="sl">Опер. расходы</div><div class="sv cr" style="font-size:17px">−'+fmt(pr.opex+pr.salary)+' ₽</div><div class="ss">расходы: '+fmt(pr.opex)+', зарплаты: '+fmt(pr.salary)+'</div></div>'+
+      '<div class="sc"><div class="sl">Убытки</div><div class="sv cr" style="font-size:17px">−'+fmt(pr.losses)+' ₽</div><div class="ss">от закрытых в минус сделок</div></div>'+
+      '<div class="sc"><div class="sl">Мне за период</div><div class="sv cg" style="font-size:17px">'+fmt(meTotal)+' ₽</div><div class="ss">как собственнику + управляющему</div></div>'+
+    '</div>'+
+    '<div class="sg4" style="margin-bottom:12px;grid-template-columns:repeat(3,1fr)">'+
+      '<div class="sc"><div class="sl">Всего в кошельках</div><div class="sv" style="font-size:17px">'+fmt(free.totalWallets)+' ₽</div></div>'+
+      '<div class="sc"><div class="sl">Обязательства инвесторам</div><div class="sv cy" style="font-size:17px">'+fmt(free.obligations)+' ₽</div><div class="ss">тело активных договоров</div></div>'+
+      '<div class="sc"><div class="sl">Свободный капитал</div><div class="sv '+(free.free>=0?'cg':'cr')+'" style="font-size:17px">'+(free.free>=0?'':'−')+fmt(Math.abs(free.free))+' ₽</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain">Часть прибыли</th><th class="plain">К выплате</th><th class="plain">Управл. сбор</th><th class="plain">Статус</th><th class="plain">Действие</th></tr></thead><tbody>'+selfRow+(invRows||'<tr><td colspan="6" style="color:var(--t3);font-size:12px;padding:14px">Нет инвесторов с долей в капитале в этом месяце</td></tr>')+'</tbody></table></div>'+
+    '<div style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.6">Доли рассчитаны как средневзвешенные по дням месяца. Прибыль = признанная по платежам − опер. расходы − зарплаты − убытки. Начисления можно делать только после завершения месяца (или в текущем месяце, но данные изменятся).</div>';
+}
+
 function renderInvestors(){
   const el=document.getElementById('invList');if(!el)return;
+  renderInvestorsFinance();
   const list=S.investors.map(inv=>({...inv,_s:getInvestorStats(inv)}));
   document.getElementById('invCount').textContent=list.length+' инвесторов · активных договоров: '+list.reduce((s,i)=>s+i._s.active.length,0);
   if(!list.length){el.innerHTML='<div class="empty">Пока нет инвесторов. Нажмите "+ Новый инвестор"</div>';return;}
@@ -1004,7 +1348,70 @@ function renderInvestors(){
   el.innerHTML='<table class="tbl"><thead><tr><th class="plain">Инвестор</th><th class="plain">Остаток тела</th><th class="plain">Статус</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-function openInvestor(id){S.curInvestor=id;goTo('investor');document.getElementById('nav-investors').classList.add('on');renderInvestorDetail();}
+// ------------ НАЧИСЛЕНИЕ И ВЫПЛАТА ПРИБЫЛИ ------------
+async function openAccrueProfit(investorId,year,month,toInvestor,toManager,payoutType){
+  const inv=S.investors.find(x=>x.id===investorId);if(!inv)return;
+  const monthNames=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const actionText=payoutType==='end'?'реинвестировать (увеличить тело инвестиции)':'записать как начисленную к выплате';
+  showConfirm('Начислить прибыль?','<strong>'+inv.name+'</strong><br>Период: '+monthNames[month]+' '+year+'<br>К выплате инвестору: <strong>'+fmt(toInvestor)+' ₽</strong><br>Управляющему (мне): <strong>'+fmt(toManager)+' ₽</strong><br><br>Режим договора: <em>'+(payoutType==='end'?'в конце срока':'ежемесячно')+'</em><br>Действие: '+actionText,async()=>{
+    const{db,collection,addDoc,updateDoc,doc}=window.DB;
+    try{
+      // Определяем активный договор инвестора на конец периода (для реинвестирования)
+      const lastDayOfMonth=new Date(year,month,daysInMonth(year,month));
+      const contracts=S.invContracts.filter(c=>c.investorId===investorId&&parseD(c.date)<=lastDayOfMonth&&(c.status!=='closed'||parseD(c.endDate)>=lastDayOfMonth));
+      const contract=contracts[0]; // взять первый активный
+      const accrual={investorId,investorName:inv.name,year,month,toInvestor,toManager,payoutType,contractId:contract?.id||null,contractNum:contract?.contractNum||null,paid:false,reinvested:false,createdAt:new Date()};
+      if(payoutType==='end'&&contract){
+        // Реинвестируем: увеличиваем тело инвестиции
+        const newAmount=(parseFloat(contract.amount)||0)+toInvestor;
+        await updateDoc(doc(db,'invContracts',contract.id),{amount:newAmount});
+        accrual.reinvested=true;
+        // Также увеличим план возврата — просто добавим к последней записи
+        if(contract.returnPlan&&contract.returnPlan.length){
+          const newPlan=contract.returnPlan.slice();
+          newPlan[newPlan.length-1]={...newPlan[newPlan.length-1],amount:(parseFloat(newPlan[newPlan.length-1].amount)||0)+toInvestor};
+          await updateDoc(doc(db,'invContracts',contract.id),{returnPlan:newPlan});
+        }
+      }
+      await addDoc(collection(db,'invProfitAccruals'),accrual);
+      await logA('Начисление прибыли',inv.name+' · '+monthNames[month]+' '+year+' — инв: '+fmt(toInvestor)+' ₽, упр: '+fmt(toManager)+' ₽'+(payoutType==='end'?' (реинвестирована)':''));
+      toast('Начислено','tok');
+    }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  });
+}
+
+let _payoutAccrualId=null;
+function openPayoutProfit(accrualId){
+  const a=S.invProfitAccruals.find(x=>x.id===accrualId);if(!a)return;
+  _payoutAccrualId=accrualId;
+  const inv=S.investors.find(x=>x.id===a.investorId);
+  document.getElementById('mPpInv').textContent=(inv?.name||'')+' · '+(a.year+'-'+('0'+(a.month+1)).slice(-2));
+  document.getElementById('mPpAmt').textContent='К выплате: '+fmt(a.toInvestor)+' ₽';
+  document.getElementById('mPpWallet').innerHTML=S.wallets.map(w=>'<option value="'+w.id+'">'+w.name+' ('+fmt(w.balance||0)+' ₽)</option>').join('');
+  openM('mPayoutProfit');
+}
+
+async function savePayoutProfit(){
+  if(_saving)return;
+  const a=S.invProfitAccruals.find(x=>x.id===_payoutAccrualId);if(!a){toast('Начисление не найдено','ter');return;}
+  const wid=document.getElementById('mPpWallet').value;
+  const w=S.wallets.find(x=>x.id===wid);if(!w){toast('Выберите кошелёк','ter');return;}
+  if((parseFloat(w.balance)||0)<a.toInvestor){toast('На кошельке "'+w.name+'" недостаточно средств','ter');return;}
+  _saving=true;
+  try{
+    const{db,collection,addDoc,doc,updateDoc}=window.DB;
+    // Записываем операцию в кассу
+    const kRef=await addDoc(collection(db,'kassaOps'),{type:'invest_profit',amount:a.toInvestor,wallet:wid,walletName:w.name,desc:'Выплата прибыли: '+a.investorName+' · '+a.year+'-'+('0'+(a.month+1)).slice(-2),date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'invProfitAccrual',refId:_payoutAccrualId});
+    // Обновляем баланс
+    await updateDoc(doc(db,'wallets',wid),{balance:(parseFloat(w.balance)||0)-a.toInvestor});
+    // Обновляем accrual
+    await updateDoc(doc(db,'invProfitAccruals',_payoutAccrualId),{paid:true,paidAt:new Date(),paidWalletId:wid,paidWalletName:w.name});
+    await logA('Выплата прибыли',a.investorName+' · '+a.year+'-'+('0'+(a.month+1)).slice(-2)+' — '+fmt(a.toInvestor)+' ₽');
+    toast('Выплачено','tok');
+    closeM('mPayoutProfit');
+  }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  finally{_saving=false;}
+}
 function renderInvestorDetail(){
   const inv=S.investors.find(x=>x.id===S.curInvestor);if(!inv)return;
   const s=getInvestorStats(inv);
@@ -1379,7 +1786,10 @@ function koClientSearchInput(){
   }
   if(!matches.length){dd.innerHTML='<div style="padding:12px;color:var(--t3);font-size:12px">Ничего не найдено</div>';dd.style.display='block';return;}
   dd.innerHTML=matches.map(c=>{
-    return'<div onclick="koClientPick(\''+c.id+'\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd2);font-size:12px" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'transparent\'"><div style="font-weight:700;color:var(--t2)">№'+(c.contractId||'—')+' · '+c.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">'+(c.product||'—')+' · себестоимость: '+fmt(c.cost)+' ₽</div></div>';
+    const hasPurchase=S.kassaOps.some(o=>o.type==='purchase'&&o.refId===c.id);
+    const badge=hasPurchase?'<span style="color:var(--red);font-weight:700;font-size:10px;margin-left:6px">● закупка есть</span>':'';
+    const opacity=hasPurchase?'0.5':'1';
+    return'<div onclick="koClientPick(\''+c.id+'\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd2);font-size:12px;opacity:'+opacity+'" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'transparent\'"><div style="font-weight:700;color:var(--t2)">№'+(c.contractId||'—')+' · '+c.name+badge+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">'+(c.product||'—')+' · себестоимость: '+fmt(c.cost)+' ₽</div></div>';
   }).join('');
   dd.style.display='block';
 }
@@ -1389,18 +1799,22 @@ function koClientPick(id){
   document.getElementById('koClientId').value=id;
   document.getElementById('koClientSearch').value='№'+(c.contractId||'')+' · '+c.name;
   document.getElementById('koClientDropdown').style.display='none';
+  // Проверяем не было ли уже закупки
+  const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===c.id);
+  if(existing.length){
+    const total=existing.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+    document.getElementById('koClientHint').innerHTML='<span style="color:var(--red);font-weight:700">⚠ По этому договору уже есть закупка на '+fmt(total)+' ₽. Чтобы изменить — сначала удалите старую закупку.</span>';
+    // Очищаем сумму и описание, блокируем кнопку сохранения
+    document.getElementById('koAmt').value='';
+    document.getElementById('koDesc').value='';
+    document.getElementById('koClientId').value='__blocked__';
+    return;
+  }
   // Подставляем себестоимость как сумму
   document.getElementById('koAmt').value=c.cost||'';
   // Автоописание (read-only)
   document.getElementById('koDesc').value='Закупка для '+c.name+' (№'+c.contractId+')';
-  // Проверяем не была ли уже закупка
-  const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===c.id);
-  if(existing.length){
-    const total=existing.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
-    document.getElementById('koClientHint').innerHTML='<span style="color:var(--yellow)">⚠ По этому договору уже есть закупки на '+fmt(total)+' ₽</span>';
-  }else{
-    document.getElementById('koClientHint').textContent='Себестоимость подставлена автоматически, можно изменить';
-  }
+  document.getElementById('koClientHint').textContent='Себестоимость подставлена автоматически, можно изменить';
 }
 
 // Закрывать dropdown при клике вне
@@ -1440,7 +1854,11 @@ async function saveKassaOp(){
   if(!w){toast('Кошелёк не найден','ter');return;}
   const meta=kMeta(type);
   // Проверки
-  if(type==='purchase'&&!clientId){toast('Выберите договор клиента','ter');return;}
+  if(type==='purchase'){
+    if(!clientId||clientId==='__blocked__'){toast('Выберите договор клиента без повторной закупки','ter');return;}
+    const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===clientId);
+    if(existing.length){toast('По этому договору уже есть закупка. Удалите её чтобы создать новую.','ter');return;}
+  }
   if(type==='transfer'){
     if(!wtid){toast('Выберите кошелёк назначения','ter');return;}
     if(wid===wtid){toast('Нельзя перевести на тот же кошелёк','ter');return;}
