@@ -325,11 +325,11 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <option value="transfer">Перевод между кошельками</option>
 <option value="invest_self">Мой вклад в бизнес</option>
 </select></div>
-<div class="fgp" style="margin-bottom:10px;display:none" id="koClientRow"><label class="lbl">Договор клиента *</label><select class="inp sel" id="koClient"></select><div style="font-size:10px;color:var(--t3);margin-top:3px" id="koClientHint"></div></div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp" type="number" id="koAmt"/></div>
+<div class="fgp" style="margin-bottom:10px;display:none;position:relative" id="koClientRow"><label class="lbl">Договор клиента *</label><input class="inp" type="text" id="koClientSearch" placeholder="Поиск по №, ФИО или товару..." autocomplete="off" oninput="koClientSearchInput()" onfocus="koClientSearchInput()"/><input type="hidden" id="koClientId"/><div id="koClientDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);max-height:220px;overflow-y:auto;z-index:10;margin-top:2px;box-shadow:var(--sh)"></div><div style="font-size:10px;color:var(--t3);margin-top:3px" id="koClientHint"></div></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp" type="number" id="koAmt" autocomplete="off"/></div>
 <div class="fgp" style="margin-bottom:10px" id="koWalletRow"><label class="lbl" id="koWalletLbl">Кошелёк</label><select class="inp sel" id="koWallet"></select></div>
 <div class="fgp" style="margin-bottom:10px;display:none" id="koWalletToRow"><label class="lbl">Куда</label><select class="inp sel" id="koWalletTo"></select></div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Описание</label><input class="inp" type="text" id="koDesc" placeholder="Назначение, комментарий..."/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl" id="koDescLbl">Описание</label><input class="inp" type="text" id="koDesc" placeholder="Назначение, комментарий..." autocomplete="off"/></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mKassa')">Отмена</button><button class="btn bg" onclick="saveKassaOp()">Сохранить</button></div>
 </div></div>
 
@@ -1315,13 +1315,27 @@ function kassaTypeChanged(){
   const r2=document.getElementById('koWalletToRow');
   const rClient=document.getElementById('koClientRow');
   const lbl=document.getElementById('koWalletLbl');
+  const desc=document.getElementById('koDesc');
   // Поле договора клиента — только для закупки
   rClient.style.display=(t==='purchase')?'block':'none';
   // Второй кошелёк — только для перевода
   r2.style.display=(t==='transfer')?'block':'none';
   lbl.textContent=(t==='transfer')?'Откуда':'Кошелёк';
+  // Сумма и описание всегда очищаются при смене типа
+  document.getElementById('koAmt').value='';
+  desc.value='';
+  // Для закупки: описание не редактируемо (заполнится при выборе клиента)
+  if(t==='purchase'){
+    desc.readOnly=true;
+    desc.style.opacity='0.7';
+    desc.placeholder='Заполнится автоматически при выборе клиента';
+    fillKoClients();
+  }else{
+    desc.readOnly=false;
+    desc.style.opacity='1';
+    desc.placeholder='Назначение, комментарий...';
+  }
   fillKoWallets();
-  if(t==='purchase')fillKoClients();
 }
 
 function fillKoWallets(){
@@ -1331,21 +1345,44 @@ function fillKoWallets(){
 }
 
 function fillKoClients(){
-  const sel=document.getElementById('koClient');
-  // Показываем только активные сделки (незакрытые)
-  const active=S.clients.filter(c=>{const fin=getFinancials(c);return!fin.isClosed;});
-  if(!active.length){sel.innerHTML='<option value="">— нет активных договоров —</option>';document.getElementById('koClientHint').textContent='';return;}
-  sel.innerHTML=active.map(c=>'<option value="'+c.id+'">№'+(c.contractId||'—')+' · '+c.name+' · '+(c.product||'')+' (себестоимость: '+fmt(c.cost)+' ₽)</option>').join('');
-  sel.onchange=koClientChanged;
-  koClientChanged();
+  // Сбрасываем поиск при открытии модалки
+  document.getElementById('koClientSearch').value='';
+  document.getElementById('koClientId').value='';
+  document.getElementById('koClientHint').textContent='';
+  document.getElementById('koClientDropdown').style.display='none';
 }
 
-function koClientChanged(){
-  const sel=document.getElementById('koClient');
-  const c=S.clients.find(x=>x.id===sel.value);
-  if(!c){document.getElementById('koClientHint').textContent='';return;}
-  // Подставляем себестоимость как сумму закупки
-  document.getElementById('koAmt').value=c.cost||0;
+function koClientSearchInput(){
+  const q=document.getElementById('koClientSearch').value.trim().toLowerCase();
+  const dd=document.getElementById('koClientDropdown');
+  const active=S.clients.filter(c=>{const fin=getFinancials(c);return!fin.isClosed;});
+  if(!active.length){dd.innerHTML='<div style="padding:12px;color:var(--t3);font-size:12px">Нет активных договоров</div>';dd.style.display='block';return;}
+  let matches;
+  if(!q){matches=active.slice(0,50);}
+  else{
+    matches=active.filter(c=>{
+      return(c.contractId||'').includes(q)||
+             (c.name||'').toLowerCase().includes(q)||
+             (c.product||'').toLowerCase().includes(q)||
+             ((c.phones||[])[0]||'').includes(q);
+    }).slice(0,50);
+  }
+  if(!matches.length){dd.innerHTML='<div style="padding:12px;color:var(--t3);font-size:12px">Ничего не найдено</div>';dd.style.display='block';return;}
+  dd.innerHTML=matches.map(c=>{
+    return'<div onclick="koClientPick(\''+c.id+'\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd2);font-size:12px" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'transparent\'"><div style="font-weight:700;color:var(--t2)">№'+(c.contractId||'—')+' · '+c.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">'+(c.product||'—')+' · себестоимость: '+fmt(c.cost)+' ₽</div></div>';
+  }).join('');
+  dd.style.display='block';
+}
+
+function koClientPick(id){
+  const c=S.clients.find(x=>x.id===id);if(!c)return;
+  document.getElementById('koClientId').value=id;
+  document.getElementById('koClientSearch').value='№'+(c.contractId||'')+' · '+c.name;
+  document.getElementById('koClientDropdown').style.display='none';
+  // Подставляем себестоимость как сумму
+  document.getElementById('koAmt').value=c.cost||'';
+  // Автоописание (read-only)
+  document.getElementById('koDesc').value='Закупка для '+c.name+' (№'+c.contractId+')';
   // Проверяем не была ли уже закупка
   const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===c.id);
   if(existing.length){
@@ -1356,11 +1393,24 @@ function koClientChanged(){
   }
 }
 
+// Закрывать dropdown при клике вне
+document.addEventListener('click',e=>{
+  const row=document.getElementById('koClientRow');
+  if(row&&!row.contains(e.target)){
+    const dd=document.getElementById('koClientDropdown');
+    if(dd)dd.style.display='none';
+  }
+});
+
 function openKassaOp(){
   if(!S.wallets.length){toast('Сначала добавьте кошельки в настройках','ter');return;}
   document.getElementById('koType').value='purchase';
   document.getElementById('koAmt').value='';
   document.getElementById('koDesc').value='';
+  document.getElementById('koClientId').value='';
+  document.getElementById('koClientSearch').value='';
+  document.getElementById('koClientHint').textContent='';
+  const dd=document.getElementById('koClientDropdown');if(dd)dd.style.display='none';
   kassaTypeChanged();
   openM('mKassa');
 }
@@ -1373,7 +1423,7 @@ async function saveKassaOp(){
   const wid=document.getElementById('koWallet').value;
   const wtid=document.getElementById('koWalletTo').value;
   const desc=document.getElementById('koDesc').value.trim();
-  const clientId=document.getElementById('koClient').value;
+  const clientId=document.getElementById('koClientId').value;
   if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
   if(!wid){toast('Выберите кошелёк','ter');return;}
   const w=S.wallets.find(x=>x.id===wid);
@@ -1402,13 +1452,13 @@ async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w){
     const{db,collection,addDoc,doc,updateDoc}=window.DB;
     const meta=kMeta(type);
     const wt=(type==='transfer')?S.wallets.find(x=>x.id===wtid):null;
-    const op={type,amount:amt,wallet:wid,walletName:w.name||'',desc,date:new Date(),dateStr:fmtD(new Date()),auto:false};
+    const op={type,amount:amt,wallet:wid,walletName:w.name||'',desc:desc||'',date:new Date(),dateStr:fmtD(new Date()),auto:false};
     if(wt){op.walletTo=wtid;op.walletToName=wt.name;}
-    // Привязка к договору клиента (для закупки)
-    if(clientId){
+    // Привязка к договору клиента — ТОЛЬКО для закупки (purchase)
+    if(type==='purchase'&&clientId){
       const c=S.clients.find(x=>x.id===clientId);
       op.refType='client';op.refId=clientId;
-      if(c){op.clientName=c.name;op.contractId=c.contractId;if(!desc){op.desc='Закупка для '+c.name+' (№'+c.contractId+')';}}
+      if(c){op.clientName=c.name;op.contractId=c.contractId;}
     }
     await addDoc(collection(db,'kassaOps'),op);
     // Обновить балансы кошельков
