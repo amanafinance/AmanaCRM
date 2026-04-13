@@ -1243,6 +1243,12 @@ async function saveInvReturn(){
   finally{_saving=false;}
 }
 
+function toggleCardsExpanded(){
+  const el=document.getElementById('kWallets');if(!el)return;
+  el.dataset.cardsExpanded=el.dataset.cardsExpanded==='1'?'0':'1';
+  renderKassa();
+}
+
 // ---------- KASSA ----------
 // Все типы операций
 // Автоматические (нельзя редактировать/удалять вручную):
@@ -1285,9 +1291,13 @@ function renderKassa(){
   const el=document.getElementById('kWallets');if(!el)return;
   const totalBal=S.wallets.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
   const cashBal=S.wallets.filter(w=>w.type==='cash').reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
-  const cardBal=S.wallets.filter(w=>w.type==='card').reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
-  el.innerHTML='<div class="sc"><div class="sl">Общий баланс</div><div class="sv cg" style="font-size:17px">'+fmt(totalBal)+' ₽</div></div><div class="sc"><div class="sl">Наличные</div><div class="sv" style="font-size:17px">'+fmt(cashBal)+' ₽</div></div><div class="sc"><div class="sl">На картах/счетах</div><div class="sv" style="font-size:17px">'+fmt(cardBal)+' ₽</div></div>'+S.wallets.map(w=>'<div class="sc"><div class="sl">'+w.name+'</div><div class="sv" style="font-size:15px">'+fmt(w.balance||0)+' ₽</div><div class="ss">'+(w.type==='cash'?'Нал':'Карта')+'</div></div>').join('');
-  el.style.gridTemplateColumns='repeat('+Math.min(3+S.wallets.length,6)+',1fr)';
+  const cards=S.wallets.filter(w=>w.type==='card');
+  const cardBal=cards.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
+  const cardsExpanded=el.dataset.cardsExpanded==='1';
+  const chevron='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:6px;transition:transform .2s;'+(cardsExpanded?'transform:rotate(180deg)':'')+'"><polyline points="6 9 12 15 18 9"/></svg>';
+  const cardsList=cardsExpanded?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd2);display:flex;flex-direction:column;gap:6px">'+(cards.length?cards.map(w=>'<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px"><span style="color:var(--t2)">'+w.name+'</span><span style="font-weight:700">'+fmt(w.balance||0)+' ₽</span></div>').join(''):'<div style="font-size:11px;color:var(--t3)">Нет карт</div>')+'</div>':'';
+  el.innerHTML='<div class="sc"><div class="sl">Общий баланс</div><div class="sv cg" style="font-size:17px">'+fmt(totalBal)+' ₽</div></div><div class="sc"><div class="sl">Наличные</div><div class="sv" style="font-size:17px">'+fmt(cashBal)+' ₽</div></div><div class="sc" style="cursor:pointer" onclick="toggleCardsExpanded()"><div class="sl" style="display:flex;align-items:center;justify-content:space-between">На картах/счетах'+chevron+'</div><div class="sv" style="font-size:17px">'+fmt(cardBal)+' ₽</div><div class="ss">'+cards.length+' '+(cards.length===1?'карта':(cards.length>=2&&cards.length<=4?'карты':'карт'))+'</div>'+cardsList+'</div>';
+  el.style.gridTemplateColumns='repeat(3,1fr)';
   document.getElementById('kassaDate').textContent=S.kassaOps.length+' операций';
   let ops=S.kassaOps.slice();
   // Фильтр по группе (таб)
