@@ -1867,8 +1867,6 @@ async function saveInvContract(){
   }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
   finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}
 }
-  finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}
-}
 
 async function delInvContract(id){
   const ic=S.invContracts.find(x=>x.id===id);if(!ic)return;
