@@ -310,14 +310,14 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="sdiv">Основное</div><div class="fg"><div class="fgp ff"><label class="lbl">Дата оформления</label><input class="inp" type="date" id="f_date" oninput="calcSched()"/></div></div>
 <div class="sdiv">Клиент</div><div class="fg"><div class="fgp"><label class="lbl">ФИО клиента *</label><input class="inp" type="text" id="f_name" placeholder="Иванов Иван Иванович" oninput="checkDup()"/></div><div class="fgp"><label class="lbl">Телефоны клиента</label><div id="fPhones"><div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh('fPhones')">+</button></div></div></div><div class="fgp ff"><label class="lbl">Адрес клиента</label><input class="inp" type="text" id="f_addr"/></div></div>
 <div class="sdiv">Поручитель</div><div class="fg"><div class="fgp"><label class="lbl">ФИО поручителя</label><input class="inp" type="text" id="f_gname"/></div><div class="fgp"><label class="lbl">Телефоны поручителя</label><div id="fGphones"><div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh('fGphones')">+</button></div></div></div><div class="fgp ff"><label class="lbl">Адрес поручителя</label><input class="inp" type="text" id="f_gaddr"/></div></div>
-<div class="sdiv">Товар и финансы</div><div class="fg"><div class="fgp"><label class="lbl">Товар *</label><input class="inp" type="text" id="f_product"/></div><div class="fgp"><label class="lbl">Партнёр</label><select class="inp sel" id="f_partner"></select></div><div class="fgp"><label class="lbl">Себестоимость (&#8381;) *</label><input class="inp" type="number" id="f_cost"/></div><div class="fgp"><label class="lbl">Цена продажи (&#8381;) *</label><input class="inp" type="number" id="f_price" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Предоплата (&#8381;)</label><input class="inp" type="number" id="f_prepay" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Кол-во месяцев *</label><select class="inp sel" id="f_months" onchange="calcSched()"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div><div class="fgp"><label class="lbl">Число оплаты (1–31)</label><input class="inp" type="number" id="f_payDay" min="1" max="31" placeholder="Авто" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Способ оплаты предоплаты</label><select class="inp sel" id="f_prepayPt"></select></div></div>
+<div class="sdiv">Товар и финансы</div><div class="fg"><div class="fgp"><label class="lbl">Товар *</label><input class="inp" type="text" id="f_product"/></div><div class="fgp"><label class="lbl">Партнёр</label><select class="inp sel" id="f_partner"></select></div><div class="fgp"><label class="lbl">Себестоимость (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_cost"/></div><div class="fgp"><label class="lbl">Цена продажи (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_price" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Предоплата (&#8381;)</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_prepay" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Кол-во месяцев *</label><select class="inp sel" id="f_months" onchange="calcSched()"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div><div class="fgp"><label class="lbl">Число оплаты (1–31)</label><input class="inp" type="number" id="f_payDay" min="1" max="31" placeholder="Авто" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Способ оплаты предоплаты</label><select class="inp sel" id="f_prepayPt"></select></div></div>
 <div class="sdiv">График платежей <button class="btn bgh bsm" onclick="recalcSched()" style="font-size:10px">Пересчитать суммы</button><button class="btn bgh bsm" onclick="recalcDates()" style="font-size:10px">Пересчитать даты</button></div>
 <table class="stbl"><thead><tr><th>&#8470;</th><th>Сумма</th><th>Дата</th></tr></thead><tbody id="schedBody"></tbody></table>
 <div class="mft"><button class="btn bgh" onclick="closeM('mClient')">Отмена</button><button class="btn bg" id="mCBtn" onclick="saveClient()">Сохранить</button></div></div></div>
 
-<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp" type="number" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="mpPt"></select></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
+<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="mpPt"></select></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
 
-<div class="mover" id="mDisc"><div class="modal msm"><div class="mtitle">Скидка</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mdName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp" type="number" id="mdAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Причина</label><input class="inp" type="text" id="mdReason"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mDisc')">Отмена</button><button class="btn by" onclick="confirmDisc()">Применить</button></div></div></div>
+<div class="mover" id="mDisc"><div class="modal msm"><div class="mtitle">Скидка</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mdName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mdAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Причина</label><input class="inp" type="text" id="mdReason"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mDisc')">Отмена</button><button class="btn by" onclick="confirmDisc()">Применить</button></div></div></div>
 
 <div class="mover" id="mComment"><div class="modal msm"><div class="mtitle">Комментарий</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Текст</label><textarea class="inp" id="mcText" rows="3" placeholder="Обещал оплатить..."></textarea></div><div class="mft"><button class="btn bgh" onclick="closeM('mComment')">Отмена</button><button class="btn br bsm" onclick="deleteComment()" id="mcDel" style="display:none">Удалить</button><button class="btn bg" onclick="saveComment()">Сохранить</button></div></div></div>
 
@@ -330,7 +330,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <option value="transfer">Перевод между кошельками</option>
 </select></div>
 <div class="fgp" style="margin-bottom:10px;display:none;position:relative" id="koClientRow"><label class="lbl">Договор клиента *</label><input class="inp" type="text" id="koClientSearch" placeholder="Поиск по №, ФИО или товару..." autocomplete="off" oninput="koClientSearchInput()" onfocus="koClientSearchInput()"/><input type="hidden" id="koClientId"/><div id="koClientDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);max-height:220px;overflow-y:auto;z-index:10;margin-top:2px;box-shadow:var(--sh)"></div><div style="font-size:10px;color:var(--t3);margin-top:3px" id="koClientHint"></div></div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp" type="number" id="koAmt" autocomplete="off"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="koAmt" autocomplete="off"/></div>
 <div class="fgp" style="margin-bottom:10px" id="koWalletRow"><label class="lbl" id="koWalletLbl">Кошелёк</label><select class="inp sel" id="koWallet"></select></div>
 <div class="fgp" style="margin-bottom:10px;display:none" id="koWalletToRow"><label class="lbl">Куда</label><select class="inp sel" id="koWalletTo"></select></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl" id="koDescLbl">Описание</label><input class="inp" type="text" id="koDesc" placeholder="Назначение, комментарий..." autocomplete="off"/></div>
@@ -352,7 +352,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="fg">
 <div class="fgp"><label class="lbl">Дата начала *</label><input class="inp" type="date" id="ic_date" oninput="icCalcEnd()"/></div>
 <div class="fgp"><label class="lbl">Дата начала начислений *</label><input class="inp" type="date" id="ic_accrualStart"/><div style="font-size:10px;color:var(--t3);margin-top:3px">по умолчанию = дата договора. Можешь дать деньгам «отлежаться» — тогда начисление прибыли начнётся с этой даты</div></div>
-<div class="fgp"><label class="lbl">Сумма вложения (₽) *</label><input class="inp" type="number" id="ic_amount"/></div>
+<div class="fgp"><label class="lbl">Сумма вложения (₽) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="ic_amount"/></div>
 <div class="fgp"><label class="lbl">Срок (месяцев) *</label><input class="inp" type="number" id="ic_months" min="1" max="120" oninput="icCalcEnd()"/></div>
 <div class="fgp"><label class="lbl">Дата окончания</label><input class="inp" type="text" id="ic_endDate" readonly style="opacity:0.7"/></div>
 <div class="fgp"><label class="lbl">Доля управляющего (тебе) %</label><input class="inp" type="number" id="ic_managerShare" min="0" max="100" step="0.1" value="50"/></div>
@@ -371,7 +371,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="mtitle">Возврат тела инвестору</div>
 <div style="font-size:13px;font-weight:600;margin-bottom:4px" id="mIrInv"></div>
 <div style="font-size:11px;color:var(--t3);margin-bottom:14px" id="mIrInfo"></div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма возврата (₽) *</label><input class="inp" type="number" id="ir_amount"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма возврата (₽) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="ir_amount"/></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">С какого кошелька *</label><select class="inp sel" id="ir_wallet"></select></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="ir_comment"/></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mInvReturn')">Отмена</button><button class="btn bg" onclick="saveInvReturn()">Записать</button></div>
@@ -388,7 +388,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="mover" id="mOwnerDeposit"><div class="modal msm">
 <div class="mtitle">Вклад собственника</div>
 <div style="font-size:12px;color:var(--t2);margin-bottom:14px">Деньги которые ты вкладываешь в бизнес из личных средств. Они пополняют твой капитал в бизнесе и увеличивают твою долю.</div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (₽) *</label><input class="inp" type="number" id="od_amount" autocomplete="off"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (₽) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="od_amount" autocomplete="off"/></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">На какой кошелёк *</label><select class="inp sel" id="od_wallet"></select></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="od_comment" autocomplete="off"/></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mOwnerDeposit')">Отмена</button><button class="btn bg" onclick="saveOwnerDeposit()">Внести</button></div>
@@ -398,7 +398,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="mtitle">Забрать из бизнеса</div>
 <div style="font-size:12px;color:var(--t2);margin-bottom:14px">Вывод денег из бизнеса себе (зарплата, дивиденды). Уменьшает твой капитал, но не влияет на прибыль бизнеса.</div>
 <div style="font-size:13px;font-weight:700;margin-bottom:14px" id="mOwTotal"></div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (₽) *</label><input class="inp" type="number" id="ow_amount" autocomplete="off"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (₽) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="ow_amount" autocomplete="off"/></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">С какого кошелька *</label><select class="inp sel" id="ow_wallet"></select></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="ow_comment" autocomplete="off"/></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mOwnerWithdraw')">Отмена</button><button class="btn bg" onclick="saveOwnerWithdraw()">Забрать</button></div>
@@ -423,6 +423,48 @@ try{applyTheme(localStorage.getItem('amana_theme')||'dark');}catch(e){}
 
 // ---------- UTILS ----------
 const fmt=n=>{const v=parseFloat(n);if(isNaN(v))return'0';const sign=v<0?'-':'';const abs=Math.abs(v);const parts=abs.toFixed(Math.abs(abs%1)<0.005?0:2).split('.');parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ');return sign+parts.join(',');};
+// Парсит число из строки с пробелами (например "100 000" -> 100000). Заменяет запятую на точку для дробной части.
+const parseNum=v=>{if(v===null||v===undefined||v==='')return 0;const s=String(v).replace(/\s/g,'').replace(',','.');const n=parseFloat(s);return isNaN(n)?0:n;};
+// Форматирует на лету при вводе. Применяется к input как: oninput="fmtInput(this)"
+function fmtInput(inp){
+  if(!inp)return;
+  const cur=inp.value;
+  const cursorPos=inp.selectionStart||0;
+  // Удаляем всё кроме цифр, точки и запятой
+  let clean=cur.replace(/[^\d.,]/g,'');
+  // Если есть точка/запятая — отделяем целую и дробную часть
+  let intPart=clean,fracPart='';
+  const dotIdx=clean.search(/[.,]/);
+  if(dotIdx>=0){intPart=clean.slice(0,dotIdx);fracPart=clean.slice(dotIdx).replace(/[.,]/g,'.').slice(0,3);} // только одна точка, максимум 2 знака
+  // Удаляем ведущие нули
+  intPart=intPart.replace(/^0+(?=\d)/,'');
+  if(intPart==='')intPart='';
+  // Расставляем пробелы в целой части
+  const intFormatted=intPart.replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  const newVal=intFormatted+fracPart;
+  // Считаем количество цифр до курсора в исходной строке
+  let digitsBeforeCursor=0;
+  for(let i=0;i<cursorPos;i++){if(/\d/.test(cur[i]))digitsBeforeCursor++;}
+  // Найдём позицию в новой строке после такого же количества цифр
+  let newCursor=0,countD=0;
+  while(newCursor<newVal.length&&countD<digitsBeforeCursor){
+    if(/\d/.test(newVal[newCursor]))countD++;
+    newCursor++;
+  }
+  inp.value=newVal;
+  try{inp.setSelectionRange(newCursor,newCursor);}catch(e){}
+}
+// Применяет fmtInput ко всем input с классом "num-fmt" или type=text внутри родителя
+function applyFmtToInputs(root){
+  if(!root)root=document;
+  root.querySelectorAll('input.num-fmt').forEach(inp=>{
+    if(inp.dataset.fmtBound)return;
+    inp.dataset.fmtBound='1';
+    inp.addEventListener('input',()=>fmtInput(inp));
+    // Форматируем стартовое значение
+    if(inp.value)fmtInput(inp);
+  });
+}
 // Форматирование телефона: 89999999999 -> 8 999 999 99 99 (если длиннее, продолжаем по 2 цифры)
 const fmtPhone=p=>{if(!p)return'';let s=String(p).replace(/\D/g,'');if(!s)return p;let r='';if(s.length<=1)return s;r=s[0];s=s.slice(1);if(s.length>=3){r+=' '+s.slice(0,3);s=s.slice(3);}else{r+=' '+s;return r;}if(s.length>=3){r+=' '+s.slice(0,3);s=s.slice(3);}else if(s.length>0){r+=' '+s;return r;}while(s.length>=2){r+=' '+s.slice(0,2);s=s.slice(2);}if(s.length>0)r+=' '+s;return r;};
 const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d;};
@@ -882,7 +924,7 @@ async function deleteComment(){const{db,doc,updateDoc}=window.DB;await updateDoc
 
 // ---------- NEW / EDIT CLIENT ----------
 function openNew(){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=new Date().toISOString().split('T')[0];['f_name','f_addr','f_gname','f_gaddr','f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';document.getElementById('fPhones').innerHTML='<div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh(\'fPhones\')">+</button></div>';document.getElementById('fGphones').innerHTML='<div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh(\'fGphones\')">+</button></div>';document.getElementById('dupWarn').classList.remove('on');updSels();calcSched();openM('mClient');}
-function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';document.getElementById('f_name').value=c.name||'';document.getElementById('f_addr').value=c.addr||'';document.getElementById('f_gname').value=c.gname||'';document.getElementById('f_gaddr').value=c.gaddr||'';document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';const ph=c.phones&&c.phones.length?c.phones:[''];document.getElementById('fPhones').innerHTML=ph.map((p,i)=>'<div class="phr"><input class="inp" type="tel" value="'+p+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'fPhones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');const gp=c.gphones&&c.gphones.length?c.gphones:[''];document.getElementById('fGphones').innerHTML=gp.map((p,i)=>'<div class="phr"><input class="inp" type="tel" value="'+p+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'fGphones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');document.getElementById('dupWarn').classList.remove('on');updSels();setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;if(c.prepayPt)document.getElementById('f_prepayPt').value=c.prepayPt;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz" type="number" value="'+(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
+function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';document.getElementById('f_name').value=c.name||'';document.getElementById('f_addr').value=c.addr||'';document.getElementById('f_gname').value=c.gname||'';document.getElementById('f_gaddr').value=c.gaddr||'';document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';const ph=c.phones&&c.phones.length?c.phones:[''];document.getElementById('fPhones').innerHTML=ph.map((p,i)=>'<div class="phr"><input class="inp" type="tel" value="'+p+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'fPhones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');const gp=c.gphones&&c.gphones.length?c.gphones:[''];document.getElementById('fGphones').innerHTML=gp.map((p,i)=>'<div class="phr"><input class="inp" type="tel" value="'+p+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'fGphones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');document.getElementById('dupWarn').classList.remove('on');updSels();setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;if(c.prepayPt)document.getElementById('f_prepayPt').value=c.prepayPt;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
 function checkDup(){const n=document.getElementById('f_name').value,d=findDups(n,_cid),w=document.getElementById('dupWarn');if(d.length){w.classList.add('on');document.getElementById('dupList').innerHTML=d.map(c=>'· №'+(c.contractId||'—')+' '+c.name).join('<br>');}else w.classList.remove('on');}
 function addPh(id){const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" placeholder="89001234567"/><button class="ib ir" onclick="this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
@@ -899,8 +941,8 @@ function computePayDate(cd,m,payDay){
 }
 // Главная функция пересчёта графика — умная, сохраняет ручные правки
 function calcSched(){
-  const pr=parseFloat(document.getElementById('f_price').value)||0;
-  const pp=parseFloat(document.getElementById('f_prepay').value)||0;
+  const pr=parseNum(document.getElementById('f_price').value);
+  const pp=parseNum(document.getElementById('f_prepay').value);
   const mo=parseInt(document.getElementById('f_months').value)||3;
   const payDay=parseInt(document.getElementById('f_payDay').value)||0;
   const cd=document.getElementById('f_date').value;
@@ -921,12 +963,12 @@ function calcSched(){
     let dt='';
     if(prevMo===mo&&prevDates[m]){dt=prevDates[m];}
     else if(cd){dt=computePayDate(cd,m,payDay);}
-    tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz" type="number" value="'+size+'"/></td><td><input class="si dt" type="date" value="'+dt+'"/></td></tr>';
-  }
+    tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" value="'+fmt(size)+'"/></td><td><input class="si dt" type="date" value="'+dt+'"/></td></tr>';
+  }applyFmtToInputs(document.getElementById('schedBody'));
 }
 function recalcSched(){
-  const pr=parseFloat(document.getElementById('f_price').value)||0;
-  const pp=parseFloat(document.getElementById('f_prepay').value)||0;
+  const pr=parseNum(document.getElementById('f_price').value);
+  const pp=parseNum(document.getElementById('f_prepay').value);
   const mo=parseInt(document.getElementById('f_months').value)||3;
   const sz=pr>0?Math.ceil((pr-pp)/mo/100)*100:0;
   document.querySelectorAll('#schedBody tr').forEach(r=>{r.querySelector('.sz').value=sz;});
@@ -942,14 +984,14 @@ function recalcDates(){
 function updSels(){const p=document.getElementById('f_partner');if(p)p.innerHTML=S.partners.map(x=>'<option>'+x+'</option>').join('');updPt('f_prepayPt');updPt('mpPt');}
 function updPt(id){const e=document.getElementById(id);if(e)e.innerHTML=S.wallets.map(w=>'<option>'+w.name+'</option>').join('');}
 async function getNextContractId(){const{db,doc,runTransaction}=window.DB,ref=doc(db,'settings','counter');try{return String(await runTransaction(db,async tx=>{const s=await tx.get(ref),cur=s.exists()?(s.data().lastId||0):0,n=cur+1;tx.set(ref,{lastId:n},{merge:true});return n;})).padStart(5,'0');}catch(e){return String(S.clients.reduce((m,c)=>Math.max(m,parseInt(c.contractId)||0),0)+1).padStart(5,'0');}}
-async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseFloat(document.getElementById('f_price').value)||0,cost=parseFloat(document.getElementById('f_cost').value)||0;if(!name||!price){toast('Заполните ФИО и цену','ter');return;}if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getElementById('f_months').value);_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{const phones=[...document.querySelectorAll('#fPhones input')].map(i=>i.value.trim()).filter(Boolean),gphones=[...document.querySelectorAll('#fGphones input')].map(i=>i.value.trim()).filter(Boolean),dv=document.getElementById('f_date').value,pt=document.getElementById('f_prepayPt').value,payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',name,phones,gphones,gname:document.getElementById('f_gname').value,addr:document.getElementById('f_addr').value,gaddr:document.getElementById('f_gaddr').value,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,cost,price,prepay:parseFloat(document.getElementById('f_prepay').value)||0,months:mo,payDay,prepayPt:pt};for(let m=0;m<12;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseFloat(rows[m].querySelector('.sz').value)||0;const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(!_cid){const gap=predictCapitalGap(data);if(gap&&gap.hasGap&&!window._ignoreCashGap){_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';const fmtGap='На '+fmtD(gap.lastDate)+' капитал: '+fmt(gap.totalAvailable)+' ₽<br>Финансирование активных сделок (включая эту): '+fmt(gap.requiredFinancing)+' ₽<br>Не хватит: <strong style=\"color:var(--red)\">'+fmt(gap.shortage)+' ₽</strong>';showConfirm('⚠ Возможен кассовый разрыв',fmtGap+'<br><br>Причина: инвестор может уйти (по плану возврата тела) до окончания этой рассрочки. Создать сделку всё равно?',()=>{window._ignoreCashGap=true;saveClient();setTimeout(()=>{window._ignoreCashGap=false;},2000);});return;}}if(_cid){const old=S.clients.find(x=>x.id===_cid);if((parseFloat(old?.prepay)||0)!==data.prepay){const oldPrepay=parseFloat(old?.prepay)||0;const pr=S.payments.find(p=>p.clientId===_cid&&p.type==='prepay');const prKassa=S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===_cid);if(pr&&data.prepay>0)await updateDoc(doc(db,'payments',pr.id),{amount:data.prepay});else if(pr&&data.prepay===0)await window.DB.deleteDoc(doc(db,'payments',pr.id));else if(!pr&&data.prepay>0)await addDoc(collection(db,'payments'),{clientId:_cid,contractId:old.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const diff=data.prepay-oldPrepay;if(prKassa){const wOld=S.wallets.find(x=>x.id===prKassa.wallet);if(data.prepay>0){await updateDoc(doc(db,'kassaOps',prKassa.id),{amount:data.prepay});if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)+diff});}else{await window.DB.deleteDoc(doc(db,'kassaOps',prKassa.id));if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)-oldPrepay});}}else if(data.prepay>0){const wNew=S.wallets.find(x=>x.name===pt);if(wNew){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wNew.id,walletName:pt,desc:'Предоплата от '+name+' (№'+old.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:name,contractId:old.contractId});await updateDoc(doc(db,'wallets',wNew.id),{balance:(parseFloat(wNew.balance)||0)+data.prepay});}}}await updateDoc(doc(db,'clients',_cid),data);await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{data.contractId=await getNextContractId();data.createdAt=new Date();const ref=await addDoc(collection(db,'clients'),data);if(data.prepay>0){await addDoc(collection(db,'payments'),{clientId:ref.id,contractId:data.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const wP=S.wallets.find(x=>x.name===pt);if(wP){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wP.id,walletName:pt,desc:'Предоплата от '+name+' (№'+data.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:ref.id,clientName:name,contractId:data.contractId});await updateDoc(doc(db,'wallets',wP.id),{balance:(parseFloat(wP.balance)||0)+data.prepay});}}await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
+async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseNum(document.getElementById('f_price').value),cost=parseNum(document.getElementById('f_cost').value);if(!name||!price){toast('Заполните ФИО и цену','ter');return;}if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getElementById('f_months').value);_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{const phones=[...document.querySelectorAll('#fPhones input')].map(i=>i.value.trim()).filter(Boolean),gphones=[...document.querySelectorAll('#fGphones input')].map(i=>i.value.trim()).filter(Boolean),dv=document.getElementById('f_date').value,pt=document.getElementById('f_prepayPt').value,payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',name,phones,gphones,gname:document.getElementById('f_gname').value,addr:document.getElementById('f_addr').value,gaddr:document.getElementById('f_gaddr').value,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,cost,price,prepay:parseNum(document.getElementById('f_prepay').value),months:mo,payDay,prepayPt:pt};for(let m=0;m<12;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseNum(rows[m].querySelector('.sz').value);const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(!_cid){const gap=predictCapitalGap(data);if(gap&&gap.hasGap&&!window._ignoreCashGap){_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';const fmtGap='На '+fmtD(gap.lastDate)+' капитал: '+fmt(gap.totalAvailable)+' ₽<br>Финансирование активных сделок (включая эту): '+fmt(gap.requiredFinancing)+' ₽<br>Не хватит: <strong style=\"color:var(--red)\">'+fmt(gap.shortage)+' ₽</strong>';showConfirm('⚠ Возможен кассовый разрыв',fmtGap+'<br><br>Причина: инвестор может уйти (по плану возврата тела) до окончания этой рассрочки. Создать сделку всё равно?',()=>{window._ignoreCashGap=true;saveClient();setTimeout(()=>{window._ignoreCashGap=false;},2000);});return;}}if(_cid){const old=S.clients.find(x=>x.id===_cid);if((parseFloat(old?.prepay)||0)!==data.prepay){const oldPrepay=parseFloat(old?.prepay)||0;const pr=S.payments.find(p=>p.clientId===_cid&&p.type==='prepay');const prKassa=S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===_cid);if(pr&&data.prepay>0)await updateDoc(doc(db,'payments',pr.id),{amount:data.prepay});else if(pr&&data.prepay===0)await window.DB.deleteDoc(doc(db,'payments',pr.id));else if(!pr&&data.prepay>0)await addDoc(collection(db,'payments'),{clientId:_cid,contractId:old.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const diff=data.prepay-oldPrepay;if(prKassa){const wOld=S.wallets.find(x=>x.id===prKassa.wallet);if(data.prepay>0){await updateDoc(doc(db,'kassaOps',prKassa.id),{amount:data.prepay});if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)+diff});}else{await window.DB.deleteDoc(doc(db,'kassaOps',prKassa.id));if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)-oldPrepay});}}else if(data.prepay>0){const wNew=S.wallets.find(x=>x.name===pt);if(wNew){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wNew.id,walletName:pt,desc:'Предоплата от '+name+' (№'+old.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:name,contractId:old.contractId});await updateDoc(doc(db,'wallets',wNew.id),{balance:(parseFloat(wNew.balance)||0)+data.prepay});}}}await updateDoc(doc(db,'clients',_cid),data);await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{data.contractId=await getNextContractId();data.createdAt=new Date();const ref=await addDoc(collection(db,'clients'),data);if(data.prepay>0){await addDoc(collection(db,'payments'),{clientId:ref.id,contractId:data.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const wP=S.wallets.find(x=>x.name===pt);if(wP){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wP.id,walletName:pt,desc:'Предоплата от '+name+' (№'+data.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:ref.id,clientName:name,contractId:data.contractId});await updateDoc(doc(db,'wallets',wP.id),{balance:(parseFloat(wP.balance)||0)+data.prepay});}}await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
 
 // ---------- PAY / DISCOUNT ----------
 function openPay(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mpName').innerHTML=(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mpAmt').value='';document.getElementById('mpAmt').max=s.balance;updPt('mpPt');openM('mPay');}
-function confirmPay(){const a=parseFloat(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const pt=document.getElementById('mpPt').value;closeM('mPay');showConfirm('Подтвердить?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽ · '+pt,()=>savePay(a,pt));}
+function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const pt=document.getElementById('mpPt').value;closeM('mPay');showConfirm('Подтвердить?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽ · '+pt,()=>savePay(a,pt));}
 async function savePay(a,pt){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'payment',typeLabel:'Ежемес. платеж',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const w=S.wallets.find(x=>x.name===pt);if(w){await addDoc(collection(db,'kassaOps'),{type:'payment_in',amount:a,wallet:w.id,walletName:pt,desc:'Оплата от '+c.name+' (№'+c.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:c.name,contractId:c.contractId});await window.DB.updateDoc(window.DB.doc(db,'wallets',w.id),{balance:(parseFloat(w.balance)||0)+a});}await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+pt+')');toast('Записано!','tok');}finally{_saving=false;}}
 function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mdName').innerHTML=(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mdAmt').value='';document.getElementById('mdAmt').max=s.balance;document.getElementById('mdReason').value='';openM('mDisc');}
-function confirmDisc(){const a=parseFloat(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
+function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
 async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}finally{_saving=false;}}
 async function delClient(id){
   const c=S.clients.find(x=>x.id===id);if(!c)return;
@@ -1640,7 +1682,7 @@ function openOwnerDeposit(){
 
 async function saveOwnerDeposit(){
   if(_saving)return;
-  const amt=parseFloat(document.getElementById('od_amount').value)||0;
+  const amt=parseNum(document.getElementById('od_amount').value);
   const wid=document.getElementById('od_wallet').value;
   const comment=document.getElementById('od_comment').value.trim();
   if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
@@ -1669,7 +1711,7 @@ function openOwnerWithdraw(){
 
 async function saveOwnerWithdraw(){
   if(_saving)return;
-  const amt=parseFloat(document.getElementById('ow_amount').value)||0;
+  const amt=parseNum(document.getElementById('ow_amount').value);
   const wid=document.getElementById('ow_wallet').value;
   const comment=document.getElementById('ow_comment').value.trim();
   if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
@@ -1780,25 +1822,25 @@ function icCalcEnd(){
 }
 function icRenderReturns(rows){
   const tb=document.getElementById('icReturns');
-  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="si irdate" type="date" value="'+(r.date||'')+'"/></td><td><input class="si iramt" type="number" value="'+(r.amount||0)+'" oninput="icUpdSumCheck()"/></td><td><button class="ib ir" onclick="this.closest(\'tr\').remove();icUpdSumCheck()">×</button></td></tr>').join('');
-  icUpdSumCheck();
+  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="si irdate" type="date" value="'+(r.date||'')+'"/></td><td><input class="si iramt num-fmt" type="text" inputmode="decimal" value="'+fmt(r.amount||0)+'" oninput="icUpdSumCheck()"/></td><td><button class="ib ir" onclick="this.closest(\'tr\').remove();icUpdSumCheck()">×</button></td></tr>').join('');
+  applyFmtToInputs(tb);icUpdSumCheck();
 }
 function icAddReturn(){
   const tb=document.getElementById('icReturns');
   const r=document.createElement('tr');
-  r.innerHTML='<td><input class="si irdate" type="date"/></td><td><input class="si iramt" type="number" value="0" oninput="icUpdSumCheck()"/></td><td><button class="ib ir" onclick="this.closest(\'tr\').remove();icUpdSumCheck()">×</button></td>';
-  tb.appendChild(r);icUpdSumCheck();
+  r.innerHTML='<td><input class="si irdate" type="date"/></td><td><input class="si iramt num-fmt" type="text" inputmode="decimal" value="0" oninput="icUpdSumCheck()"/></td><td><button class="ib ir" onclick="this.closest(\'tr\').remove();icUpdSumCheck()">×</button></td>';
+  tb.appendChild(r);applyFmtToInputs(r);icUpdSumCheck();
 }
 function icAutoReturn(){
-  const amount=parseFloat(document.getElementById('ic_amount').value)||0;
+  const amount=parseNum(document.getElementById('ic_amount').value);
   const endDate=document.getElementById('ic_endDate').value;
   if(!amount||!endDate){toast('Укажите сумму и срок','ter');return;}
   const endIso=(()=>{const p=endDate.split('.');return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:'';})();
   icRenderReturns([{date:endIso,amount:amount}]);
 }
 function icUpdSumCheck(){
-  const tot=[...document.querySelectorAll('#icReturns .iramt')].reduce((s,i)=>s+(parseFloat(i.value)||0),0);
-  const amt=parseFloat(document.getElementById('ic_amount').value)||0;
+  const tot=[...document.querySelectorAll('#icReturns .iramt')].reduce((s,i)=>s+parseNum(i.value),0);
+  const amt=parseNum(document.getElementById('ic_amount').value);
   const el=document.getElementById('icSumCheck');
   if(Math.abs(tot-amt)<0.01){el.innerHTML='<span style="color:var(--green)">✓ Суммы сходятся: '+fmt(tot)+' ₽</span>';}
   else{el.innerHTML='<span style="color:var(--red)">Сумма возвратов '+fmt(tot)+' ₽ ≠ сумме вложения '+fmt(amt)+' ₽ (разница '+fmt(tot-amt)+' ₽)</span>';}
@@ -1830,7 +1872,7 @@ async function saveInvContract(){
   if(_saving)return;
   const date=document.getElementById('ic_date').value;
   const accrualStartRaw=document.getElementById('ic_accrualStart').value||date;
-  const amount=parseFloat(document.getElementById('ic_amount').value)||0;
+  const amount=parseNum(document.getElementById('ic_amount').value);
   const months=parseInt(document.getElementById('ic_months').value)||0;
   const managerShare=parseFloat(document.getElementById('ic_managerShare').value)||50;
   const payoutType=document.getElementById('ic_payoutType').value;
@@ -1846,7 +1888,7 @@ async function saveInvContract(){
   const returnPlan=[];
   let planSum=0;
   document.querySelectorAll('#icReturns tr').forEach(r=>{
-    const d=r.querySelector('.irdate').value,a=parseFloat(r.querySelector('.iramt').value)||0;
+    const d=r.querySelector('.irdate').value,a=parseNum(r.querySelector('.iramt').value);
     if(d&&a>0){returnPlan.push({date:fmtD(safeDateFromInput(d)),amount:a});planSum+=a;}
   });
   if(!returnPlan.length){toast('Укажите хотя бы один возврат тела','ter');return;}
@@ -1916,7 +1958,7 @@ function openInvReturn(contractId){
 }
 async function saveInvReturn(){
   if(_saving)return;
-  const amt=parseFloat(document.getElementById('ir_amount').value)||0;
+  const amt=parseNum(document.getElementById('ir_amount').value);
   const wid=document.getElementById('ir_wallet').value;
   const comment=document.getElementById('ir_comment').value.trim();
   if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
@@ -2167,7 +2209,7 @@ async function saveKassaOp(){
   if(_saving)return;
   const{db,collection,addDoc,doc,updateDoc}=window.DB;
   const type=document.getElementById('koType').value;
-  const amt=parseFloat(document.getElementById('koAmt').value)||0;
+  const amt=parseNum(document.getElementById('koAmt').value);
   const wid=document.getElementById('koWallet').value;
   const wtid=document.getElementById('koWalletTo').value;
   const desc=document.getElementById('koDesc').value.trim();
@@ -2264,7 +2306,7 @@ async function delKassaOp(id){
 }
 
 function exportExcel(){const r=[['№','Дата','ФИО','Телефоны','Товар','Партнёр','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
-function openM(id){document.getElementById(id).classList.add('on');}
+function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);}
 function closeM(id){document.getElementById(id).classList.remove('on');}
 function toast(m,c){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
