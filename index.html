@@ -66,6 +66,8 @@ body.light .bg{color:#ffffff}body.light .bg:hover{background:#7ba71a}
 .ps{font-size:12px;color:var(--t3);margin-top:3px}
 .pa{display:flex;gap:8px;align-items:center}
 .sg4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.report-block{margin-bottom:18px;padding:14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--r1)}
+.report-block-title{font-family:Unbounded,sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
 .sc{background:var(--card);border:1px solid var(--brd2);border-radius:var(--r);padding:18px}
 .sl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
 .sv{font-family:'Manrope',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em}
@@ -279,6 +281,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="nb-sub" id="nb-sub-money" style="display:none">
 <button class="nb nb-child" id="nav-kassa" onclick="goTo('kassa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h2"/></svg>Касса</button>
 <button class="nb nb-child" id="nav-investors" onclick="goTo('investors')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Инвесторы</button>
+<button class="nb nb-child" id="nav-reports" onclick="goTo('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>Отчёты</button>
 </div>
 <div class="sg">Система</div>
 <button class="nb" id="nav-journal" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>История действий</button>
@@ -298,6 +301,8 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="card" style="padding:0;overflow:hidden"><div id="kList"></div></div>
 </div>
 <div id="page-investors" class="page" style="display:none"><div class="ph"><div><div class="pt">Инвесторы</div><div class="ps" id="invCount"></div></div><div class="pa"><button class="btn bgh" onclick="openOwnerDeposit()">+ Вклад собственника</button><button class="btn bg" onclick="openNewInv()">+ Новый инвестор</button></div></div><div id="invFinance" style="margin-bottom:18px"></div><div class="card" style="padding:0;overflow:hidden" id="invListWrap"><div id="invList"><div class="loading"><div class="spin"></div></div></div></div></div>
+
+<div id="page-reports" class="page" style="display:none"><div class="ph"><div><div class="pt">Отчёты</div><div class="ps">Аналитика по бизнесу</div></div></div><div id="reportsContent"><div class="loading"><div class="spin"></div></div></div></div>
 <div id="page-investor" class="page" style="display:none"><button class="bback" onclick="goTo('investors')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="invDetail"></div></div>
 <div id="page-journal" class="page" style="display:none"><div class="ph"><div class="pt">История действий</div></div><div class="card" style="padding:0;overflow:hidden"><div id="jList"></div></div></div>
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div class="pt">Настройки</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -617,7 +622,7 @@ function goTo(p){
   const n=document.getElementById('nav-'+p);
   if(n)n.classList.add('on');
   // Автоматически раскрываем группу "Деньги" если перешли в её подстраницу
-  if(p==='kassa'||p==='investors'){
+  if(p==='kassa'||p==='investors'||p==='reports'){
     const sub=document.getElementById('nb-sub-money');
     const grp=document.getElementById('nav-money');
     if(sub)sub.style.display='block';
@@ -627,6 +632,7 @@ function goTo(p){
   if(p==='journal')loadJournal();
   if(p==='settings')renderSettings();
   if(p==='investors'){S.curInvestor=null;renderInvestors();}
+  if(p==='reports')renderReports();
   if(p==='client'&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}
 }
 
@@ -1494,6 +1500,192 @@ function changeInvFinPeriod(delta){
   _invFinPeriod={year:y,month:m};
   renderInvestorsFinance();
 }
+// ------------ ОТЧЁТЫ ------------
+let _reportsPeriod={type:'month',year:new Date().getFullYear(),month:new Date().getMonth(),from:'',to:''};
+
+function changeReportsPeriod(type){
+  _reportsPeriod.type=type;
+  if(type==='month'){const d=new Date();_reportsPeriod.year=d.getFullYear();_reportsPeriod.month=d.getMonth();}
+  renderReports();
+}
+
+function navReportsMonth(delta){
+  let{year,month}=_reportsPeriod;
+  month+=delta;
+  if(month<0){month=11;year--;}
+  if(month>11){month=0;year++;}
+  _reportsPeriod.year=year;_reportsPeriod.month=month;
+  renderReports();
+}
+
+// Вернёт диапазон дат [from, to] для текущего периода
+function getReportsRange(){
+  const t=_reportsPeriod.type;const today_=today();
+  if(t==='today')return{from:today_,to:today_};
+  if(t==='week'){const f=new Date(today_);f.setDate(f.getDate()-6);return{from:f,to:today_};}
+  if(t==='month'){const{year,month}=_reportsPeriod;return{from:new Date(year,month,1),to:new Date(year,month,daysInMonth(year,month))};}
+  if(t==='quarter'){const d=new Date();const qStart=Math.floor(d.getMonth()/3)*3;return{from:new Date(d.getFullYear(),qStart,1),to:new Date(d.getFullYear(),qStart+3,0)};}
+  if(t==='year'){const y=new Date().getFullYear();return{from:new Date(y,0,1),to:new Date(y,11,31)};}
+  if(t==='custom'){return{from:safeDateFromInput(_reportsPeriod.from)||new Date(2020,0,1),to:safeDateFromInput(_reportsPeriod.to)||today_};}
+  return{from:new Date(2020,0,1),to:today_}; // all
+}
+
+function periodLabel(){
+  const t=_reportsPeriod.type;
+  if(t==='today')return'Сегодня';
+  if(t==='week')return'Последние 7 дней';
+  if(t==='month'){const mn=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];return mn[_reportsPeriod.month]+' '+_reportsPeriod.year;}
+  if(t==='quarter')return'Этот квартал';
+  if(t==='year')return'Этот год';
+  if(t==='custom')return'Свой период';
+  return'Всё время';
+}
+
+// Метрика — число месяцев между двумя датами (для годовых процентов)
+function monthsBetween(from,to){
+  if(!from||!to)return 0;
+  return((to.getFullYear()-from.getFullYear())*12+(to.getMonth()-from.getMonth()))+(to.getDate()/daysInMonth(to.getFullYear(),to.getMonth()))-(from.getDate()/daysInMonth(from.getFullYear(),from.getMonth()));
+}
+
+function renderReports(){
+  const el=document.getElementById('reportsContent');if(!el)return;
+  const{from,to}=getReportsRange();
+  const t=_reportsPeriod.type;
+  const isMonth=t==='month';
+  // Период переключатель
+  const tabs=[
+    ['today','Сегодня'],['week','Неделя'],['month','Месяц'],['quarter','Квартал'],['year','Год'],['all','Всё время']
+  ].map(([v,n])=>'<button class="ft '+(t===v?'on':'')+'" onclick="changeReportsPeriod(\''+v+'\')">'+n+'</button>').join('');
+  const monthNav=isMonth?'<div style="display:flex;align-items:center;gap:6px;margin-left:auto"><button class="btn bgh bsm" onclick="navReportsMonth(-1)">←</button><div style="font-weight:700;padding:0 10px;min-width:140px;text-align:center">'+periodLabel()+'</div><button class="btn bgh bsm" onclick="navReportsMonth(1)">→</button></div>':'';
+  // ================================================================
+  // БЛОК 1: ДЕНЬГИ
+  // ================================================================
+  const free=getFreeCapital();
+  // Долг клиентов
+  let totalDebt=0;
+  S.clients.forEach(c=>{const s=getStats(c);totalDebt+=s.balance;});
+  // Капитал в товаре (закупки в активных сделках) — финансирование
+  let capInGoods=0;
+  S.clients.forEach(c=>{const fin=getFinancials(c);if(!fin.isClosed){const ret=fin.totalReceived*(1-fin.marginRatio);capInGoods+=Math.max(0,fin.financing-ret);}});
+  const block1='<div class="report-block"><div class="report-block-title">💰 Деньги</div><div class="sg4"><div class="sc"><div class="sl">В кассе сейчас</div><div class="sv" style="font-size:18px">'+fmt(free.totalWallets)+' ₽</div></div><div class="sc"><div class="sl">Свободный капитал</div><div class="sv '+(free.free>=0?'cg':'cr')+'" style="font-size:18px">'+(free.free>=0?'':'−')+fmt(Math.abs(free.free))+' ₽</div><div class="ss">после возврата всем инвесторам</div></div><div class="sc"><div class="sl">Обязательства инвесторам</div><div class="sv cy" style="font-size:18px">'+fmt(free.obligations)+' ₽</div><div class="ss">тело активных договоров</div></div><div class="sc"><div class="sl">Долг клиентов</div><div class="sv cb" style="font-size:18px">'+fmt(totalDebt)+' ₽</div><div class="ss">все ещё должны заплатить</div></div></div><div class="sg4" style="margin-top:10px;grid-template-columns:1fr"><div class="sc"><div class="sl">Капитал в товаре</div><div class="sv" style="font-size:18px">'+fmt(capInGoods)+' ₽</div><div class="ss">финансирование незакрытых сделок (товар у клиентов)</div></div></div></div>';
+  // ================================================================
+  // БЛОК 2: СДЕЛКИ ЗА ПЕРИОД
+  // ================================================================
+  let newDeals=0,newDealsSum=0,newDealsCost=0,sumMonths=0,countMonths=0;
+  S.clients.forEach(c=>{
+    const cd=parseD(c.date);if(!cd)return;
+    if(cd>=from&&cd<=to){
+      newDeals++;
+      newDealsSum+=parseFloat(c.price)||0;
+      newDealsCost+=parseFloat(c.cost)||0;
+      const mo=parseInt(c.months)||0;if(mo){sumMonths+=mo;countMonths++;}
+    }
+  });
+  const expectedProfit=newDealsSum-newDealsCost;
+  const avgMonths=countMonths?sumMonths/countMonths:0;
+  const avgDeal=newDeals?newDealsSum/newDeals:0;
+  const block2='<div class="report-block"><div class="report-block-title">🛍️ Сделки за период</div><div class="sg4"><div class="sc"><div class="sl">Новых договоров</div><div class="sv" style="font-size:18px">'+newDeals+' шт</div></div><div class="sc"><div class="sl">Сумма по договорам</div><div class="sv" style="font-size:18px">'+fmt(newDealsSum)+' ₽</div><div class="ss">общая стоимость продаж</div></div><div class="sc"><div class="sl">Закуплено товара</div><div class="sv cr" style="font-size:18px">'+fmt(newDealsCost)+' ₽</div><div class="ss">общая себестоимость</div></div><div class="sc"><div class="sl">Ожидаемая прибыль</div><div class="sv cg" style="font-size:18px">'+fmt(expectedProfit)+' ₽</div><div class="ss">если все доплатят без скидок</div></div></div><div class="sg4" style="margin-top:10px;grid-template-columns:repeat(2,1fr)"><div class="sc"><div class="sl">Средний срок рассрочки</div><div class="sv">'+avgMonths.toFixed(1)+' мес</div></div><div class="sc"><div class="sl">Средняя сделка</div><div class="sv">'+fmt(avgDeal)+' ₽</div></div></div></div>';
+  // ================================================================
+  // БЛОК 3: ДЕНЬГИ ОТ КЛИЕНТОВ
+  // ================================================================
+  let prepayPeriod=0,paymentPeriod=0,discPeriod=0;
+  let prepayAll=0,paymentAll=0,discAll=0;
+  S.payments.forEach(p=>{
+    const pd=p.date?.toDate?p.date.toDate():new Date(p.date||0);
+    const amt=parseFloat(p.amount)||0;
+    const isPrepay=p.type==='prepay';
+    const isDisc=p.type==='discount';
+    if(isPrepay)prepayAll+=amt;else if(isDisc)discAll+=amt;else paymentAll+=amt;
+    if(pd>=from&&pd<=to&&pd<=today()){
+      if(isPrepay)prepayPeriod+=amt;else if(isDisc)discPeriod+=amt;else paymentPeriod+=amt;
+    }
+  });
+  const totalReceivedPeriod=prepayPeriod+paymentPeriod;
+  const totalReceivedAll=prepayAll+paymentAll;
+  // План: должны были по графику в этот период
+  let dueByPlan=0;
+  S.clients.forEach(c=>{
+    const mo=parseInt(c.months)||0;
+    for(let m=1;m<=mo;m++){
+      const dt=parseD(c['дата'+m]);if(!dt)continue;
+      if(dt>=from&&dt<=to){dueByPlan+=parseFloat(c['размер'+m])||0;}
+    }
+  });
+  const block3='<div class="report-block"><div class="report-block-title">💸 Деньги от клиентов</div><table class="tbl" style="margin-bottom:10px"><thead><tr><th class="plain">Показатель</th><th class="plain" style="text-align:right">За период</th><th class="plain" style="text-align:right">За всё время</th></tr></thead><tbody><tr><td>Получено предоплат</td><td style="text-align:right"><span class="amt cg">'+fmt(prepayPeriod)+' ₽</span></td><td style="text-align:right"><span class="amt">'+fmt(prepayAll)+' ₽</span></td></tr><tr><td>Получено ежемес. платежей</td><td style="text-align:right"><span class="amt cg">'+fmt(paymentPeriod)+' ₽</span></td><td style="text-align:right"><span class="amt">'+fmt(paymentAll)+' ₽</span></td></tr><tr style="background:rgba(149,193,31,0.05)"><td><strong>Всего получено</strong></td><td style="text-align:right"><span class="amt cg" style="font-size:13px"><strong>'+fmt(totalReceivedPeriod)+' ₽</strong></span></td><td style="text-align:right"><span class="amt" style="font-size:13px"><strong>'+fmt(totalReceivedAll)+' ₽</strong></span></td></tr><tr><td>Скидок дано</td><td style="text-align:right"><span class="amt cr">−'+fmt(discPeriod)+' ₽</span></td><td style="text-align:right"><span class="amt cr">−'+fmt(discAll)+' ₽</span></td></tr></tbody></table><div class="sg4" style="grid-template-columns:repeat(3,1fr)"><div class="sc"><div class="sl">Должны были по плану</div><div class="sv" style="font-size:16px">'+fmt(dueByPlan)+' ₽</div><div class="ss">за период</div></div><div class="sc"><div class="sl">Получено факт</div><div class="sv cg" style="font-size:16px">'+fmt(paymentPeriod)+' ₽</div><div class="ss">только ежемес. платежи</div></div><div class="sc"><div class="sl">Просрочка / переплата</div><div class="sv '+(paymentPeriod-dueByPlan>=0?'cg':'cr')+'" style="font-size:16px">'+(paymentPeriod-dueByPlan>=0?'+':'')+fmt(paymentPeriod-dueByPlan)+' ₽</div><div class="ss">'+(paymentPeriod>=dueByPlan?'клиенты опережают':'недоплачено')+'</div></div></div></div>';
+  // ================================================================
+  // БЛОК 4: ПРИБЫЛЬ
+  // ================================================================
+  // Признанная прибыль за период (по платежам)
+  let recognizedPeriod=0,recognizedAll=0;
+  S.clients.forEach(c=>{
+    const byPay=getProfitByPayment(c);
+    byPay.forEach(p=>{
+      recognizedAll+=p.profit;
+      if(p.date>=from&&p.date<=to&&p.date<=today())recognizedPeriod+=p.profit;
+    });
+  });
+  // Прибыль по сделкам "как в Excel" — для созданных в период
+  let dealProfitPeriod=0,dealProfitAll=0;
+  S.clients.forEach(c=>{
+    const cd=parseD(c.date);
+    const price=parseFloat(c.price)||0,cost=parseFloat(c.cost)||0;
+    let disc=0;S.payments.forEach(p=>{if(p.clientId===c.id&&p.type==='discount')disc+=parseFloat(p.amount)||0;});
+    const profit=price-cost-disc;
+    dealProfitAll+=profit;
+    if(cd&&cd>=from&&cd<=to)dealProfitPeriod+=profit;
+  });
+  // Расходы и зарплаты
+  let opexPeriod=0,opexAll=0,salaryPeriod=0,salaryAll=0;
+  S.kassaOps.forEach(o=>{
+    const od=o.date?.toDate?o.date.toDate():new Date(o.date||0);
+    const amt=parseFloat(o.amount)||0;
+    if(o.type==='opex'){opexAll+=amt;if(od>=from&&od<=to)opexPeriod+=amt;}
+    if(o.type==='salary'){salaryAll+=amt;if(od>=from&&od<=to)salaryPeriod+=amt;}
+  });
+  const netPeriod=recognizedPeriod-opexPeriod-salaryPeriod;
+  const netAll=recognizedAll-opexAll-salaryAll;
+  const block4='<div class="report-block"><div class="report-block-title">📈 Прибыль</div><table class="tbl"><thead><tr><th class="plain">Показатель</th><th class="plain" style="text-align:right">За период</th><th class="plain" style="text-align:right">За всё время</th></tr></thead><tbody><tr><td>Признанная прибыль <span style="font-size:10px;color:var(--t3)">(по факту платежей)</span></td><td style="text-align:right"><span class="amt cg">'+fmt(recognizedPeriod)+' ₽</span></td><td style="text-align:right"><span class="amt">'+fmt(recognizedAll)+' ₽</span></td></tr><tr><td>Прибыль по сделкам <span style="font-size:10px;color:var(--t3)">(как в Excel: цена−себест−скидки)</span></td><td style="text-align:right"><span class="amt">'+fmt(dealProfitPeriod)+' ₽</span></td><td style="text-align:right"><span class="amt">'+fmt(dealProfitAll)+' ₽</span></td></tr><tr><td>Расходы</td><td style="text-align:right"><span class="amt cr">−'+fmt(opexPeriod)+' ₽</span></td><td style="text-align:right"><span class="amt cr">−'+fmt(opexAll)+' ₽</span></td></tr><tr><td>Зарплаты</td><td style="text-align:right"><span class="amt cr">−'+fmt(salaryPeriod)+' ₽</span></td><td style="text-align:right"><span class="amt cr">−'+fmt(salaryAll)+' ₽</span></td></tr><tr style="background:rgba(149,193,31,0.05)"><td><strong>Чистая прибыль <span style="font-size:10px;color:var(--t3)">(признанная − расходы − зарплаты)</span></strong></td><td style="text-align:right"><span class="amt '+(netPeriod>=0?'cg':'cr')+'" style="font-size:14px"><strong>'+(netPeriod>=0?'':'−')+fmt(Math.abs(netPeriod))+' ₽</strong></span></td><td style="text-align:right"><span class="amt '+(netAll>=0?'cg':'cr')+'" style="font-size:14px"><strong>'+(netAll>=0?'':'−')+fmt(Math.abs(netAll))+' ₽</strong></span></td></tr></tbody></table></div>';
+  // ================================================================
+  // БЛОК 5: ИНВЕСТОРЫ
+  // ================================================================
+  let invRowsHtml='';
+  if(!S.investors.length){
+    invRowsHtml='<div style="padding:20px;color:var(--t3);text-align:center">Нет инвесторов</div>';
+  }else{
+    invRowsHtml=S.investors.map(inv=>{
+      const stats=getInvestorStats(inv);
+      // Прибыль за период и за всё время
+      let earnedPeriod=0,earnedAll=0;
+      S.invProfitAccruals.filter(a=>a.investorId===inv.id).forEach(a=>{
+        const am=parseFloat(a.toInvestor)||0;
+        earnedAll+=am;
+        // accrual за месяц a.year/a.month — попадает в период если месяц пересекается
+        const mEnd=new Date(a.year,a.month,daysInMonth(a.year,a.month));
+        const mStart=new Date(a.year,a.month,1);
+        if(mEnd>=from&&mStart<=to)earnedPeriod+=am;
+      });
+      // Самый ранний договор для расчёта периода
+      let earliestDate=null;
+      stats.contracts.forEach(c=>{const d=parseD(c.date);if(d&&(!earliestDate||d<earliestDate))earliestDate=d;});
+      const investedNow=stats.totalRemaining||stats.totalInvested;
+      const investedTotal=stats.totalInvested;
+      // Доходность
+      const yieldAll=investedTotal>0?(earnedAll/investedTotal)*100:0;
+      const monthsActive=earliestDate?Math.max(1,monthsBetween(earliestDate,today())):1;
+      const yieldYearly=monthsActive>0?(yieldAll/monthsActive)*12:0;
+      // За период
+      const yieldPeriod=investedTotal>0?(earnedPeriod/investedTotal)*100:0;
+      return'<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><div style="font-weight:700;font-size:14px">'+inv.name+'</div><button class="btn bgh bsm" onclick="openInvestor(\''+inv.id+'\')">Открыть</button></div><div class="sg4" style="grid-template-columns:repeat(3,1fr)"><div class="sc"><div class="sl">Вложено сейчас</div><div class="sv" style="font-size:14px">'+fmt(investedNow)+' ₽</div><div class="ss">остаток тела</div></div><div class="sc"><div class="sl">Возвращено тела</div><div class="sv">'+fmt(stats.totalReturned)+' ₽</div></div><div class="sc"><div class="sl">Получил прибыли</div><div class="sv cg">'+fmt(earnedAll)+' ₽</div><div class="ss">за период: '+fmt(earnedPeriod)+' ₽</div></div></div><div class="sg4" style="grid-template-columns:repeat(3,1fr);margin-top:8px"><div class="sc"><div class="sl">Доходность за период</div><div class="sv cb">'+yieldPeriod.toFixed(2)+' %</div></div><div class="sc"><div class="sl">Доходность за всё время</div><div class="sv cb">'+yieldAll.toFixed(2)+' %</div><div class="ss">за '+monthsActive.toFixed(1)+' мес</div></div><div class="sc"><div class="sl">В пересчёте на год</div><div class="sv cb">'+yieldYearly.toFixed(2)+' % годовых</div></div></div></div>';
+    }).join('');
+  }
+  const block5='<div class="report-block"><div class="report-block-title">👥 Инвесторы и доходность</div>'+invRowsHtml+'</div>';
+  // ================================================================
+  // СБОРКА
+  // ================================================================
+  el.innerHTML='<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;gap:4px;flex-wrap:wrap">'+tabs+'</div>'+monthNav+'</div>'+block1+block2+block3+block4+block5;
+}
+// ------------ ОТЧЁТЫ (КОНЕЦ) ------------
+
 function renderInvestorsFinance(){
   const el=document.getElementById('invFinance');if(!el)return;
   initInvFinPeriod();
