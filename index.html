@@ -422,7 +422,9 @@ function toggleTheme(){const cur=localStorage.getItem('amana_theme')||'dark',nxt
 try{applyTheme(localStorage.getItem('amana_theme')||'dark');}catch(e){}
 
 // ---------- UTILS ----------
-const fmt=n=>(parseFloat(n)||0).toLocaleString('ru-RU');
+const fmt=n=>{const v=parseFloat(n);if(isNaN(v))return'0';const sign=v<0?'-':'';const abs=Math.abs(v);const parts=abs.toFixed(Math.abs(abs%1)<0.005?0:2).split('.');parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ');return sign+parts.join(',');};
+// Форматирование телефона: 89999999999 -> 8 999 999 99 99 (если длиннее, продолжаем по 2 цифры)
+const fmtPhone=p=>{if(!p)return'';let s=String(p).replace(/\D/g,'');if(!s)return p;let r='';if(s.length<=1)return s;r=s[0];s=s.slice(1);if(s.length>=3){r+=' '+s.slice(0,3);s=s.slice(3);}else{r+=' '+s;return r;}if(s.length>=3){r+=' '+s.slice(0,3);s=s.slice(3);}else if(s.length>0){r+=' '+s;return r;}while(s.length>=2){r+=' '+s.slice(0,2);s=s.slice(2);}if(s.length>0)r+=' '+s;return r;};
 const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d;};
 function safeDateFromInput(v){if(!v)return null;if(v.includes('-')){const[y,m,d]=v.split('-').map(Number);return new Date(y,m-1,d);}if(v.includes('.')){const[d,m,y]=v.split('.').map(Number);return new Date(y,m-1,d);}return new Date(v);}
 const fmtD=d=>{if(!d)return'';const dt=d instanceof Date?d:d.toDate?d.toDate():safeDateFromInput(String(d));if(!dt||isNaN(dt))return'';return('0'+dt.getDate()).slice(-2)+'.'+('0'+(dt.getMonth()+1)).slice(-2)+'.'+dt.getFullYear();};
@@ -649,7 +651,7 @@ function renderClients(){
     const overCol=c._over>0
       ?'<span class="amt cr">'+fmt(c._over)+' ₽</span>'+(hc?' <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'')
       :(hc?'<span style="color:var(--t3)">—</span> <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'<span style="color:var(--t3)">—</span>');
-    return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+((c.phones||[])[0]||'—')+'<br><span>Пор: '+((c.gphones||[])[0]||'—')+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
+    return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>Пор: '+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
   }).join('')+'</tbody>':'<tbody><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
   document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(list);
 }
@@ -659,7 +661,7 @@ function mobileCardsHtml(list){
     const dups=findDups(c.name,c.id),hc=c.comment&&c.comment.trim();
     const monthDisplay=c._mi.uniform?(c._mi.value?fmt(c._mi.value)+' ₽':'—'):'разные ('+c._mi.uniqueSizes.length+')';
     const stBadge=c._st==='завершён'?'<span class="badge bd">Завершён</span>':(c._over>0?'<span class="badge bo">Просрочка</span>':'<span class="badge ba">Активный</span>');
-    return'<div class="mcard" onclick="openC(\''+c.id+'\')"><div class="mcard-top"><div class="mcard-name">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+(hc?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+'</div><div class="mcard-id">№'+(c.contractId||'—')+'</div></div><div class="mcard-ph">'+((c.phones||[])[0]||'—')+'<br>Пор: '+((c.gphones||[])[0]||'—')+'</div><div class="mcard-row"><span class="mcard-label">Товар</span><span class="mcard-val" style="font-weight:500">'+(c.product||'—')+'</span></div><div class="mcard-row"><span class="mcard-label">Ежем. платёж</span><span class="mcard-val">'+monthDisplay+'</span></div><div class="mcard-row"><span class="mcard-label">Остаток</span><span class="mcard-val">'+fmt(c._bal)+' ₽</span></div>'+(c._over>0?'<div class="mcard-row"><span class="mcard-label">Просрочка</span><span class="mcard-val cr">'+fmt(c._over)+' ₽</span></div>':'')+'<div class="mcard-row"><span class="mcard-label">Статус</span>'+stBadge+'</div></div>';
+    return'<div class="mcard" onclick="openC(\''+c.id+'\')"><div class="mcard-top"><div class="mcard-name">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+(hc?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+'</div><div class="mcard-id">№'+(c.contractId||'—')+'</div></div><div class="mcard-ph">'+fmtPhone((c.phones||[])[0])+'<br>Пор: '+fmtPhone((c.gphones||[])[0])+'</div><div class="mcard-row"><span class="mcard-label">Товар</span><span class="mcard-val" style="font-weight:500">'+(c.product||'—')+'</span></div><div class="mcard-row"><span class="mcard-label">Ежем. платёж</span><span class="mcard-val">'+monthDisplay+'</span></div><div class="mcard-row"><span class="mcard-label">Остаток</span><span class="mcard-val">'+fmt(c._bal)+' ₽</span></div>'+(c._over>0?'<div class="mcard-row"><span class="mcard-label">Просрочка</span><span class="mcard-val cr">'+fmt(c._over)+' ₽</span></div>':'')+'<div class="mcard-row"><span class="mcard-label">Статус</span>'+stBadge+'</div></div>';
   }).join('');
   return'<div class="mobile-cards">'+items+'</div>';
 }
@@ -753,8 +755,8 @@ function openC(id){S.curClient=id;goTo('client');document.getElementById('nav-cl
 function renderDetail(c){
   const s=getStats(c),st=effStatus(c,s),fin=getFinancials(c,s);
   const pc=s.schedule.filter(p=>p.st==='paid').length;
-  const ph=(c.phones||[]).join(', ')||'—';
-  const gph=(c.gphones||[]).join(', ')||'—';
+  const ph=(c.phones||[]).map(fmtPhone).filter(Boolean).join(', ')||'—';
+  const gph=(c.gphones||[]).map(fmtPhone).filter(Boolean).join(', ')||'—';
   const dups=findDups(c.name,c.id);
   const so=document.getElementById('schedb_'+c.id)?.classList.contains('on');
   const ho=document.getElementById('cphb_'+c.id)?.classList.contains('on');
@@ -1519,7 +1521,7 @@ function renderInvestors(){
   document.getElementById('invCount').textContent=list.length+' инвесторов · активных договоров: '+list.reduce((s,i)=>s+i._s.active.length,0);
   if(!list.length){el.innerHTML='<div class="empty">Пока нет инвесторов. Нажмите "+ Новый инвестор"</div>';return;}
   const rows=list.map(inv=>{
-    const ph=(inv.phones||[])[0]||'—';
+    const ph=fmtPhone((inv.phones||[])[0])||'—';
     const status=inv._s.active.length?'<span class="badge ba">'+inv._s.active.length+' активн.</span>':'<span class="badge bd">нет активных</span>';
     return'<tr class="crow" onclick="openInvestor(\''+inv.id+'\')"><td><div style="font-weight:600">'+inv.name+'</div><div style="font-size:10px;color:var(--t3)">'+ph+'</div></td><td><span class="amt">'+fmt(inv._s.totalRemaining)+' ₽</span><div style="font-size:10px;color:var(--t3)">из '+fmt(inv._s.totalInvested)+' ₽</div></td><td>'+status+'</td></tr>';
   }).join('');
@@ -1695,7 +1697,7 @@ function renderInvestorDetail(){
   const inv=S.investors.find(x=>x.id===S.curInvestor);if(!inv)return;
   const s=getInvestorStats(inv);
   const el=document.getElementById('invDetail');
-  const ph=(inv.phones||[]).join(', ')||'—';
+  const ph=(inv.phones||[]).map(fmtPhone).filter(Boolean).join(', ')||'—';
   const contractsHtml=s.contracts.length?s.contracts.map(ic=>{
     const cs=getContractStats(ic);
     const closed=ic.status==='closed'||cs.remaining<=0;
@@ -2261,7 +2263,7 @@ async function delKassaOp(id){
   });
 }
 
-function exportExcel(){const r=[['№','Дата','ФИО','Телефоны','Товар','Партнёр','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
+function exportExcel(){const r=[['№','Дата','ФИО','Телефоны','Товар','Партнёр','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
 function openM(id){document.getElementById(id).classList.add('on');}
 function closeM(id){document.getElementById(id).classList.remove('on');}
 function toast(m,c){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
