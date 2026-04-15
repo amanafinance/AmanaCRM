@@ -45,6 +45,8 @@ body.light .nb.on{background:linear-gradient(135deg,rgba(109,148,22,0.1),rgba(10
 .nb-group.expanded .nb-arrow{transform:rotate(90deg)}
 .nb-sub{padding-left:18px;margin-bottom:2px}
 .nb-sub .nb{font-size:12px;padding:7px 10px}
+/* На десктопе кнопку "Ещё" скрываем (она только для мобильного) */
+#nav-more,#nb-sub-more,.nb-sub-overlay{display:none}
 .nb svg{width:16px;height:16px;flex-shrink:0}
 .theme-toggle{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:var(--r2);cursor:pointer;color:var(--t2);font-size:13px;font-weight:600;margin-bottom:2px;transition:.2s;border:none;background:none;width:100%;text-align:left}
 .theme-toggle:hover{background:var(--bg3);color:var(--text)}
@@ -68,6 +70,7 @@ body.light .bg{color:#ffffff}body.light .bg:hover{background:#7ba71a}
 .sg4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
 .report-block{margin-bottom:18px;padding:14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--r1)}
 .report-block-title{font-family:Unbounded,sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
+.kcards{display:none}
 .sc{background:var(--card);border:1px solid var(--brd2);border-radius:var(--r);padding:18px}
 .sl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
 .sv{font-family:'Manrope',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em}
@@ -164,23 +167,36 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mobile-cards{display:none}
 @media(max-width:768px){
 /* Боковое меню → нижняя навигация */
-.sidebar{width:100%;height:58px;min-height:unset;flex-direction:row;align-items:center;padding:0 4px;bottom:0;top:auto;border-right:none;border-top:1px solid var(--brd2);z-index:500}
-.sidebar>div:first-child{display:flex;width:100%;justify-content:space-around;flex-wrap:nowrap;overflow-x:auto;gap:2px}
+.sidebar{width:100%;height:60px;min-height:unset;flex-direction:row;align-items:center;padding:0 4px;bottom:0;top:auto;border-right:none;border-top:1px solid var(--brd2);z-index:500;background:var(--bg);box-shadow:0 -2px 12px rgba(0,0,0,0.08)}
+.sidebar>div:first-child{display:flex;width:100%;justify-content:space-around;flex-wrap:nowrap;overflow:visible;gap:0;align-items:center}
 .sidebar>div:first-child::-webkit-scrollbar{display:none}
-.slogo,.sname,.sg,.sfoot{display:none!important}
-.nb,.theme-toggle{flex-direction:column;gap:2px;padding:5px 4px;font-size:8.5px;min-width:54px;max-width:62px;align-items:center;justify-content:center;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nb svg,.theme-toggle svg{width:18px;height:18px}
-.theme-toggle span{display:inline-block;max-width:54px;overflow:hidden;text-overflow:ellipsis}
+.slogo,.sname,.sg,.sfoot,.theme-toggle{display:none!important}
+/* На мобильном в основной навбар не помещается всё → "История" и "Настройки" в "Ещё" */
+#nav-journal,#nav-settings{display:none!important}
+#nav-more{display:flex!important}
+.nb{flex-direction:column;gap:2px;padding:6px 4px;font-size:9px;min-width:0;flex:1;max-width:80px;align-items:center;justify-content:center;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:8px}
+.nb svg{width:20px;height:20px;flex-shrink:0}
+.nb .nb-arrow{display:none}
+/* Подменю "Деньги" — выпадает ВВЕРХ из bottom-nav как поповер */
+.nb-sub{position:fixed!important;bottom:62px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--brd2);border-radius:12px;padding:6px;box-shadow:0 -4px 16px rgba(0,0,0,0.15);z-index:600;min-width:200px;max-width:90vw;display:none!important;flex-direction:column;gap:2px;padding-left:6px}
+.nb-sub.show{display:flex!important}
+.nb-sub .nb{flex-direction:row;justify-content:flex-start;font-size:13px;padding:11px 14px;gap:10px;max-width:none;width:100%;text-align:left;border-radius:8px}
+.nb-sub .nb svg{width:16px;height:16px}
+/* Дополнительный фон-overlay при открытом подменю */
+.nb-sub-overlay{position:fixed!important;inset:0;background:rgba(0,0,0,0.3);z-index:599;display:none}
+.nb-sub-overlay.show{display:block!important}
 /* Основной контент */
-.main{margin-left:0;padding:10px 10px 72px}
-.sg4{grid-template-columns:1fr 1fr;gap:8px}
-.sc{padding:12px}
-.sv{font-size:16px}
+.main{margin-left:0;padding:10px 10px 80px}
+.sg4{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.sc{padding:11px}
+.sv{font-size:15px}
+.sl{font-size:9.5px}
+.ss{font-size:9px}
 .card{padding:12px;margin-bottom:10px}
 .ph{flex-direction:column;gap:8px;align-items:stretch;margin-bottom:14px}
 .pt{font-size:17px}
 .pa{flex-wrap:wrap;width:100%;gap:6px}
-.pa .btn{flex:1;justify-content:center;min-width:0}
+.pa .btn{flex:1;justify-content:center;min-width:0;font-size:12px;padding:10px 8px}
 .ig2{grid-template-columns:1fr}
 /* Модалки — выдвигаются снизу */
 .modal{padding:18px 14px 20px;border-radius:16px 16px 0 0;width:100%!important;max-width:100%!important;max-height:92vh}
@@ -188,7 +204,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mtitle{font-size:14px;margin-bottom:14px}
 .fg{grid-template-columns:1fr;gap:8px}.ff{grid-column:1}
 .sdiv{margin:12px 0 6px;flex-wrap:wrap}
-.inp{font-size:15px;padding:12px 14px}/* 16px и больше не вызывает зума на iOS */
+.inp{font-size:15px;padding:12px 14px}
 .lbl{font-size:10px}
 .mft{flex-direction:column-reverse;gap:6px}
 .mft .btn{width:100%;justify-content:center;padding:12px;font-size:13px}
@@ -214,8 +230,19 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mcard-row:first-of-type{border-top:none;padding-top:2px}
 .mcard-label{color:var(--t3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
 .mcard-val{font-weight:700;font-size:12.5px}
+/* Касса — карточный вид (а не таблица) */
+#kList .tbl{display:none!important}
+.kcards{display:flex;flex-direction:column;gap:8px}
+.kcard{background:var(--bg3);border:1px solid var(--brd2);border-radius:10px;padding:11px}
+.kcard-day{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:8px 4px 4px}
+.kcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.kcard-amount{font-weight:700;font-size:14px}
+.kcard-desc{font-size:11.5px;color:var(--t2);line-height:1.4;margin-bottom:6px;word-wrap:break-word}
+.kcard-bot{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--t3);gap:6px;flex-wrap:wrap}
+.kcard-bal{font-weight:700;color:var(--text)}
+.kcard-del{position:absolute;top:8px;right:8px}
 /* Платежи/история → мобильные таблицы со скроллом */
-#pList .tbl,#jList .tbl,#kList .tbl{min-width:520px}
+#jList .tbl{min-width:520px}
 /* Детали клиента */
 .bback{padding:6px 0;font-size:13px}
 #cDetail > div:nth-child(2){grid-template-columns:1fr!important}
@@ -228,6 +255,26 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .pd2{font-size:11.5px;min-width:100px}
 .ps2{font-size:12px}
 .pst{font-size:10.5px;margin-left:0;width:100%;padding-left:15px}
+/* Карточка инвестора детальная */
+#invDetail > div:first-child{flex-direction:column;align-items:stretch!important;gap:10px!important}
+#invDetail > div:first-child > div:last-child{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important}
+#invDetail > div:first-child > div:last-child .btn{justify-content:center;padding:10px;font-size:12px}
+.ig2{grid-template-columns:1fr 1fr!important;gap:8px}
+/* Финансы бизнеса — таблица распределения прибыли */
+#invFinance .tbl{min-width:600px}
+/* Список инвесторов */
+#invList .tbl{min-width:480px}
+/* Отчёты */
+#reportsContent .tbl{min-width:0;font-size:10.5px}
+#reportsContent .tbl td,#reportsContent .tbl th{padding:8px 5px;font-size:10.5px}
+#reportsContent .report-block{padding:11px 10px}
+#reportsContent .report-block-title{font-size:13px;margin-bottom:10px;padding-bottom:6px}
+#reportsContent .sg4{grid-template-columns:1fr 1fr!important;gap:7px}
+#reportsContent .sc{padding:9px 8px}
+#reportsContent .sv{font-size:14px!important}
+#reportsContent .ss{font-size:9px}
+#reportsContent .ftabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+#reportsContent .ftabs .ft{flex-shrink:0;padding:7px 12px;font-size:11px}
 /* График платежей table в модалке создания */
 .stbl{font-size:11px}
 .stbl th,.stbl td{padding:5px 6px}
@@ -261,10 +308,12 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 }
 /* Узкий телефон */
 @media(max-width:400px){
-.sg4{grid-template-columns:1fr}
+.sg4{grid-template-columns:1fr 1fr}
 #cDetail .ig2{grid-template-columns:1fr!important}
 #kWallets{grid-template-columns:1fr!important}
-.nb,.theme-toggle{min-width:48px;font-size:8px}
+.nb{font-size:8.5px}
+.nb svg{width:18px;height:18px}
+#reportsContent .sg4{grid-template-columns:1fr!important}
 }
 </style>
 </head>
@@ -285,10 +334,17 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 </div>
 <div class="sg">Система</div>
 <button class="nb" id="nav-journal" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>История действий</button>
-<div class="sg">Система</div>
+<button class="nb nb-group" id="nav-more" onclick="toggleMenuGroup('more',event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Ещё<svg class="nb-arrow" id="nb-arrow-more" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:auto;transition:transform .2s"><polyline points="9 18 15 12 9 6"/></svg></button>
+<div class="nb-sub" id="nb-sub-more" style="display:none">
+<button class="nb nb-child" id="nav-journal2" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>История действий</button>
+<button class="nb nb-child" id="nav-settings2" onclick="goTo('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>Настройки</button>
+<button class="nb nb-child" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span id="themeText2">Тёмная тема</span></button>
+<button class="nb nb-child" onclick="doLogout()" style="color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Выйти</button>
+</div>
 <button class="nb" id="nav-settings" onclick="goTo('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Настройки</button>
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span id="themeText">Светлая тема</span></button>
 </div><div class="sfoot"><span>Amana Finance &copy; 2025</span><button class="logout-btn" onclick="doLogout()">Выйти</button></div></aside>
+<div class="nb-sub-overlay" id="nbSubOverlay" onclick="closeAllSubMenus()"></div>
 <main class="main">
 <div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card"><div class="ct">Просрочники</div><div id="dOver"></div></div><div><div class="card"><div class="ct">Платежи сегодня</div><div id="dToday"></div></div><div class="card"><div class="ct">Ближайшие 3 дня</div><div id="dUp"></div></div></div></div></div>
 <div id="page-clients" class="page" style="display:none"><div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('overdue',this)">Просроченные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button></div><div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
@@ -422,7 +478,7 @@ const S={clients:[],payments:[],partners:['Сторонний'],wallets:[],kassa
 let _cid=null,_saving=false,_fdCol='',_fdPage='';
 
 // ---------- THEME ----------
-function applyTheme(t){if(t==='light'){document.body.classList.add('light');document.getElementById('themeText').textContent='Тёмная тема';document.getElementById('themeIcon').innerHTML='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';}else{document.body.classList.remove('light');document.getElementById('themeText').textContent='Светлая тема';document.getElementById('themeIcon').innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';}}
+function applyTheme(t){const t2el=document.getElementById('themeText2');if(t==='light'){document.body.classList.add('light');document.getElementById('themeText').textContent='Тёмная тема';if(t2el)t2el.textContent='Тёмная тема';document.getElementById('themeIcon').innerHTML='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';}else{document.body.classList.remove('light');document.getElementById('themeText').textContent='Светлая тема';if(t2el)t2el.textContent='Светлая тема';document.getElementById('themeIcon').innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';}}
 function toggleTheme(){const cur=localStorage.getItem('amana_theme')||'dark',nxt=cur==='dark'?'light':'dark';localStorage.setItem('amana_theme',nxt);applyTheme(nxt);}
 try{applyTheme(localStorage.getItem('amana_theme')||'dark');}catch(e){}
 
@@ -625,10 +681,16 @@ function goTo(p){
   if(p==='kassa'||p==='investors'||p==='reports'){
     const sub=document.getElementById('nb-sub-money');
     const grp=document.getElementById('nav-money');
-    if(sub)sub.style.display='block';
-    if(grp)grp.classList.add('expanded');
-    try{localStorage.setItem('menuMoneyExpanded','1');}catch(e){}
+    if(sub){
+      const isMobile=window.matchMedia('(max-width:768px)').matches;
+      if(isMobile){sub.classList.remove('show');}
+      else{sub.style.display='block';}
+    }
+    if(grp&&!window.matchMedia('(max-width:768px)').matches)grp.classList.add('expanded');
+    try{if(!window.matchMedia('(max-width:768px)').matches)localStorage.setItem('menuMoneyExpanded','1');}catch(e){}
   }
+  // Закрываем все мобильные поповеры
+  closeAllSubMenus();
   if(p==='journal')loadJournal();
   if(p==='settings')renderSettings();
   if(p==='investors'){S.curInvestor=null;renderInvestors();}
@@ -641,10 +703,33 @@ function toggleMenuGroup(name,event){
   const sub=document.getElementById('nb-sub-'+name);
   const grp=document.getElementById('nav-'+name);
   if(!sub||!grp)return;
-  const isOpen=sub.style.display==='block';
-  sub.style.display=isOpen?'none':'block';
-  grp.classList.toggle('expanded',!isOpen);
-  try{localStorage.setItem('menu'+name.charAt(0).toUpperCase()+name.slice(1)+'Expanded',isOpen?'0':'1');}catch(e){}
+  // На мобильном: класс show + overlay
+  const isMobile=window.matchMedia('(max-width:768px)').matches;
+  if(isMobile){
+    const isOpen=sub.classList.contains('show');
+    // Закроем все подменю сначала
+    document.querySelectorAll('.nb-sub.show').forEach(s=>s.classList.remove('show'));
+    document.querySelectorAll('.nb-group.expanded').forEach(g=>g.classList.remove('expanded'));
+    if(!isOpen){
+      sub.classList.add('show');
+      grp.classList.add('expanded');
+      const ov=document.getElementById('nbSubOverlay');if(ov)ov.classList.add('show');
+    }else{
+      const ov=document.getElementById('nbSubOverlay');if(ov)ov.classList.remove('show');
+    }
+  }else{
+    // Десктоп: разворачиваем как раньше
+    const isOpen=sub.style.display==='block';
+    sub.style.display=isOpen?'none':'block';
+    grp.classList.toggle('expanded',!isOpen);
+    try{localStorage.setItem('menu'+name.charAt(0).toUpperCase()+name.slice(1)+'Expanded',isOpen?'0':'1');}catch(e){}
+  }
+}
+
+function closeAllSubMenus(){
+  document.querySelectorAll('.nb-sub.show').forEach(s=>s.classList.remove('show'));
+  document.querySelectorAll('.nb-group.expanded').forEach(g=>g.classList.remove('expanded'));
+  const ov=document.getElementById('nbSubOverlay');if(ov)ov.classList.remove('show');
 }
 
 function initMenuGroups(){
@@ -2269,7 +2354,7 @@ function renderKassa(){
     const sum=Object.values(walletRunning).reduce((s,v)=>s+v,0);
     balanceAfter[o.id]={wallet:walletRunning[o.wallet],total:sum};
   });
-  let ld='',rows='';
+  let ld='',rows='',mobileCards='',ldM='';
   ops.forEach(o=>{
     const m=kMeta(o.type);
     const d=o.dateStr||'';
@@ -2281,8 +2366,13 @@ function renderKassa(){
     const balCell=bal?'<span class="amt" style="font-size:11px">'+fmt(bal.wallet)+' ₽</span><div style="font-size:9px;color:var(--t3)">общий: '+fmt(bal.total)+' ₽</div>':'';
     const delBtn=(!m.auto&&!o.auto)?'<td><button class="ib ir" style="width:22px;height:22px" onclick="delKassaOp(\''+o.id+'\')" title="Удалить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>':'<td></td>';
     rows+='<tr><td style="color:var(--t2)">'+d+'</td><td><span class="badge '+m.color+'">'+m.name+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:11px;color:var(--t2)">'+walletCell+'</td><td>'+balCell+'</td><td style="font-size:11px">'+(o.desc||'')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</td>'+delBtn+'</tr>';
+    // Мобильная карточка
+    if(d!==ldM){mobileCards+='<div class="kcard-day">'+d+'</div>';ldM=d;}
+    const delBtnM=(!m.auto&&!o.auto)?'<button class="ib ir" style="width:24px;height:24px" onclick="delKassaOp(\''+o.id+'\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>':'';
+    const balLine=bal?'<span class="kcard-bal">'+fmt(bal.wallet)+' ₽</span> · общий '+fmt(bal.total)+' ₽':'';
+    mobileCards+='<div class="kcard"><div class="kcard-top"><span class="badge '+m.color+'">'+m.name+'</span><span class="kcard-amount '+cl+'">'+sign+fmt(o.amount)+' ₽</span></div><div class="kcard-desc">'+(o.desc||'—')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</div><div class="kcard-bot"><span>'+walletCell+'</span><span>'+balLine+'</span>'+delBtnM+'</div></div>';
   });
-  document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table>';
+  document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="kcards">'+mobileCards+'</div>';
 }
 
 function kassaTypeChanged(){
