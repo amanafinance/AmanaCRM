@@ -22,7 +22,7 @@ window.dispatchEvent(new Event('dbReady'));
 body.light{--bg:#f5f7f4;--bg2:#ffffff;--bg3:#eef2eb;--card:#ffffff;--green:#6d9416;--text:#1a2820;--t2:#556b5c;--t3:#8ca595;--red:#d93545;--yellow:#e68a00;--blue:#3b6fd4;--brd:rgba(109,148,22,0.18);--brd2:rgba(109,148,22,0.1);--sh:0 2px 12px rgba(0,0,0,0.08)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}
-#loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.2),transparent 60%)}
+#loginWrap{display:flex;align-items:center;just<td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:10px;color:var(--t2);max-width:120px;word-wrap:break-word">'+(c.addr||'—')+'content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.2),transparent 60%)}
 body.light #loginWrap{background:radial-gradient(ellipse at 30% 50%,rgba(149,193,31,0.15),transparent 60%)}
 .lbox{width:340px;padding:40px 32px;background:var(--card);border:1px solid var(--brd);border-radius:16px;box-shadow:var(--sh)}
 .llogo{font-family:'Unbounded',sans-serif;font-size:10px;color:var(--green);letter-spacing:3px;margin-bottom:4px}
@@ -472,7 +472,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <script>
 // ---------- STATE ----------
 const S={clients:[],payments:[],partners:['Сторонний'],wallets:[],kassaOps:[],investors:[],invContracts:[],invReturns:[],invProfitAccruals:[],curClient:null,curInvestor:null,tab:'all',kTab:'all',
-  CF:{id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''},
+  CF:{id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',partner:'',price_q:'',price_from:'',price_to:'',cost_q:'',cost_from:'',cost_to:'',months_q:'',addr:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''},
   PF:{date_q:'',date_from:'',date_to:'',contract:'',name:'',amount_q:'',amount_from:'',amount_to:'',type:'',payType:''},
   JF:{date_q:'',date_from:'',date_to:'',type:'',desc:''}};
 let _cid=null,_saving=false,_fdCol='',_fdPage='';
@@ -748,7 +748,7 @@ function initMenuGroups(){
 function renderDash(){let debt=0,over=0,act=0,done=0;const ovL=[],todL=[],upL=[];S.clients.forEach(c=>{const s=getStats(c),st=effStatus(c,s);if(st==='завершён'){done++;return;}act++;debt+=s.balance;over+=s.overdue;if(s.overdue>0)ovL.push({c,s});s.schedule.forEach(p=>{if(p.diff===0&&p.st!=='paid')todL.push({c,p});if(p.diff>0&&p.diff<=3&&p.st!=='paid')upL.push({c,p});});});document.getElementById('dStats').innerHTML='<div class="sc"><div class="sl">Активных</div><div class="sv cg">'+act+'</div><div class="ss">Завершённых: '+done+'</div></div><div class="sc"><div class="sl">Общий долг</div><div class="sv">'+fmt(debt)+' ₽</div></div><div class="sc"><div class="sl">Просрочка</div><div class="sv cr">'+fmt(over)+' ₽</div><div class="ss">'+ovL.length+' клиентов</div></div><div class="sc"><div class="sl">Сегодня</div><div class="sv cy">'+todL.length+'</div><div class="ss">платежей</div></div>';document.getElementById('dOver').innerHTML=ovL.length?ovL.map(({c,s})=>'<div class="di dio" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+fmt(s.balance)+' ₽</div></div><div class="amt cr">'+fmt(s.overdue)+' ₽</div></div>').join(''):'<div class="empty" style="padding:12px">Нет</div>';document.getElementById('dToday').innerHTML=todL.length?todL.map(({c,p})=>'<div class="di dit" onclick="openC(\''+c.id+'\')"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div class="amt cy">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';document.getElementById('dUp').innerHTML=upL.length?upL.map(({c,p})=>'<div class="di diu" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+p.date+' · через '+p.diff+' дн.</div></div><div class="amt" style="font-size:11px">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';}
 
 // ---------- CLIENTS LIST ----------
-function setTab(t,b){S.tab=t;S.CF={id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''};document.querySelectorAll('#page-clients .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderClients();}
+function setTab(t,b){S.tab=t;S.CF={id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',partner:'',price_q:'',price_from:'',price_to:'',cost_q:'',cost_from:'',cost_to:'',months_q:'',addr:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''};document.querySelectorAll('#page-clients .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderClients();}
 let _clientsPageSize=50,_clientsShown=50;
 // Infinite scroll — автоподгрузка при прокрутке вниз
 let _infiniteObserver=null;
@@ -784,6 +784,15 @@ function renderClientsPaged(){
   if(cf.name)list=list.filter(c=>(c.name||'').toLowerCase().includes(cf.name.toLowerCase()));
   if(cf.phone){const q=cf.phone.replace(/\D/g,'');if(q)list=list.filter(c=>[...(c.phones||[]),...(c.gphones||[])].some(p=>(p||'').replace(/\D/g,'').includes(q)));}
   if(cf.product)list=list.filter(c=>(c.product||'').toLowerCase().includes(cf.product.toLowerCase()));
+  if(cf.partner)list=list.filter(c=>(c.partner||'').toLowerCase().includes(cf.partner.toLowerCase()));
+  if(cf.price_q)list=list.filter(c=>String(c.price||'').includes(cf.price_q));
+  if(cf.price_from!=='')list=list.filter(c=>(parseFloat(c.price)||0)>=(parseFloat(cf.price_from)||0));
+  if(cf.price_to!=='')list=list.filter(c=>(parseFloat(c.price)||0)<=(parseFloat(cf.price_to)||Infinity));
+  if(cf.cost_q)list=list.filter(c=>String(c.cost||'').includes(cf.cost_q));
+  if(cf.cost_from!=='')list=list.filter(c=>(parseFloat(c.cost)||0)>=(parseFloat(cf.cost_from)||0));
+  if(cf.cost_to!=='')list=list.filter(c=>(parseFloat(c.cost)||0)<=(parseFloat(cf.cost_to)||Infinity));
+  if(cf.months_q)list=list.filter(c=>String(c.months||'').includes(cf.months_q));
+  if(cf.addr)list=list.filter(c=>(c.addr||'').toLowerCase().includes(cf.addr.toLowerCase()));
   if(cf.monthly)list=list.filter(c=>(c._mi.all||[]).some(s=>String(s).includes(cf.monthly)));
   if(cf.monthly_from!=='')list=list.filter(c=>(c._mi.all||[]).some(s=>s>=(parseFloat(cf.monthly_from)||0)));
   if(cf.monthly_to!=='')list=list.filter(c=>(c._mi.all||[]).some(s=>s<=(parseFloat(cf.monthly_to)||Infinity)));
@@ -797,7 +806,7 @@ function renderClientsPaged(){
   const visible=list.slice(0,_clientsShown);
   const hasMore=_clientsShown<total;
   document.getElementById('cCount').textContent=total+' клиентов'+(hasMore?' (показано '+_clientsShown+')':'');
-  const thead='<thead><tr>'+thF('id','№','clients')+thF('date','Дата','clients')+thF('name','Клиент','clients')+thF('product','Товар','clients')+thF('monthly','Ежем. платеж','clients')+thF('bal','Остаток','clients')+thF('over','Просрочка','clients')+'<th><div class="th-cell"><span class="th-name">Статус</span></div></th></tr></thead>';
+  const thead='<thead><tr>'+thF('id','№','clients')+thF('date','Дата','clients')+thF('name','Клиент','clients')+thF('product','Товар','clients')+thF('partner','Партнёр','clients')+thF('pricecost','Цена / Себест.','clients')+thF('months','Мес.','clients')+thF('monthly','Ежем. платеж','clients')+thF('bal','Остаток','clients')+thF('over','Просрочка','clients')+thF('addr','Адрес','clients')+'<th><div class="th-cell"><span class="th-name">Статус</span></div></th></tr></thead>';
   const tb=visible.length?'<tbody>'+visible.map(c=>{
     const dups=findDups(c.name,c.id),hc=c.comment&&c.comment.trim();
     let monthCol;
@@ -809,8 +818,8 @@ function renderClientsPaged(){
     const overCol=c._over>0
       ?'<span class="amt cr">'+fmt(c._over)+' ₽</span>'+(hc?' <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'')
       :(hc?'<span style="color:var(--t3)">—</span> <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'<span style="color:var(--t3)">—</span>');
-    return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>Пор: '+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
-  }).join('')+'</tbody>':'<tbody><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
+    return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>Пор: '+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:11px;color:var(--t2)">'+(c.partner||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;font-size:12px">'+fmt(c.price||0)+' ₽</div><div style="font-size:10px;color:var(--t3)">себест: '+fmt(c.cost||0)+' ₽</div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="text-align:center">'+(c.months||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:10px;color:var(--t2);max-width:120px;word-wrap:break-word">'+(c.addr||'\u2014')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
+  }).join('')+'</tbody>':'<tbody><tr><td colspan="12" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
   const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="clients"></div>':'';
   document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(visible)+loadMoreBtn;
   setupInfiniteScroll();
@@ -829,13 +838,13 @@ function mobileCardsHtml(list){
 
 // ---------- FILTERS ----------
 function thF(col,lbl,pg){const f=isF(col,pg);return'<th><div class="th-cell" onclick="toggleDrop(event,\''+col+'\',\''+pg+'\',this)"><span class="th-name'+(f?' filtered':'')+'">'+lbl+'</span></div></th>';}
-function isF(col,pg){if(pg==='clients'){const c=S.CF;if(col==='id')return!!c.id;if(col==='date')return!!(c.date_from||c.date_to||c.date_q);if(col==='name')return!!(c.name||c.phone);if(col==='product')return!!c.product;if(col==='monthly')return!!(c.monthly||c.monthly_from||c.monthly_to);if(col==='bal')return!!(c.bal_q||c.bal_from||c.bal_to);if(col==='over')return!!(c.over_q||c.over_from||c.over_to);}if(pg==='payments'){const p=S.PF;if(col==='date')return!!(p.date_q||p.date_from||p.date_to);if(col==='contract')return!!p.contract;if(col==='name')return!!p.name;if(col==='amount')return!!(p.amount_q||p.amount_from||p.amount_to);if(col==='type')return!!p.type;if(col==='payType')return!!p.payType;}if(pg==='journal'){const j=S.JF;if(col==='date')return!!(j.date_q||j.date_from||j.date_to);if(col==='type')return!!j.type;if(col==='desc')return!!j.desc;}return false;}
+function isF(col,pg){if(pg==='clients'){const c=S.CF;if(col==='id')return!!c.id;if(col==='date')return!!(c.date_from||c.date_to||c.date_q);if(col==='name')return!!(c.name||c.phone);if(col==='product')return!!c.product;if(col==='partner')return!!c.partner;if(col==='pricecost')return!!(c.price_q||c.price_from||c.price_to||c.cost_q||c.cost_from||c.cost_to);if(col==='months')return!!c.months_q;if(col==='addr')return!!c.addr;if(col==='monthly')return!!(c.monthly||c.monthly_from||c.monthly_to);if(col==='bal')return!!(c.bal_q||c.bal_from||c.bal_to);if(col==='over')return!!(c.over_q||c.over_from||c.over_to);}if(pg==='payments'){const p=S.PF;if(col==='date')return!!(p.date_q||p.date_from||p.date_to);if(col==='contract')return!!p.contract;if(col==='name')return!!p.name;if(col==='amount')return!!(p.amount_q||p.amount_from||p.amount_to);if(col==='type')return!!p.type;if(col==='payType')return!!p.payType;}if(pg==='journal'){const j=S.JF;if(col==='date')return!!(j.date_q||j.date_from||j.date_to);if(col==='type')return!!j.type;if(col==='desc')return!!j.desc;}return false;}
 function closeDrops(){document.getElementById('fdOverlay').classList.remove('on');_fdCol='';_fdPage='';}
 function toggleDrop(ev,col,pg,el){
   ev.stopPropagation();
   if(_fdCol===col&&_fdPage===pg){closeDrops();return;}
   _fdCol=col;_fdPage=pg;
-  const titles={id:'№',date:'Дата',name:'Клиент',product:'Товар',monthly:'Ежем. платеж',bal:'Остаток',over:'Просрочка',type:'Действие',payType:'Способ',desc:'Описание',contract:'Договор',amount:'Сумма'};
+  const titles={id:'№',date:'Дата',name:'Клиент',product:'Товар',partner:'Партнёр',pricecost:'Цена / Себест.',months:'Месяцев',addr:'Адрес',monthly:'Ежем. платеж',bal:'Остаток',over:'Просрочка',type:'Действие',payType:'Способ',desc:'Описание',contract:'Договор',amount:'Сумма'};
   document.getElementById('fdo_title').textContent=titles[col]||col;
   let body='',v=pg==='clients'?S.CF:pg==='payments'?S.PF:S.JF;
   if(col==='id')body='<input class="fdo-inp" id="fdi_v" value="'+(v.id||'')+'" placeholder="Поиск..."/>';
@@ -844,6 +853,10 @@ function toggleDrop(ev,col,pg,el){
   }
   else if(col==='name')body='<label class="fdo-lbl">ФИО</label><input class="fdo-inp" id="fdi_v" value="'+(v.name||'')+'" placeholder="Иванов..."/><label class="fdo-lbl">Телефон (клиента или поручителя)</label><input class="fdo-inp" id="fdi_phone" value="'+(v.phone||'')+'" placeholder="89001234567"/>';
   else if(col==='product')body='<input class="fdo-inp" id="fdi_v" value="'+(v.product||'')+'" placeholder="Товар..."/>';
+  else if(col==='partner')body='<input class="fdo-inp" id="fdi_v" value="'+(v.partner||'')+'" placeholder="Партнёр..."/>';
+  else if(col==='pricecost')body='<label class="fdo-lbl">Цена продажи</label><input class="fdo-inp" id="fdi_pq" value="'+(v.price_q||'')+'" placeholder="Поиск"/><div class="fdo-row"><input class="fdo-inp" id="fdi_pfrom" type="number" placeholder="От" value="'+(v.price_from||'')+'"/><input class="fdo-inp" id="fdi_pto" type="number" placeholder="До" value="'+(v.price_to||'')+'"/></div><label class="fdo-lbl" style="margin-top:8px">Себестоимость</label><input class="fdo-inp" id="fdi_cq" value="'+(v.cost_q||'')+'" placeholder="Поиск"/><div class="fdo-row"><input class="fdo-inp" id="fdi_cfrom" type="number" placeholder="От" value="'+(v.cost_from||'')+'"/><input class="fdo-inp" id="fdi_cto" type="number" placeholder="До" value="'+(v.cost_to||'')+'"/></div>';
+  else if(col==='months')body='<input class="fdo-inp" id="fdi_v" value="'+(v.months_q||'')+'" placeholder="Кол-во месяцев"/>';
+  else if(col==='addr')body='<input class="fdo-inp" id="fdi_v" value="'+(v.addr||'')+'" placeholder="Адрес..."/>';
   else if(col==='contract')body='<input class="fdo-inp" id="fdi_v" value="'+(v.contract||'')+'" placeholder="№ договора..."/>';
   else if(col==='monthly')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+(v.monthly||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+(v.monthly_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+(v.monthly_to||'')+'"/></div>';
   else if(col==='amount')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+(v.amount_q||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+(v.amount_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+(v.amount_to||'')+'"/></div>';
@@ -882,6 +895,10 @@ function applyF(){
     else if(_fdCol==='date'){c.date_q=g('fdi_dq');c.date_from=g('fdi_df');c.date_to=g('fdi_dt');}
     else if(_fdCol==='name'){c.name=g('fdi_v');c.phone=g('fdi_phone');}
     else if(_fdCol==='product')c.product=g('fdi_v');
+    else if(_fdCol==='partner')c.partner=g('fdi_v');
+    else if(_fdCol==='pricecost'){c.price_q=g('fdi_pq');c.price_from=g('fdi_pfrom');c.price_to=g('fdi_pto');c.cost_q=g('fdi_cq');c.cost_from=g('fdi_cfrom');c.cost_to=g('fdi_cto');}
+    else if(_fdCol==='months')c.months_q=g('fdi_v');
+    else if(_fdCol==='addr')c.addr=g('fdi_v');
     else if(_fdCol==='monthly'){c.monthly=g('fdi_v');c.monthly_from=g('fdi_from');c.monthly_to=g('fdi_to');}
     else if(_fdCol==='bal'){c.bal_q=g('fdi_v');c.bal_from=g('fdi_from');c.bal_to=g('fdi_to');}
     else if(_fdCol==='over'){c.over_q=g('fdi_v');c.over_from=g('fdi_from');c.over_to=g('fdi_to');}
