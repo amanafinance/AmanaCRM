@@ -750,6 +750,23 @@ function renderDash(){let debt=0,over=0,act=0,done=0;const ovL=[],todL=[],upL=[]
 // ---------- CLIENTS LIST ----------
 function setTab(t,b){S.tab=t;S.CF={id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''};document.querySelectorAll('#page-clients .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderClients();}
 let _clientsPageSize=50,_clientsShown=50;
+// Infinite scroll — автоподгрузка при прокрутке вниз
+let _infiniteObserver=null;
+const _loadMoreFns={clients:()=>loadMoreClients(),kassa:()=>loadMoreKassa(),journal:()=>loadMoreJournal()};
+function setupInfiniteScroll(){
+  if(_infiniteObserver)_infiniteObserver.disconnect();
+  const sentinels=document.querySelectorAll('.scroll-sentinel');
+  if(!sentinels.length)return;
+  _infiniteObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const target=e.target.dataset.target;
+        if(target&&_loadMoreFns[target])_loadMoreFns[target]();
+      }
+    });
+  },{rootMargin:'300px'});
+  sentinels.forEach(s=>_infiniteObserver.observe(s));
+}
 function renderClients(){
   _clientsShown=_clientsPageSize; // сброс при перерисовке
   renderClientsPaged();
@@ -794,8 +811,9 @@ function renderClientsPaged(){
       :(hc?'<span style="color:var(--t3)">—</span> <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'<span style="color:var(--t3)">—</span>');
     return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>Пор: '+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
   }).join('')+'</tbody>':'<tbody><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
-  const loadMoreBtn=hasMore?'<div style="text-align:center;padding:14px"><button class="btn bgh" onclick="loadMoreClients()" style="min-width:200px">Загрузить ещё '+(Math.min(_clientsPageSize,total-_clientsShown))+' из '+(total-_clientsShown)+'</button></div>':'';
+  const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="clients"></div>':'';
   document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(visible)+loadMoreBtn;
+  setupInfiniteScroll();
 }
 function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
 function mobileCardsHtml(list){
@@ -1018,8 +1036,9 @@ function renderJournal(){
   if(!visible.length){document.getElementById('jList').innerHTML='<table class="tbl">'+thead+'<tbody><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody></table>';return;}
   let ld='',rows='';
   visible.forEach(j=>{const d=j.dateStr||'';if(d!==ld){rows+='<tr class="day-sep"><td colspan="4">'+d+'</td></tr>';ld=d;}rows+='<tr><td style="color:var(--t2);width:80px">'+d+'</td><td style="color:var(--t2);width:60px">'+(j.time||'')+'</td><td style="width:180px"><span class="badge ba">'+(j.type||'')+'</span></td><td style="font-size:11px">'+(j.description||'')+'</td></tr>';});
-  const loadMoreBtn=hasMore?'<div style="text-align:center;padding:14px"><button class="btn bgh" onclick="loadMoreJournal()" style="min-width:200px">Загрузить ещё '+(Math.min(50,total-_journalShown))+' из '+(total-_journalShown)+'</button></div>':'';
+  const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="journal"></div>':'';
   document.getElementById('jList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table>'+loadMoreBtn;
+  setupInfiniteScroll();
 }
 function loadMoreJournal(){_journalShown+=50;renderJournal();}
 async function logA(t,d){const{db,collection,addDoc}=window.DB;try{await addDoc(collection(db,'journal'),{type:t,description:d,date:new Date(),dateStr:fmtD(new Date()),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});}catch(e){}}
@@ -2395,8 +2414,9 @@ function renderKassa(){
     const balLine=bal?'<span class="kcard-bal">'+fmt(bal.wallet)+' ₽</span> · общий '+fmt(bal.total)+' ₽':'';
     mobileCards+='<div class="kcard"><div class="kcard-top"><span class="badge '+m.color+'">'+m.name+'</span><span class="kcard-amount '+cl+'">'+sign+fmt(o.amount)+' ₽</span></div><div class="kcard-desc">'+(o.desc||'—')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</div><div class="kcard-bot"><span>'+walletCell+'</span><span>'+balLine+'</span>'+delBtnM+'</div></div>';
   });
-  const loadMoreKBtn=hasMoreK?'<div style="text-align:center;padding:14px"><button class="btn bgh" onclick="loadMoreKassa()" style="min-width:200px">Загрузить ещё '+(Math.min(50,totalOps-_kassaShown))+' из '+(totalOps-_kassaShown)+'</button></div>':'';
+  const loadMoreKBtn=hasMoreK?'<div class="scroll-sentinel" data-target="kassa"></div>':'';
   document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="kcards">'+mobileCards+'</div>'+loadMoreKBtn;
+  setupInfiniteScroll();
 }
 
 function kassaTypeChanged(){
