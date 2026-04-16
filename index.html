@@ -749,7 +749,12 @@ function renderDash(){let debt=0,over=0,act=0,done=0;const ovL=[],todL=[],upL=[]
 
 // ---------- CLIENTS LIST ----------
 function setTab(t,b){S.tab=t;S.CF={id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''};document.querySelectorAll('#page-clients .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderClients();}
+let _clientsPageSize=50,_clientsShown=50;
 function renderClients(){
+  _clientsShown=_clientsPageSize; // сброс при перерисовке
+  renderClientsPaged();
+}
+function renderClientsPaged(){
   const cf=S.CF;
   let list=S.clients.map(c=>{const s=getStats(c),st=effStatus(c,s),mi=getMonthlyInfo(c);return{...c,_st:st,_bal:s.balance,_over:s.overdue,_mi:mi};});
   if(S.tab==='all')list=list;
@@ -771,9 +776,12 @@ function renderClients(){
   if(cf.over_q)list=list.filter(c=>String(c._over||'').includes(cf.over_q));
   if(cf.over_from!=='')list=list.filter(c=>c._over>=(parseFloat(cf.over_from)||0));
   if(cf.over_to!=='')list=list.filter(c=>c._over<=(parseFloat(cf.over_to)||0));
-  document.getElementById('cCount').textContent=list.length+' клиентов';
+  const total=list.length;
+  const visible=list.slice(0,_clientsShown);
+  const hasMore=_clientsShown<total;
+  document.getElementById('cCount').textContent=total+' клиентов'+(hasMore?' (показано '+_clientsShown+')':'');
   const thead='<thead><tr>'+thF('id','№','clients')+thF('date','Дата','clients')+thF('name','Клиент','clients')+thF('product','Товар','clients')+thF('monthly','Ежем. платеж','clients')+thF('bal','Остаток','clients')+thF('over','Просрочка','clients')+'<th><div class="th-cell"><span class="th-name">Статус</span></div></th></tr></thead>';
-  const tb=list.length?'<tbody>'+list.map(c=>{
+  const tb=visible.length?'<tbody>'+visible.map(c=>{
     const dups=findDups(c.name,c.id),hc=c.comment&&c.comment.trim();
     let monthCol;
     if(c._mi.uniform){monthCol='<span class="amt">'+(c._mi.value?fmt(c._mi.value)+' ₽':'—')+'</span>';}
@@ -786,8 +794,10 @@ function renderClients(){
       :(hc?'<span style="color:var(--t3)">—</span> <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'<span style="color:var(--t3)">—</span>');
     return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>Пор: '+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
   }).join('')+'</tbody>':'<tbody><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
-  document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(list);
+  const loadMoreBtn=hasMore?'<div style="text-align:center;padding:14px"><button class="btn bgh" onclick="loadMoreClients()" style="min-width:200px">Загрузить ещё '+(Math.min(_clientsPageSize,total-_clientsShown))+' из '+(total-_clientsShown)+'</button></div>':'';
+  document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(visible)+loadMoreBtn;
 }
+function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
 function mobileCardsHtml(list){
   if(!list.length)return'<div class="mobile-cards" style="display:none"></div>';
   const items=list.map(c=>{
@@ -993,6 +1003,7 @@ function renderPayments(){
 // ---------- JOURNAL (с разделением по дням) ----------
 let _jd=[];
 async function loadJournal(){document.getElementById('jList').innerHTML='<div class="loading"><div class="spin"></div></div>';const{db,collection,query,orderBy,getDocs}=window.DB;try{const s=await getDocs(query(collection(db,'journal'),orderBy('date','desc')));_jd=s.docs.map(d=>({...d.data()}));renderJournal();}catch(e){document.getElementById('jList').innerHTML='<div class="empty">Ошибка</div>';}}
+let _journalShown=50;
 function renderJournal(){
   let list=_jd.slice();const jf=S.JF;
   if(jf.date_q)list=list.filter(j=>(j.dateStr||'').includes(jf.date_q));
@@ -1000,12 +1011,17 @@ function renderJournal(){
   if(jf.date_to){const d=safeDateFromInput(jf.date_to);list=list.filter(j=>{const x=parseD(j.dateStr);return x&&x<=d;});}
   if(jf.type)list=list.filter(j=>(j.type||'')===jf.type);
   if(jf.desc)list=list.filter(j=>(j.description||'').toLowerCase().includes(jf.desc.toLowerCase()));
+  const total=list.length;
+  const visible=list.slice(0,_journalShown);
+  const hasMore=_journalShown<total;
   const thead='<thead><tr>'+thF('date','Дата','journal')+'<th><div class="th-cell"><span class="th-name">Время</span></div></th>'+thF('type','Действие','journal')+thF('desc','Описание','journal')+'</tr></thead>';
-  if(!list.length){document.getElementById('jList').innerHTML='<table class="tbl">'+thead+'<tbody><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody></table>';return;}
+  if(!visible.length){document.getElementById('jList').innerHTML='<table class="tbl">'+thead+'<tbody><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody></table>';return;}
   let ld='',rows='';
-  list.forEach(j=>{const d=j.dateStr||'';if(d!==ld){rows+='<tr class="day-sep"><td colspan="4">'+d+'</td></tr>';ld=d;}rows+='<tr><td style="color:var(--t2);width:80px">'+d+'</td><td style="color:var(--t2);width:60px">'+(j.time||'')+'</td><td style="width:180px"><span class="badge ba">'+(j.type||'')+'</span></td><td style="font-size:11px">'+(j.description||'')+'</td></tr>';});
-  document.getElementById('jList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table>';
+  visible.forEach(j=>{const d=j.dateStr||'';if(d!==ld){rows+='<tr class="day-sep"><td colspan="4">'+d+'</td></tr>';ld=d;}rows+='<tr><td style="color:var(--t2);width:80px">'+d+'</td><td style="color:var(--t2);width:60px">'+(j.time||'')+'</td><td style="width:180px"><span class="badge ba">'+(j.type||'')+'</span></td><td style="font-size:11px">'+(j.description||'')+'</td></tr>';});
+  const loadMoreBtn=hasMore?'<div style="text-align:center;padding:14px"><button class="btn bgh" onclick="loadMoreJournal()" style="min-width:200px">Загрузить ещё '+(Math.min(50,total-_journalShown))+' из '+(total-_journalShown)+'</button></div>':'';
+  document.getElementById('jList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table>'+loadMoreBtn;
 }
+function loadMoreJournal(){_journalShown+=50;renderJournal();}
 async function logA(t,d){const{db,collection,addDoc}=window.DB;try{await addDoc(collection(db,'journal'),{type:t,description:d,date:new Date(),dateStr:fmtD(new Date()),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});}catch(e){}}
 
 // ---------- COMMENT ----------
@@ -2304,7 +2320,10 @@ const kTypeMeta={
 };
 function kMeta(t){return kTypeMeta[t]||{name:t,dir:'neutral',group:'other',color:'brp',auto:false};}
 
-function setKTab(t,b){S.kTab=t;document.querySelectorAll('#kTabs .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderKassa();}
+function setKTab(t,b){S.kTab=t;_kassaShown=50;document.querySelectorAll('#kTabs .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderKassa();}
+
+let _kassaShown=50;
+function loadMoreKassa(){_kassaShown+=50;renderKassa();}
 
 function renderKassa(){
   const el=document.getElementById('kWallets');if(!el)return;
@@ -2355,7 +2374,11 @@ function renderKassa(){
     balanceAfter[o.id]={wallet:walletRunning[o.wallet],total:sum};
   });
   let ld='',rows='',mobileCards='',ldM='';
-  ops.forEach(o=>{
+  // Пагинация: показываем только первые _kassaShown операций
+  const totalOps=ops.length;
+  const visibleOps=ops.slice(0,_kassaShown);
+  const hasMoreK=_kassaShown<totalOps;
+  visibleOps.forEach(o=>{
     const m=kMeta(o.type);
     const d=o.dateStr||'';
     if(d!==ld){rows+='<tr class="day-sep"><td colspan="7">'+d+'</td></tr>';ld=d;}
@@ -2372,7 +2395,8 @@ function renderKassa(){
     const balLine=bal?'<span class="kcard-bal">'+fmt(bal.wallet)+' ₽</span> · общий '+fmt(bal.total)+' ₽':'';
     mobileCards+='<div class="kcard"><div class="kcard-top"><span class="badge '+m.color+'">'+m.name+'</span><span class="kcard-amount '+cl+'">'+sign+fmt(o.amount)+' ₽</span></div><div class="kcard-desc">'+(o.desc||'—')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</div><div class="kcard-bot"><span>'+walletCell+'</span><span>'+balLine+'</span>'+delBtnM+'</div></div>';
   });
-  document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="kcards">'+mobileCards+'</div>';
+  const loadMoreKBtn=hasMoreK?'<div style="text-align:center;padding:14px"><button class="btn bgh" onclick="loadMoreKassa()" style="min-width:200px">Загрузить ещё '+(Math.min(50,totalOps-_kassaShown))+' из '+(totalOps-_kassaShown)+'</button></div>':'';
+  document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="kcards">'+mobileCards+'</div>'+loadMoreKBtn;
 }
 
 function kassaTypeChanged(){
