@@ -826,20 +826,17 @@ function renderClientsPaged(){
     return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>Пор: '+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:11px;color:var(--t2)">'+(c.partner||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;font-size:12px">'+fmt(c.price||0)+' ₽</div><div style="font-size:10px;color:var(--t3)">себест: '+fmt(c.cost||0)+' ₽</div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="text-align:center">'+(c.months||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:10px;color:var(--t2);max-width:120px;word-wrap:break-word">'+(c.addr||'\u2014')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
   }).join('')+'</tbody>':'<tbody><tr><td colspan="12" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
   const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="clients"></div>':'';
-  // Панель итогов по отфильтрованным данным (все, не только показанные)
-  let sumPrice=0,sumCost=0,sumBal=0,sumOver=0,sumPrepay=0,sumMonthly=0,cntMonthly=0;
+  // Панель итогов — суммы под соответствующими столбцами
+  let sumPrice=0,sumCost=0,sumBal=0,sumOver=0,sumPrepay=0;
   list.forEach(c=>{
     sumPrice+=parseFloat(c.price)||0;
     sumCost+=parseFloat(c.cost)||0;
     sumBal+=c._bal||0;
     sumOver+=c._over||0;
     sumPrepay+=parseFloat(c.prepay)||0;
-    if(c._mi&&c._mi.uniform&&c._mi.value){sumMonthly+=c._mi.value;cntMonthly++;}
   });
-  const avgPrice=total?sumPrice/total:0;
-  const avgCost=total?sumCost/total:0;
-  const summaryBar='<div class="summary-bar"><span><strong>'+total+'</strong> клиентов</span><span>Цены: <strong>'+fmt(sumPrice)+'</strong> ₽</span><span>Себест: <strong>'+fmt(sumCost)+'</strong> ₽</span><span>Предоплаты: <strong>'+fmt(sumPrepay)+'</strong> ₽</span><span>Остаток: <strong>'+fmt(sumBal)+'</strong> ₽</span>'+(sumOver>0?'<span style="color:var(--red)">Просрочки: <strong>'+fmt(sumOver)+'</strong> ₽</span>':'')+'<span>Ср. цена: <strong>'+fmt(avgPrice)+'</strong> ₽</span><span>Ср. себест: <strong>'+fmt(avgCost)+'</strong> ₽</span></div>';
-  document.getElementById('cList').innerHTML=summaryBar+'<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(visible)+loadMoreBtn;
+  const sumRow='<tfoot><tr style="background:var(--bg3);font-weight:700;font-size:11px"><td></td><td></td><td></td><td></td><td></td><td><div>'+fmt(sumPrice)+' ₽</div><div style="font-size:10px;color:var(--t3);font-weight:600">'+fmt(sumCost)+' ₽</div></td><td></td><td></td><td>'+fmt(sumBal)+' ₽</td><td>'+(sumOver>0?'<span style="color:var(--red)">'+fmt(sumOver)+' ₽</span>':'')+'</td><td></td><td></td></tr></tfoot>';
+  document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+sumRow+'</table>'+mobileCardsHtml(visible)+loadMoreBtn;
   setupInfiniteScroll();
 }
 function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
