@@ -1811,9 +1811,9 @@ function renderReminders(){
   const soon=items.filter(i=>i.cat==='soon').sort((a,b)=>a.diffDays-b.diffDays);
   document.getElementById('remCount').textContent=(overdue.length+tod.length+soon.length)+' клиентов';
   // Шаблоны текстов
-  const txtOverdue=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Оплата по рассрочке просрочена на '+Math.abs(days)+' дн. Сумма: '+fmt(amt)+' ₽. Amana Finance';
-  const txtToday=(c,amt)=>'Ассаламу алейкум, '+c.name+'! Сегодня дата оплаты по рассрочке. Сумма: '+fmt(amt)+' ₽. Amana Finance';
-  const txtSoon=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Напоминаем что через '+days+' дн. дата оплаты по рассрочке. Сумма: '+fmt(amt)+' ₽. Amana Finance';
+  const txtOverdue=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Оплата по рассрочке просрочена на '+Math.abs(days)+' дней. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп';
+  const txtToday=(c,amt)=>'Ассаламу алейкум, '+c.name+'! Сегодня дата оплаты по рассрочке. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп';
+  const txtSoon=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Напоминаем что через '+days+' дня дата оплаты по рассрочке. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп';
   function renderCard(i){
     const c=i.client;
     let label='',cls='',txt='';
