@@ -797,6 +797,8 @@ function renderClients(){
 function renderClientsPaged(){
   const cf=S.CF;
   let list=S.clients.map(c=>{const s=getStats(c),st=effStatus(c,s),mi=getMonthlyInfo(c);return{...c,_st:st,_bal:s.balance,_over:s.overdue,_mi:mi};});
+  // Сортировка по номеру договора (новые сверху)
+  list.sort((a,b)=>{const na=parseInt(a.contractId)||0,nb=parseInt(b.contractId)||0;return nb-na;});
   if(S.tab==='all')list=list;
   else if(S.tab==='overdue')list=list.filter(c=>c._over>0&&c._st==='активный');
   else list=list.filter(c=>c._st===S.tab);
