@@ -1761,17 +1761,15 @@ function telLink(phone){
 function zvonokCall(phone,text,btnEl){
   let p=phone.replace(/\D/g,'');
   if(p.startsWith('8')&&p.length===11)p='7'+p.slice(1);
-  const url='https://zvonok.com/manager/cabapi_external/api/v1/phones/call/?public_key='+ZVONOK_KEY+'&phone='+p+'&campaign_id='+ZVONOK_CAMPAIGN+'&text='+encodeURIComponent(text)+'&speaker=Tatyana';
+  const url='https://zvonok.com/manager/cabapi_external/api/v1/phones/call/?public_key='+ZVONOK_KEY+'&phone='+encodeURIComponent(p)+'&campaign_id='+ZVONOK_CAMPAIGN+'&text='+encodeURIComponent(text)+'&speaker=Tatyana';
   if(btnEl){btnEl.textContent='Звоним...';btnEl.style.opacity='0.6';btnEl.disabled=true;}
-  // GET-запрос через Image (обходит CORS)
-  const img=new Image();
-  img.onload=img.onerror=()=>{
+  // Открываем в новой вкладке — самый надёжный способ отправить GET-запрос
+  const w=window.open(url,'_blank','width=1,height=1');
+  setTimeout(()=>{
+    try{if(w)w.close();}catch(e){}
     toast('Звонок отправлен на '+fmtPhone(phone),'tok');
     if(btnEl){btnEl.textContent='✓ Отправлен';setTimeout(()=>{btnEl.textContent='Автозвонок';btnEl.style.opacity='1';btnEl.disabled=false;},3000);}
-  };
-  img.src=url;
-  // Параллельно fetch (может сработать если CORS разрешён)
-  fetch(url,{mode:'no-cors'}).catch(()=>{});
+  },3000);
 }
 
 function renderReminders(){
