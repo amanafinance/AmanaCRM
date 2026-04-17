@@ -74,6 +74,13 @@ body.light .bg{color:#ffffff}body.light .bg:hover{background:#7ba71a}
 .summary-bar{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 14px;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r2);margin-bottom:10px;font-size:11px;color:var(--t2);align-items:center}
 .summary-bar strong{color:var(--text);font-family:'Manrope',sans-serif;font-weight:700}
 .sum-row td{background:var(--bg3);font-size:12px;padding:8px 14px!important;border-bottom:2px solid var(--green)}
+.sticky-sum-bar{position:fixed;bottom:0;left:220px;right:0;background:var(--card);border-top:2px solid var(--green);padding:8px 18px;display:flex;align-items:center;gap:6px;z-index:400;box-shadow:0 -2px 12px rgba(0,0,0,0.1);font-family:'Manrope',sans-serif}
+.ssb-item{display:flex;flex-direction:column;align-items:center;gap:1px}
+.ssb-label{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.ssb-val{font-size:14px;font-weight:800;color:var(--text)}
+.ssb-red{color:var(--red)!important}
+.ssb-sep{font-size:14px;color:var(--t3);font-weight:300;padding:0 2px}
+.ssb-div{width:1px;height:28px;background:var(--brd2);margin:0 8px}
 .sc{background:var(--card);border:1px solid var(--brd2);border-radius:var(--r);padding:18px}
 .sl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
 .sv{font-family:'Manrope',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em}
@@ -233,6 +240,10 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mcard-row:first-of-type{border-top:none;padding-top:2px}
 .mcard-label{color:var(--t3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
 .summary-bar{font-size:10px;gap:6px 10px;padding:8px 10px}
+.sticky-sum-bar{left:0!important;bottom:60px!important;padding:6px 10px;gap:4px}
+.ssb-val{font-size:12px}
+.ssb-label{font-size:8px}
+.ssb-div{margin:0 4px;height:22px}
 .mcard-val{font-weight:700;font-size:12.5px}
 /* Касса — карточный вид (а не таблица) */
 #kList .tbl{display:none!important}
@@ -681,6 +692,9 @@ function goTo(p){
   if(page)page.style.display='block';
   const n=document.getElementById('nav-'+p);
   if(n)n.classList.add('on');
+  // Показывать/скрывать липкую панель итогов клиентов
+  const stickyBar=document.getElementById('clientsStickyBar');
+  if(stickyBar)stickyBar.style.display=(p==='clients')?'flex':'none';
   // Автоматически раскрываем группу "Деньги" если перешли в её подстраницу
   if(p==='kassa'||p==='investors'||p==='reports'){
     const sub=document.getElementById('nb-sub-money');
@@ -821,9 +835,7 @@ function renderClientsPaged(){
   // Суммы для строки итогов
   let sumPrice=0,sumCost=0,sumBal=0,sumOver=0,sumPrepay=0;
   list.forEach(c=>{sumPrice+=parseFloat(c.price)||0;sumCost+=parseFloat(c.cost)||0;sumBal+=c._bal||0;sumOver+=c._over||0;sumPrepay+=parseFloat(c.prepay)||0;});
-  // Столбцы: № | Дата | Клиент | Товар | Партнёр | Цена/Себест | Предоплата | Мес | Остаток | Ежем.платёж | Просрочка | Адрес | Статус
-  const sumTr='<tr class="sum-row"><td></td><td></td><td></td><td></td><td></td><td><div style="font-weight:700">'+fmt(sumPrice)+' ₽</div><div style="font-size:10px;color:var(--t3)">'+fmt(sumCost)+' ₽</div></td><td style="font-weight:700">'+fmt(sumPrepay)+' ₽</td><td></td><td style="font-weight:700">'+fmt(sumBal)+' ₽</td><td></td><td style="font-weight:700;color:var(--red)">'+(sumOver>0?fmt(sumOver)+' ₽':'')+'</td><td></td><td></td></tr>';
-  const thead='<thead>'+sumTr+'<tr>'+thF('id','№','clients')+thF('date','Дата','clients')+thF('name','Клиент','clients')+thF('product','Товар','clients')+thF('partner','Партнёр','clients')+thF('pricecost','Цена / Себест.','clients')+thF('prepay','Предоплата','clients')+thF('months','Мес.','clients')+thF('bal','Остаток','clients')+thF('monthly','Ежем. платеж','clients')+thF('over','Просрочка','clients')+thF('addr','Адрес','clients')+'<th><div class="th-cell"><span class="th-name">Статус</span></div></th></tr></thead>';
+  const thead='<thead><tr>'+thF('id','№','clients')+thF('date','Дата','clients')+thF('name','Клиент','clients')+thF('product','Товар','clients')+thF('partner','Партнёр','clients')+thF('pricecost','Цена / Себест.','clients')+thF('prepay','Предоплата','clients')+thF('months','Мес.','clients')+thF('bal','Остаток','clients')+thF('monthly','Ежем. платеж','clients')+thF('over','Просрочка','clients')+thF('addr','Адрес','clients')+'<th><div class="th-cell"><span class="th-name">Статус</span></div></th></tr></thead>';
   const tb=visible.length?'<tbody>'+visible.map(c=>{
     const dups=findDups(c.name,c.id),hc=c.comment&&c.comment.trim();
     let monthCol;
@@ -839,6 +851,10 @@ function renderClientsPaged(){
   }).join('')+'</tbody>':'<tbody><tr><td colspan="13" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
   const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="clients"></div>':'';
   document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(visible)+loadMoreBtn;
+  // Обновляем липкую панель итогов
+  let stickyEl=document.getElementById('clientsStickyBar');
+  if(!stickyEl){stickyEl=document.createElement('div');stickyEl.id='clientsStickyBar';stickyEl.className='sticky-sum-bar';document.getElementById('page-clients').appendChild(stickyEl);}
+  stickyEl.innerHTML='<div class="ssb-item"><div class="ssb-label">Цена</div><div class="ssb-val">'+fmt(sumPrice)+'</div></div><div class="ssb-sep">/</div><div class="ssb-item"><div class="ssb-label">Себест.</div><div class="ssb-val">'+fmt(sumCost)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Предоплаты</div><div class="ssb-val">'+fmt(sumPrepay)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Остаток</div><div class="ssb-val">'+fmt(sumBal)+'</div></div>'+(sumOver>0?'<div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Просрочки</div><div class="ssb-val ssb-red">'+fmt(sumOver)+'</div></div>':'');
   setupInfiniteScroll();
 }
 function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
