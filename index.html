@@ -71,6 +71,33 @@ body.light .bg{color:#ffffff}body.light .bg:hover{background:#7ba71a}
 .report-block{margin-bottom:18px;padding:14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--r1)}
 .report-block-title{font-family:Unbounded,sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
 .kcards{display:none}
+/* Напоминания */
+.rem-block{margin-bottom:18px}
+.rem-block-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 4px}
+.rem-block-icon{font-size:16px}
+.rem-block-title{font-family:Unbounded,sans-serif;font-size:13px;font-weight:700}
+.rem-block-count{background:var(--bg3);border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--t2)}
+.rem-block-list{display:flex;flex-direction:column;gap:8px}
+.rem-card{background:var(--card);border:1px solid var(--brd2);border-radius:10px;padding:12px 14px;transition:.15s}
+.rem-card:hover{border-color:var(--green)}
+.rem-card.rem-overdue{border-left:3px solid var(--red)}
+.rem-card.rem-today{border-left:3px solid #e6a817}
+.rem-card.rem-soon{border-left:3px solid var(--green)}
+.rem-card-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.rem-card-name{font-weight:700;font-size:13px;cursor:pointer}
+.rem-card-name:hover{color:var(--green)}
+.rem-card-amount{font-family:'Manrope',sans-serif;font-weight:800;font-size:15px}
+.rem-card-mid{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--t2)}
+.rem-card-phone{font-family:'Manrope',sans-serif}
+.rem-card-label{font-weight:700;font-size:11px}
+.rem-overdue .rem-card-label{color:var(--red)}
+.rem-today .rem-card-label{color:#e6a817}
+.rem-soon .rem-card-label{color:var(--green)}
+.rem-card-actions{display:flex;gap:8px}
+.rem-btn-call{background:var(--bg3)!important;color:var(--text)!important;padding:8px 14px!important;font-size:12px!important;border-radius:8px!important;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.rem-btn-call:hover{background:var(--green)!important;color:#fff!important}
+.rem-btn-wa{background:#25d366!important;color:#fff!important;padding:8px 14px!important;font-size:12px!important;border-radius:8px!important;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.rem-btn-wa:hover{background:#1da851!important}
 .summary-bar{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 14px;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r2);margin-bottom:10px;font-size:11px;color:var(--t2);align-items:center}
 .summary-bar strong{color:var(--text);font-family:'Manrope',sans-serif;font-weight:700}
 .sum-row td{background:var(--bg3);font-size:12px;padding:8px 14px!important;border-bottom:2px solid var(--green)}
@@ -347,6 +374,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="sg">Работа</div>
 <button class="nb" id="nav-clients" onclick="goTo('clients')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Клиенты</button>
 <button class="nb" id="nav-kassa" onclick="goTo('kassa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h2"/></svg>Касса</button>
+<button class="nb" id="nav-reminders" onclick="goTo('reminders')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Напоминания</button>
 <!-- Скрытые: Инвесторы и Отчёты (код сохранён, вернуть — убрать display:none) -->
 <div style="display:none">
 <button class="nb nb-group" id="nav-money" onclick="toggleMenuGroup('money',event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Деньги</button>
@@ -369,9 +397,11 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 </div><div class="sfoot"><span>Amana Finance &copy; 2025</span><button class="logout-btn" onclick="doLogout()">Выйти</button></div></aside>
 <div class="nb-sub-overlay" id="nbSubOverlay" onclick="closeAllSubMenus()"></div>
 <main class="main">
-<div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card"><div class="ct">Просрочники</div><div id="dOver"></div></div><div><div class="card"><div class="ct">Платежи сегодня</div><div id="dToday"></div></div><div class="card"><div class="ct">Ближайшие 3 дня</div><div id="dUp"></div></div></div></div></div>
+<div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div><div id="dRemWidget" style="margin-bottom:14px"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card"><div class="ct">Просрочники</div><div id="dOver"></div></div><div><div class="card"><div class="ct">Платежи сегодня</div><div id="dToday"></div></div><div class="card"><div class="ct">Ближайшие 3 дня</div><div id="dUp"></div></div></div></div></div>
 <div id="page-clients" class="page" style="display:none"><div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('overdue',this)">Просроченные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button></div><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
 <div id="page-client" class="page" style="display:none"><button class="bback" onclick="goTo('clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
+
+<div id="page-reminders" class="page" style="display:none"><div class="ph"><div><div class="pt">Напоминания</div><div class="ps" id="remCount"></div></div></div><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div>
 
 <div id="page-kassa" class="page" style="display:none">
 <div class="ph"><div><div class="pt">Касса</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
@@ -721,6 +751,7 @@ function goTo(p){
   if(p==='settings')renderSettings();
   if(p==='investors'){S.curInvestor=null;renderInvestors();}
   if(p==='reports')renderReports();
+  if(p==='reminders')renderReminders();
   if(p==='client'&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}
 }
 
@@ -771,7 +802,12 @@ function initMenuGroups(){
 }
 
 // ---------- DASHBOARD ----------
-function renderDash(){let debt=0,over=0,act=0,done=0;const ovL=[],todL=[],upL=[];S.clients.forEach(c=>{const s=getStats(c),st=effStatus(c,s);if(st==='завершён'){done++;return;}act++;debt+=s.balance;over+=s.overdue;if(s.overdue>0)ovL.push({c,s});s.schedule.forEach(p=>{if(p.diff===0&&p.st!=='paid')todL.push({c,p});if(p.diff>0&&p.diff<=3&&p.st!=='paid')upL.push({c,p});});});document.getElementById('dStats').innerHTML='<div class="sc"><div class="sl">Активных</div><div class="sv cg">'+act+'</div><div class="ss">Завершённых: '+done+'</div></div><div class="sc"><div class="sl">Общий долг</div><div class="sv">'+fmt(debt)+' ₽</div></div><div class="sc"><div class="sl">Просрочка</div><div class="sv cr">'+fmt(over)+' ₽</div><div class="ss">'+ovL.length+' клиентов</div></div><div class="sc"><div class="sl">Сегодня</div><div class="sv cy">'+todL.length+'</div><div class="ss">платежей</div></div>';document.getElementById('dOver').innerHTML=ovL.length?ovL.map(({c,s})=>'<div class="di dio" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+fmt(s.balance)+' ₽</div></div><div class="amt cr">'+fmt(s.overdue)+' ₽</div></div>').join(''):'<div class="empty" style="padding:12px">Нет</div>';document.getElementById('dToday').innerHTML=todL.length?todL.map(({c,p})=>'<div class="di dit" onclick="openC(\''+c.id+'\')"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div class="amt cy">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';document.getElementById('dUp').innerHTML=upL.length?upL.map(({c,p})=>'<div class="di diu" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+p.date+' · через '+p.diff+' дн.</div></div><div class="amt" style="font-size:11px">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';}
+function renderDash(){let debt=0,over=0,act=0,done=0;const ovL=[],todL=[],upL=[];S.clients.forEach(c=>{const s=getStats(c),st=effStatus(c,s);if(st==='завершён'){done++;return;}act++;debt+=s.balance;over+=s.overdue;if(s.overdue>0)ovL.push({c,s});s.schedule.forEach(p=>{if(p.diff===0&&p.st!=='paid')todL.push({c,p});if(p.diff>0&&p.diff<=3&&p.st!=='paid')upL.push({c,p});});});document.getElementById('dStats').innerHTML='<div class="sc"><div class="sl">Активных</div><div class="sv cg">'+act+'</div><div class="ss">Завершённых: '+done+'</div></div><div class="sc"><div class="sl">Общий долг</div><div class="sv">'+fmt(debt)+' ₽</div></div><div class="sc"><div class="sl">Просрочка</div><div class="sv cr">'+fmt(over)+' ₽</div><div class="ss">'+ovL.length+' клиентов</div></div><div class="sc"><div class="sl">Сегодня</div><div class="sv cy">'+todL.length+'</div><div class="ss">платежей</div></div>';document.getElementById('dOver').innerHTML=ovL.length?ovL.map(({c,s})=>'<div class="di dio" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+fmt(s.balance)+' ₽</div></div><div class="amt cr">'+fmt(s.overdue)+' ₽</div></div>').join(''):'<div class="empty" style="padding:12px">Нет</div>';document.getElementById('dToday').innerHTML=todL.length?todL.map(({c,p})=>'<div class="di dit" onclick="openC(\''+c.id+'\')"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div class="amt cy">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';document.getElementById('dUp').innerHTML=upL.length?upL.map(({c,p})=>'<div class="di diu" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+p.date+' · через '+p.diff+' дн.</div></div><div class="amt" style="font-size:11px">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';
+  // Виджет напоминаний
+  const remTotal=ovL.length+todL.length+upL.length;
+  const remW=document.getElementById('dRemWidget');
+  if(remW){remW.innerHTML=remTotal>0?'<div class="card" style="cursor:pointer;border-color:'+(ovL.length?'var(--red)':todL.length?'#e6a817':'var(--green)')+';border-width:1.5px" onclick="goTo(\'reminders\')"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">'+(ovL.length?'🔴':todL.length?'🟡':'🟢')+'</span><div><div style="font-weight:700;font-size:13px">Напоминания</div><div style="font-size:11px;color:var(--t2)">'+(ovL.length?ovL.length+' просрочек · ':'')+(todL.length?todL.length+' сегодня · ':'')+upL.length+' скоро</div></div></div><button class="btn bg bsm">Открыть</button></div></div>':'';}
+}
 
 // ---------- CLIENTS LIST ----------
 function setTab(t,b){S.tab=t;S.CF={id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',partner:'',price_q:'',price_from:'',price_to:'',cost_q:'',cost_from:'',cost_to:'',prepay_q:'',prepay_from:'',prepay_to:'',months_q:'',months_from:'',months_to:'',firstpay_q:'',firstpay_from:'',firstpay_to:'',addr:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''};document.querySelectorAll('#page-clients .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderClients();}
@@ -1702,6 +1738,81 @@ function changeInvFinPeriod(delta){
   _invFinPeriod={year:y,month:m};
   renderInvestorsFinance();
 }
+// ------------ НАПОМИНАНИЯ ------------
+function getPhoneDigits(c){
+  const ph=(c.phones||[])[0]||'';
+  return ph.replace(/\D/g,'');
+}
+function waLink(phone,text){
+  let p=phone.replace(/\D/g,'');
+  if(p.startsWith('8')&&p.length===11)p='7'+p.slice(1);
+  return'https://wa.me/'+p+'?text='+encodeURIComponent(text);
+}
+function telLink(phone){
+  let p=phone.replace(/\D/g,'');
+  return'tel:+'+((p.startsWith('8')&&p.length===11)?'7'+p.slice(1):p);
+}
+
+function renderReminders(){
+  const el=document.getElementById('remContent');if(!el)return;
+  const now=today();
+  const in3=new Date(now);in3.setDate(in3.getDate()+3);
+  // Собираем все ближайшие платежи по графику
+  const items=[];
+  S.clients.forEach(c=>{
+    const st=effStatus(c);if(st==='завершён')return;
+    const mo=parseInt(c.months)||0;
+    const phone=getPhoneDigits(c);
+    if(!phone)return;
+    for(let m=1;m<=mo;m++){
+      const dt=parseD(c['дата'+m]);if(!dt)continue;
+      const size=parseFloat(c['размер'+m])||0;if(!size)continue;
+      // Проверяем: оплачен ли этот платёж
+      const paid=S.payments.filter(p=>p.clientId===c.id&&p.type==='payment').reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+      const prepaid=parseFloat(c.prepay)||0;
+      const dueUpTo=[];for(let k=1;k<=m;k++)dueUpTo.push(parseFloat(c['размер'+k])||0);
+      const totalDue=dueUpTo.reduce((s,v)=>s+v,0);
+      // Если уже оплачено за все предыдущие + этот — пропускаем
+      if(paid>=totalDue)continue;
+      // Определяем категорию
+      const diffDays=Math.round((dt-now)/(1000*60*60*24));
+      let cat='';
+      if(diffDays<0)cat='overdue';
+      else if(diffDays===0)cat='today';
+      else if(diffDays<=3)cat='soon';
+      else continue;
+      items.push({client:c,date:dt,amount:size,diffDays,cat,phone,monthNum:m});
+      break; // Только ближайший неоплаченный платёж
+    }
+  });
+  // Разбиваем по категориям
+  const overdue=items.filter(i=>i.cat==='overdue').sort((a,b)=>a.diffDays-b.diffDays);
+  const tod=items.filter(i=>i.cat==='today');
+  const soon=items.filter(i=>i.cat==='soon').sort((a,b)=>a.diffDays-b.diffDays);
+  document.getElementById('remCount').textContent=(overdue.length+tod.length+soon.length)+' клиентов';
+  // Шаблоны текстов
+  const txtOverdue=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Оплата по рассрочке просрочена на '+Math.abs(days)+' дн. Сумма: '+fmt(amt)+' ₽. Amana Finance';
+  const txtToday=(c,amt)=>'Ассаламу алейкум, '+c.name+'! Сегодня дата оплаты по рассрочке. Сумма: '+fmt(amt)+' ₽. Amana Finance';
+  const txtSoon=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Напоминаем что через '+days+' дн. дата оплаты по рассрочке. Сумма: '+fmt(amt)+' ₽. Amana Finance';
+  function renderCard(i){
+    const c=i.client;
+    let label='',cls='',txt='';
+    if(i.cat==='overdue'){label='просрочка '+Math.abs(i.diffDays)+' дн.';cls='rem-overdue';txt=txtOverdue(c,i.diffDays,i.amount);}
+    else if(i.cat==='today'){label='сегодня';cls='rem-today';txt=txtToday(c,i.amount);}
+    else{label='через '+i.diffDays+' дн.';cls='rem-soon';txt=txtSoon(c,i.diffDays,i.amount);}
+    const wa=waLink(i.phone,txt);
+    const tel=telLink(i.phone);
+    return'<div class="rem-card '+cls+'"><div class="rem-card-top"><div class="rem-card-name" onclick="openC(\''+c.id+'\')">'+c.name+'</div><div class="rem-card-amount">'+fmt(i.amount)+' ₽</div></div><div class="rem-card-mid"><span class="rem-card-phone">'+fmtPhone(i.phone)+'</span><span class="rem-card-label">'+label+'</span></div><div class="rem-card-actions"><a href="'+tel+'" class="btn rem-btn-call"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Позвонить</a><a href="'+wa+'" target="_blank" class="btn rem-btn-wa"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 0 0 .611.611l4.458-1.495A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.354 0-4.542-.726-6.353-1.963l-.456-.318-2.934.984.984-2.934-.318-.456A9.959 9.959 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>WhatsApp</a></div></div>';
+  }
+  function renderBlock(title,icon,items,cls){
+    if(!items.length)return'';
+    return'<div class="rem-block '+cls+'"><div class="rem-block-header"><span class="rem-block-icon">'+icon+'</span><span class="rem-block-title">'+title+'</span><span class="rem-block-count">'+items.length+'</span></div><div class="rem-block-list">'+items.map(renderCard).join('')+'</div></div>';
+  }
+  const html=renderBlock('Просрочка','🔴',overdue,'rem-block-overdue')+renderBlock('Сегодня','🟡',tod,'rem-block-today')+renderBlock('Через 1-3 дня','🟢',soon,'rem-block-soon');
+  el.innerHTML=html||'<div style="text-align:center;padding:40px;color:var(--t3)"><div style="font-size:32px;margin-bottom:10px">✅</div><div style="font-size:14px">Нет клиентов для напоминания</div><div style="font-size:12px;margin-top:6px">Все платежи в порядке</div></div>';
+}
+// ------------ НАПОМИНАНИЯ (КОНЕЦ) ------------
+
 // ------------ ОТЧЁТЫ ------------
 let _reportsPeriod={type:'month',year:new Date().getFullYear(),month:new Date().getMonth(),from:'',to:''};
 
