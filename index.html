@@ -74,7 +74,7 @@ body.light .bg{color:#ffffff}body.light .bg:hover{background:#7ba71a}
 .summary-bar{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 14px;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r2);margin-bottom:10px;font-size:11px;color:var(--t2);align-items:center}
 .summary-bar strong{color:var(--text);font-family:'Manrope',sans-serif;font-weight:700}
 .sum-row td{background:var(--bg3);font-size:12px;padding:8px 14px!important;border-bottom:2px solid var(--green)}
-.sticky-sum-bar{position:fixed;bottom:0;left:220px;right:0;background:var(--card);border-top:2px solid var(--green);padding:8px 18px;display:flex;align-items:center;gap:6px;z-index:400;box-shadow:0 -2px 12px rgba(0,0,0,0.1);font-family:'Manrope',sans-serif}
+.sticky-sum-bar{position:fixed;bottom:0;left:220px;right:0;background:var(--card);border-top:2px solid var(--green);padding:8px 18px;display:flex;align-items:center;justify-content:flex-end;gap:6px;z-index:400;box-shadow:0 -2px 12px rgba(0,0,0,0.1);font-family:'Manrope',sans-serif}
 .ssb-item{display:flex;flex-direction:column;align-items:center;gap:1px}
 .ssb-label{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
 .ssb-val{font-size:14px;font-weight:800;color:var(--text)}
@@ -861,7 +861,7 @@ function renderClientsPaged(){
   // Обновляем липкую панель итогов
   let stickyEl=document.getElementById('clientsStickyBar');
   if(!stickyEl){stickyEl=document.createElement('div');stickyEl.id='clientsStickyBar';stickyEl.className='sticky-sum-bar';document.getElementById('page-clients').appendChild(stickyEl);}
-  stickyEl.innerHTML='<div class="ssb-item"><div class="ssb-label">Цена</div><div class="ssb-val">'+fmt(sumPrice)+'</div></div><div class="ssb-sep">/</div><div class="ssb-item"><div class="ssb-label">Себест.</div><div class="ssb-val">'+fmt(sumCost)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Предоплаты</div><div class="ssb-val">'+fmt(sumPrepay)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Остаток</div><div class="ssb-val">'+fmt(sumBal)+'</div></div>'+(sumOver>0?'<div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Просрочки</div><div class="ssb-val ssb-red">'+fmt(sumOver)+'</div></div>':'');
+  stickyEl.innerHTML='<div class="ssb-item"><div class="ssb-label">Цена</div><div class="ssb-val">'+fmt(sumPrice)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Себест.</div><div class="ssb-val">'+fmt(sumCost)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Предоплаты</div><div class="ssb-val">'+fmt(sumPrepay)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Остаток</div><div class="ssb-val">'+fmt(sumBal)+'</div></div><div class="ssb-div"></div><div class="ssb-item"><div class="ssb-label">Просрочки</div><div class="ssb-val'+(sumOver>0?' ssb-red':'')+'">'+fmt(sumOver)+'</div></div>';
   setupInfiniteScroll();
 }
 function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
