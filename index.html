@@ -108,14 +108,19 @@ body.light .fdo-apply{color:#ffffff}
 .fdo-reset{background:var(--bg3);color:var(--t2)}
 .tbl-wrap{overflow-x:auto}
 .tbl{width:100%;border-collapse:collapse}
-.tbl th{border-bottom:2px solid var(--brd2);white-space:nowrap;background:var(--card)}
+.tbl th{border-bottom:2px solid var(--brd2);white-space:nowrap;background:var(--card);position:sticky;top:0;z-index:2}
 .th-cell{display:flex;align-items:center;justify-content:flex-start;gap:4px;padding:12px 14px;cursor:pointer;user-select:none;transition:.15s;min-height:42px;text-align:left}
 .th-cell:hover{background:rgba(149,193,31,0.08)}
 .th-name{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;transition:.15s}
 .th-name.filtered{color:var(--green)}
 .th-cell:hover .th-name{color:var(--green)}
-.tbl td{padding:12px;border-bottom:1px solid var(--brd2);font-size:12px;vertical-align:middle}
+.tbl td{padding:12px;border-bottom:1px solid var(--brd2);font-size:12px;vertical-align:middle;white-space:nowrap}
 .tbl tbody tr:hover td{background:var(--bg3)}
+/* Таблица клиентов — скролл в обе стороны как в Excel */
+#page-clients > .card > .tbl-wrap{overflow:auto;max-height:calc(100vh - 240px);-webkit-overflow-scrolling:touch}
+#page-clients .tbl{min-width:1200px}
+#page-clients .tbl .sum-row td{position:sticky;top:0;z-index:3;background:var(--bg3)}
+#page-clients .tbl thead th{top:0;z-index:2;background:var(--card)}
 .tbl tbody tr:last-child td{border-bottom:none}
 .crow{cursor:pointer}
 .tbl th.plain{padding:10px 12px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;text-align:left}
@@ -228,8 +233,8 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 /* Список клиентов → карточки на мобильном */
 #cList > .tbl{display:none}
 #cList .mobile-cards{display:flex;flex-direction:column;gap:8px;padding:0}
-#page-clients > .card{background:transparent;border:none;padding:0!important}
-#page-clients > .card > .tbl-wrap{overflow:visible}
+#page-clients > .card{background:transparent;border:none;padding:0!important;overflow:visible!important}
+#page-clients > .card > .tbl-wrap{overflow:auto;max-height:calc(100vh - 220px);-webkit-overflow-scrolling:touch}
 .mcard{background:var(--bg3);border:1px solid var(--brd2);border-radius:10px;padding:12px;cursor:pointer;transition:.15s}
 .mcard:active{background:var(--card);transform:scale(0.99)}
 .mcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
@@ -362,7 +367,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="nb-sub-overlay" id="nbSubOverlay" onclick="closeAllSubMenus()"></div>
 <main class="main">
 <div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card"><div class="ct">Просрочники</div><div id="dOver"></div></div><div><div class="card"><div class="ct">Платежи сегодня</div><div id="dToday"></div></div><div class="card"><div class="ct">Ближайшие 3 дня</div><div id="dUp"></div></div></div></div></div>
-<div id="page-clients" class="page" style="display:none"><div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('overdue',this)">Просроченные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button></div><div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
+<div id="page-clients" class="page" style="display:none"><div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('overdue',this)">Просроченные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button></div><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
 <div id="page-client" class="page" style="display:none"><button class="bback" onclick="goTo('clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
 
 <div id="page-kassa" class="page" style="display:none">
@@ -383,7 +388,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 </main></div>
 
 <div class="mover" id="mClient"><div class="modal"><div class="mtitle" id="mCTitle">Новый договор</div><div class="dup-warn" id="dupWarn"><strong>Внимание:</strong> Повторный клиент<div class="dup-list" id="dupList"></div></div>
-<div class="sdiv">Основное</div><div class="fg"><div class="fgp ff"><label class="lbl">Дата оформления</label><input class="inp" type="date" id="f_date" oninput="calcSched()"/></div></div>
+<div class="sdiv">Основное</div><div class="fg"><div class="fgp ff"><label class="lbl">Дата оформления</label><input class="inp" type="date" id="f_date" oninput="onDateChange()"/></div></div>
 <div class="sdiv">Клиент</div><div class="fg"><div class="fgp"><label class="lbl">ФИО клиента *</label><input class="inp" type="text" id="f_name" placeholder="Иванов Иван Иванович" oninput="checkDup()"/></div><div class="fgp"><label class="lbl">Телефоны клиента</label><div id="fPhones"><div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh('fPhones')">+</button></div></div></div><div class="fgp ff"><label class="lbl">Адрес клиента</label><input class="inp" type="text" id="f_addr"/></div></div>
 <div class="sdiv">Поручитель</div><div class="fg"><div class="fgp"><label class="lbl">ФИО поручителя</label><input class="inp" type="text" id="f_gname"/></div><div class="fgp"><label class="lbl">Телефоны поручителя</label><div id="fGphones"><div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh('fGphones')">+</button></div></div></div><div class="fgp ff"><label class="lbl">Адрес поручителя</label><input class="inp" type="text" id="f_gaddr"/></div></div>
 <div class="sdiv">Товар и финансы</div><div class="fg"><div class="fgp"><label class="lbl">Товар *</label><input class="inp" type="text" id="f_product"/></div><div class="fgp"><label class="lbl">Партнёр</label><select class="inp sel" id="f_partner"></select></div><div class="fgp"><label class="lbl">Себестоимость (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_cost"/></div><div class="fgp"><label class="lbl">Цена продажи (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_price" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Предоплата (&#8381;)</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_prepay" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Кол-во месяцев *</label><select class="inp sel" id="f_months" onchange="calcSched()"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div><div class="fgp"><label class="lbl">Число оплаты (1–31)</label><input class="inp" type="number" id="f_payDay" min="1" max="31" placeholder="Авто" oninput="calcSched()"/></div><div class="fgp"><label class="lbl">Способ оплаты предоплаты</label><select class="inp sel" id="f_prepayPt"></select></div></div>
@@ -847,7 +852,7 @@ function renderClientsPaged(){
     const overCol=c._over>0
       ?'<span class="amt cr">'+fmt(c._over)+' ₽</span>'+(hc?' <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'')
       :(hc?'<span style="color:var(--t3)">—</span> <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+c.comment+'</div>':'<span style="color:var(--t3)">—</span>');
-    return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>'+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:11px;color:var(--t2)">'+(c.partner||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;font-size:12px">'+fmt(c.price||0)+' ₽</div><div style="font-size:10px;color:var(--t3)">'+fmt(c.cost||0)+' ₽</div></td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c.prepay||0)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')" style="text-align:center">'+(c.months||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:10px;color:var(--t2);max-width:120px;word-wrap:break-word">'+(c.addr||'\u2014')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
+    return'<tr><td class="crow" onclick="openC(\''+c.id+'\')" style="font-weight:700;color:var(--t2)">'+(c.contractId||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.date||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>'+fmtPhone((c.gphones||[])[0])+'</span></div></td><td class="crow" onclick="openC(\''+c.id+'\')" style="color:var(--t2)">'+(c.product||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:11px;color:var(--t2)">'+(c.partner||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><div style="font-weight:600;font-size:12px">'+fmt(c.price||0)+' ₽</div><div style="font-size:10px;color:var(--t3)">'+fmt(c.cost||0)+' ₽</div></td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c.prepay||0)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')" style="text-align:center">'+(c.months||'—')+'</td><td class="crow" onclick="openC(\''+c.id+'\')"><span class="amt">'+fmt(c._bal)+' ₽</span></td><td class="crow" onclick="openC(\''+c.id+'\')">'+monthCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+overCol+'</td><td class="crow" onclick="openC(\''+c.id+'\')" style="font-size:10px;color:var(--t2);max-width:180px;overflow:hidden;text-overflow:ellipsis">'+(c.addr||'\u2014')+'</td><td class="crow" onclick="openC(\''+c.id+'\')">'+(c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</td></tr>';
   }).join('')+'</tbody>':'<tbody><tr><td colspan="13" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody>';
   const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="clients"></div>':'';
   document.getElementById('cList').innerHTML='<table class="tbl">'+thead+tb+'</table>'+mobileCardsHtml(visible)+loadMoreBtn;
@@ -1120,6 +1125,18 @@ function computePayDate(cd,m,payDay){
   return a.getFullYear()+'-'+('0'+(a.getMonth()+1)).slice(-2)+'-'+('0'+a.getDate()).slice(-2);
 }
 // Главная функция пересчёта графика — умная, сохраняет ручные правки
+function onDateChange(){
+  // При изменении даты — пересчитываем только ДАТЫ платежей, суммы не трогаем
+  const cd=document.getElementById('f_date').value;
+  if(!cd)return;
+  const payDay=parseInt(document.getElementById('f_payDay').value)||0;
+  const rows=document.querySelectorAll('#schedBody tr');
+  if(!rows.length){calcSched();return;} // если графика ещё нет — полный пересчёт
+  rows.forEach((r,m)=>{
+    const dtInp=r.querySelector('.dt');
+    if(dtInp)dtInp.value=computePayDate(cd,m,payDay);
+  });
+}
 function calcSched(){
   const pr=parseNum(document.getElementById('f_price').value);
   const pp=parseNum(document.getElementById('f_prepay').value);
@@ -1131,15 +1148,14 @@ function calcSched(){
   const oldRows=tb.querySelectorAll('tr');
   // Сохраняем то что пользователь мог вручную отредактировать
   const prevSizes=[],prevDates=[];
-  oldRows.forEach(r=>{prevSizes.push(r.querySelector('.sz')?.value||'');prevDates.push(r.querySelector('.dt')?.value||'');});
-  // Определяем: если предыдущее кол-во строк = mo и суммы были отредактированы вручную (не равны авто-sz) — сохраняем их. Иначе — пересчитываем.
+  oldRows.forEach(r=>{prevSizes.push(parseNum(r.querySelector('.sz')?.value));prevDates.push(r.querySelector('.dt')?.value||'');});
   const prevMo=oldRows.length;
   tb.innerHTML='';
   for(let m=0;m<mo;m++){
-    // размер: если это то же кол-во месяцев и была ручная правка - сохраняем, иначе авто
+    // размер: если кол-во месяцев не менялось — сохраняем ручные правки
     let size=sz;
-    if(prevMo===mo&&prevSizes[m]!==''){size=parseFloat(prevSizes[m])||sz;}
-    // дата: если была ручная - сохраняем, иначе пересчитываем по payDay
+    if(prevMo===mo&&prevSizes[m]>0){size=prevSizes[m];}
+    // дата: если кол-во месяцев не менялось и была дата — сохраняем, иначе пересчитываем
     let dt='';
     if(prevMo===mo&&prevDates[m]){dt=prevDates[m];}
     else if(cd){dt=computePayDate(cd,m,payDay);}
@@ -1151,7 +1167,7 @@ function recalcSched(){
   const pp=parseNum(document.getElementById('f_prepay').value);
   const mo=parseInt(document.getElementById('f_months').value)||3;
   const sz=pr>0?Math.ceil((pr-pp)/mo/100)*100:0;
-  document.querySelectorAll('#schedBody tr').forEach(r=>{r.querySelector('.sz').value=sz;});
+  document.querySelectorAll('#schedBody tr').forEach(r=>{r.querySelector('.sz').value=fmt(sz);});
   toast('Суммы пересчитаны','tok');
 }
 function recalcDates(){
