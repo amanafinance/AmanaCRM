@@ -1763,13 +1763,14 @@ function zvonokCall(phone,text,btnEl){
   if(p.startsWith('8')&&p.length===11)p='7'+p.slice(1);
   const url='https://zvonok.com/manager/cabapi_external/api/v1/phones/call/?public_key='+ZVONOK_KEY+'&phone='+encodeURIComponent(p)+'&campaign_id='+ZVONOK_CAMPAIGN+'&text='+encodeURIComponent(text)+'&speaker=Tatyana';
   if(btnEl){btnEl.textContent='Звоним...';btnEl.style.opacity='0.6';btnEl.disabled=true;}
-  // Открываем в новой вкладке — самый надёжный способ отправить GET-запрос
-  const w=window.open(url,'_blank','width=1,height=1');
+  // Скрытый iframe для отправки запроса без открытия вкладки
+  let fr=document.getElementById('zvonokFrame');
+  if(!fr){fr=document.createElement('iframe');fr.id='zvonokFrame';fr.style.cssText='display:none;width:0;height:0;border:0';document.body.appendChild(fr);}
+  fr.src=url;
   setTimeout(()=>{
-    try{if(w)w.close();}catch(e){}
     toast('Звонок отправлен на '+fmtPhone(phone),'tok');
     if(btnEl){btnEl.textContent='✓ Отправлен';setTimeout(()=>{btnEl.textContent='Автозвонок';btnEl.style.opacity='1';btnEl.disabled=false;},3000);}
-  },3000);
+  },2000);
 }
 
 function renderReminders(){
