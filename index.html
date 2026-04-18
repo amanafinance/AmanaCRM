@@ -666,8 +666,8 @@ function getStats(c,ap){
     }
     let paid,st;
     if(rem>=size){paid=size;rem-=size;st='paid';}
-    else if(rem>0){paid=rem;rem=0;st=d&&d<=t?'partial':'partial_future';}
-    else{paid=0;st=d&&d<=t?'overdue':diff<=1?'warning':'upcoming';}
+    else if(rem>0){paid=rem;rem=0;st=d&&d<t?'partial':'partial_future';}
+    else{paid=0;st=d&&d<t?'overdue':diff===0?'today':diff<=1?'warning':'upcoming';}
     return{month:r.month,date:r.date,size,paid,st,diff,origSize:r.origSize};
   });
   const ov=sch.filter(p=>p.st==='overdue'||p.st==='partial').reduce((s,p)=>s+(p.size-p.paid),0);
@@ -1805,57 +1805,62 @@ function setRemTab(t,btn){_remTab=t;document.querySelectorAll('#remTabs .ft').fo
 function renderReminders(){
   const el=document.getElementById('remContent');if(!el)return;
   const now=today();
-  // Собираем клиентов которые попадают в платежи (проходят фильтр)
-  const itemMap={}; // clientId -> {cat, diffDays, amount, date}
+  // Собираем клиентов по трём категориям:
+  // - overdue: есть просрочка (стат >0) независимо от даты следующего платежа
+  // - today: есть платёж сегодня
+  // - soon: есть платёж в ближайшие 5 дней (1-5, НЕ сегодня)
+  const overdueSet=new Set();
+  const todaySet=new Set();
+  const soonSet=new Set();
   S.clients.forEach(c=>{
     const st=effStatus(c);if(st==='завершён')return;
+    const stats=getStats(c);
+    // Просрочка — если общая просрочка > 0
+    if(stats.overdue>0)overdueSet.add(c.id);
+    // Проверяем график на сегодня и ближайшие 5 дней
     const mo=parseInt(c.months)||0;
     for(let m=1;m<=mo;m++){
       const dt=parseD(c['дата'+m]);if(!dt)continue;
       const size=parseFloat(c['размер'+m])||0;if(!size)continue;
+      // Оплачен ли этот платёж
       const paid=S.payments.filter(p=>p.clientId===c.id&&p.type==='payment').reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
       const dueUpTo=[];for(let k=1;k<=m;k++)dueUpTo.push(parseFloat(c['размер'+k])||0);
       const totalDue=dueUpTo.reduce((s,v)=>s+v,0);
       if(paid>=totalDue)continue;
       const diffDays=Math.round((dt-now)/(1000*60*60*24));
-      let cat='';
-      if(diffDays<0)cat='overdue';
-      else if(diffDays===0)cat='today';
-      else if(diffDays<=5)cat='soon';
-      else continue;
-      itemMap[c.id]={cat,diffDays,amount:size,date:dt};
-      break;
+      if(diffDays===0)todaySet.add(c.id);
+      else if(diffDays>=1&&diffDays<=5)soonSet.add(c.id);
     }
   });
-  // Считаем счётчики табов
-  const allClients=Object.keys(itemMap).map(id=>({id,...itemMap[id]}));
-  const cntAll=allClients.length;
-  const cntSoon=allClients.filter(i=>i.cat==='soon').length;
-  const cntToday=allClients.filter(i=>i.cat==='today').length;
-  const cntOver=allClients.filter(i=>i.cat==='overdue').length;
+  // Все = объединение всех трёх
+  const allSet=new Set([...overdueSet,...todaySet,...soonSet]);
+  // Счётчики
+  const cntAll=allSet.size,cntSoon=soonSet.size,cntToday=todaySet.size,cntOver=overdueSet.size;
   document.getElementById('remCount').textContent=cntAll+' клиентов';
   const tabs=document.querySelectorAll('#remTabs .ft');
   if(tabs[0])tabs[0].textContent='Все ('+cntAll+')';
   if(tabs[1])tabs[1].textContent='Ближайшие 5 дней ('+cntSoon+')';
   if(tabs[2])tabs[2].textContent='Сегодня ('+cntToday+')';
   if(tabs[3])tabs[3].textContent='Просрочка ('+cntOver+')';
-  // Фильтруем по текущему табу и собираем список клиентов
-  let filteredIds=Object.keys(itemMap);
-  if(_remTab==='soon')filteredIds=filteredIds.filter(id=>itemMap[id].cat==='soon');
-  else if(_remTab==='today')filteredIds=filteredIds.filter(id=>itemMap[id].cat==='today');
-  else if(_remTab==='overdue')filteredIds=filteredIds.filter(id=>itemMap[id].cat==='overdue');
+  // Фильтруем по текущему табу
+  let filteredIds;
+  if(_remTab==='soon')filteredIds=[...soonSet];
+  else if(_remTab==='today')filteredIds=[...todaySet];
+  else if(_remTab==='overdue')filteredIds=[...overdueSet];
+  else filteredIds=[...allSet];
   if(!filteredIds.length){
     el.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3)"><div style="font-size:32px;margin-bottom:10px">✅</div><div style="font-size:14px">Нет платежей</div><div style="font-size:12px;margin-top:6px">Все платежи в порядке</div></div>';
     return;
   }
-  // Рендерим таблицу идентично renderClientsPaged, но со списком из filteredIds и сортировкой по дате ближайшего платежа
-  let list=filteredIds.map(id=>{const c=S.clients.find(x=>x.id===id);if(!c)return null;const s=getStats(c),st=effStatus(c,s),mi=getMonthlyInfo(c);return{...c,_st:st,_bal:s.balance,_over:s.overdue,_mi:mi,_pay:itemMap[id]};}).filter(x=>x);
-  // Сортировка: просрочки сверху (самые старые), потом сегодня, потом ближайшие
+  // Собираем список клиентов
+  let list=filteredIds.map(id=>{const c=S.clients.find(x=>x.id===id);if(!c)return null;const s=getStats(c),st=effStatus(c,s),mi=getMonthlyInfo(c);return{...c,_st:st,_bal:s.balance,_over:s.overdue,_mi:mi};}).filter(x=>x);
+  // Сортировка — по номеру договора (новые сверху), как в Клиентах
   list.sort((a,b)=>{
-    const ord={overdue:0,today:1,soon:2};
-    const oa=ord[a._pay.cat]||0,ob=ord[b._pay.cat]||0;
-    if(oa!==ob)return oa-ob;
-    return a._pay.diffDays-b._pay.diffDays;
+    const na=parseInt(a.contractId)||0,nb=parseInt(b.contractId)||0;
+    if(na!==nb)return nb-na;
+    const da=a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
+    const db2=b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);
+    return db2-da;
   });
   // Таблица — те же столбцы что в Клиентах, один-в-один
   const thead='<thead><tr><th><div class="th-cell"><span class="th-name">№</span></div></th><th><div class="th-cell"><span class="th-name">Дата</span></div></th><th><div class="th-cell"><span class="th-name">Клиент</span></div></th><th><div class="th-cell"><span class="th-name">Товар</span></div></th><th><div class="th-cell"><span class="th-name">Партнёр</span></div></th><th><div class="th-cell"><span class="th-name">Цена</span></div></th><th><div class="th-cell"><span class="th-name">Мес.</span></div></th><th><div class="th-cell"><span class="th-name">Остаток</span></div></th><th><div class="th-cell"><span class="th-name">Ежем. платеж</span></div></th><th><div class="th-cell"><span class="th-name">Просрочка</span></div></th><th><div class="th-cell"><span class="th-name">Адрес</span></div></th><th><div class="th-cell"><span class="th-name">Статус</span></div></th></tr></thead>';
