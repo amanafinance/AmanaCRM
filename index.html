@@ -71,31 +71,47 @@ body.light .bg{color:#ffffff}body.light .bg:hover{background:#7ba71a}
 .report-block{margin-bottom:18px;padding:14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--r1)}
 .report-block-title{font-family:Unbounded,sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
 .kcards{display:none}
-/* Напоминания v2 */
-.rem2-list{display:flex;flex-direction:column;gap:8px}
-.rem2-card{background:var(--card);border:1px solid var(--brd2);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.15s}
-.rem2-card:hover{border-color:var(--green);background:var(--bg3)}
-.rem2-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
-.rem2-info{flex:1;min-width:0}
-.rem2-name{font-weight:700;font-size:13px;margin-bottom:3px}
-.rem2-details{font-size:11px;color:var(--t3);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.rem2-right{text-align:right;flex-shrink:0}
-.rem2-amount{font-family:'Manrope',sans-serif;font-weight:800;font-size:15px;margin-bottom:2px}
-.rem2-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
-.rem-st-over{color:var(--red)}
-.rem-st-today{color:#e6a817}
-.rem-st-soon{color:var(--green)}
-.rem2-overdue-info{font-size:11px;color:var(--t2);margin-bottom:8px;padding:6px 8px;background:rgba(255,59,48,0.06);border-radius:6px}
-.rem2-comment{font-size:11px;color:var(--t2);margin-bottom:8px;padding:6px 8px;background:rgba(59,130,246,0.06);border-radius:6px;display:flex;align-items:flex-start;gap:6px;line-height:1.4}
-.rem2-comment svg{flex-shrink:0;margin-top:1px;stroke:var(--blue)}
-.rem2-comment-date{font-size:9px;color:var(--t3);margin-left:6px;white-space:nowrap}
-.rem2-actions{display:flex;gap:6px;flex-wrap:wrap}
-.rem2-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700;font-family:'Manrope',sans-serif;text-decoration:none;border:none;cursor:pointer;transition:.15s}
-.rem2-wa{background:#25d366;color:#fff}.rem2-wa:hover{background:#1da851}
-.rem2-auto{background:var(--blue);color:#fff}.rem2-auto:hover{opacity:0.85}
-.rem2-tel{background:var(--bg3);color:var(--text)}.rem2-tel:hover{background:var(--green);color:#fff}
+/* Платежи v3 */
+.pay-list{display:flex;flex-direction:column;gap:6px}
+.pay-card{background:var(--card);border:1px solid var(--brd2);border-radius:10px;overflow:hidden;transition:.15s}
+.pay-card:hover{border-color:var(--green)}
+.pay-card-main{display:flex;align-items:center;gap:0;cursor:pointer;padding:10px 12px}
+.pay-col{padding:0 8px;min-width:0}
+.pay-col-name{flex:1.5;min-width:120px}
+.pay-col-product{flex:1;min-width:90px}
+.pay-col-amount{flex:0.8;min-width:90px;text-align:right}
+.pay-col-balance{flex:0.7;min-width:80px;text-align:right}
+.pay-col-status{flex:0.8;min-width:90px;text-align:right}
+.pay-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pay-product{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pay-sub{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pay-sub2{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px}
+.pay-amount{font-family:'Manrope',sans-serif;font-weight:800;font-size:14px}
+.pay-bal{font-size:12px;font-weight:700}
+.pay-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;display:inline-block;padding:2px 6px;border-radius:4px}
+.rem-st-over{color:#fff;background:var(--red)}
+.rem-st-today{color:#fff;background:#e6a817}
+.rem-st-soon{color:#fff;background:var(--green)}
+.pay-overdue{font-size:10px;color:var(--red);font-weight:700;margin-top:2px}
+.pay-comment{font-size:10px;color:var(--t2);padding:4px 12px 8px;display:flex;align-items:flex-start;gap:5px;line-height:1.4;background:rgba(59,130,246,0.04)}
+.pay-comment svg{flex-shrink:0;margin-top:1px;stroke:var(--blue)}
+.pay-comment-date{color:var(--t3);margin-left:4px;white-space:nowrap}
+.pay-actions{display:flex;gap:6px;padding:6px 12px 10px;border-top:1px solid var(--brd2)}
+.pay-action-wrap{position:relative}
+.pay-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:6px;font-size:10px;font-weight:700;font-family:'Manrope',sans-serif;text-decoration:none;border:none;cursor:pointer;transition:.15s}
+.pay-btn-wa{background:#25d366;color:#fff}.pay-btn-wa:hover{background:#1da851}
+.pay-btn-auto{background:var(--blue);color:#fff}.pay-btn-auto:hover{opacity:0.85}
+.pay-btn-tel{background:var(--bg3);color:var(--text)}.pay-btn-tel:hover{background:var(--green);color:#fff}
 .ph-icon{display:inline-flex;align-items:center;padding:2px;border-radius:4px;vertical-align:middle;transition:.15s;text-decoration:none}
 .ph-icon:hover{background:var(--bg3);transform:scale(1.2)}
+/* Всплывающее меню типа напоминания */
+.msg-menu{position:fixed;z-index:9999;background:var(--card);border:1px solid var(--brd2);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.2);padding:6px;min-width:200px}
+.msg-menu-title{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;padding:6px 10px 4px;font-weight:700}
+.msg-menu-item{display:block;width:100%;text-align:left;padding:9px 10px;border:none;background:none;cursor:pointer;font-size:12px;font-family:'Manrope',sans-serif;font-weight:600;border-radius:6px;color:var(--text);transition:.1s}
+.msg-menu-item:hover{background:var(--bg3)}
+.msg-menu-soon{color:var(--green)}
+.msg-menu-today{color:#e6a817}
+.msg-menu-over{color:var(--red)}
 .summary-bar{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 14px;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r2);margin-bottom:10px;font-size:11px;color:var(--t2);align-items:center}
 .summary-bar strong{color:var(--text);font-family:'Manrope',sans-serif;font-weight:700}
 .sum-row td{background:var(--bg3);font-size:12px;padding:8px 14px!important;border-bottom:2px solid var(--green)}
@@ -395,11 +411,11 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 </div><div class="sfoot"><span>Amana Finance &copy; 2025</span><button class="logout-btn" onclick="doLogout()">Выйти</button></div></aside>
 <div class="nb-sub-overlay" id="nbSubOverlay" onclick="closeAllSubMenus()"></div>
 <main class="main">
-<div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card"><div class="ct">Просрочники</div><div id="dOver"></div></div><div><div class="card"><div class="ct">Платежи сегодня</div><div id="dToday"></div></div><div class="card"><div class="ct">Ближайшие 3 дня</div><div id="dUp"></div></div></div></div></div>
+<div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div></div>
 <div id="page-clients" class="page" style="display:none"><div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('overdue',this)">Просроченные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button></div><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
-<div id="page-client" class="page" style="display:none"><button class="bback" onclick="goTo('clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
+<div id="page-client" class="page" style="display:none"><button class="bback" onclick="goTo(S.prevPage||'clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
 
-<div id="page-reminders" class="page" style="display:none"><div class="ph"><div><div class="pt">Платежи</div><div class="ps" id="remCount"></div></div></div><div class="ftabs" id="remTabs"><button class="ft on" onclick="setRemTab('all',this)">Все</button><button class="ft" onclick="setRemTab('soon',this)">Предстоящие</button><button class="ft" onclick="setRemTab('today',this)">Сегодня</button><button class="ft" onclick="setRemTab('overdue',this)">Просрочка</button></div><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div>
+<div id="page-reminders" class="page" style="display:none"><div class="ph"><div><div class="pt">Платежи</div><div class="ps" id="remCount"></div></div></div><div class="ftabs" id="remTabs"><button class="ft on" onclick="setRemTab('all',this)">Все</button><button class="ft" onclick="setRemTab('soon',this)">Ближайшие 5 дней</button><button class="ft" onclick="setRemTab('today',this)">Сегодня</button><button class="ft" onclick="setRemTab('overdue',this)">Просрочка</button></div><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div>
 
 <div id="page-kassa" class="page" style="display:none">
 <div class="ph"><div><div class="pt">Касса</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
@@ -722,6 +738,7 @@ function initApp(){if(_inited)return;_inited=true;initMenuGroups();document.getE
 function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();},()=>{});onSnapshot(collection(db,'investors'),s=>{S.investors=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invContracts'),s=>{S.invContracts=s.docs.map(d=>({id:d.id,...d.data()}));renderInvestors();if(S.curInvestor)renderInvestorDetail();},()=>{});onSnapshot(collection(db,'invReturns'),s=>{S.invReturns=s.docs.map(d=>({id:d.id,...d.data()}));if(S.curInvestor)renderInvestorDetail();renderInvestorsFinance();},()=>{});onSnapshot(collection(db,'invProfitAccruals'),s=>{S.invProfitAccruals=s.docs.map(d=>({id:d.id,...d.data()}));if(S.curInvestor)renderInvestorDetail();renderInvestorsFinance();},()=>{});}
 function refreshAll(){renderDash();renderClients();renderKassa();if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
 function goTo(p){
+  if(p!=='client')S.curPage=p;
   document.querySelectorAll('.page').forEach(x=>x.style.display='none');
   document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
   const page=document.getElementById('page-'+p);
@@ -800,9 +817,7 @@ function initMenuGroups(){
 }
 
 // ---------- DASHBOARD ----------
-function renderDash(){let debt=0,over=0,act=0,done=0;const ovL=[],todL=[],upL=[];S.clients.forEach(c=>{const s=getStats(c),st=effStatus(c,s);if(st==='завершён'){done++;return;}act++;debt+=s.balance;over+=s.overdue;if(s.overdue>0)ovL.push({c,s});s.schedule.forEach(p=>{if(p.diff===0&&p.st!=='paid')todL.push({c,p});if(p.diff>0&&p.diff<=3&&p.st!=='paid')upL.push({c,p});});});document.getElementById('dStats').innerHTML='<div class="sc"><div class="sl">Активных</div><div class="sv cg">'+act+'</div><div class="ss">Завершённых: '+done+'</div></div><div class="sc"><div class="sl">Общий долг</div><div class="sv">'+fmt(debt)+' ₽</div></div><div class="sc"><div class="sl">Просрочка</div><div class="sv cr">'+fmt(over)+' ₽</div><div class="ss">'+ovL.length+' клиентов</div></div><div class="sc"><div class="sl">Сегодня</div><div class="sv cy">'+todL.length+'</div><div class="ss">платежей</div></div>';document.getElementById('dOver').innerHTML=ovL.length?ovL.map(({c,s})=>'<div class="di dio" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+fmt(s.balance)+' ₽</div></div><div class="amt cr">'+fmt(s.overdue)+' ₽</div></div>').join(''):'<div class="empty" style="padding:12px">Нет</div>';document.getElementById('dToday').innerHTML=todL.length?todL.map(({c,p})=>'<div class="di dit" onclick="openC(\''+c.id+'\')"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div class="amt cy">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';document.getElementById('dUp').innerHTML=upL.length?upL.map(({c,p})=>'<div class="di diu" onclick="openC(\''+c.id+'\')"><div><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:10px;color:var(--t2)">'+p.date+' · через '+p.diff+' дн.</div></div><div class="amt" style="font-size:11px">'+fmt(p.size)+' ₽</div></div>').join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>';
-
-}
+function renderDash(){let debt=0,over=0,act=0,done=0;S.clients.forEach(c=>{const s=getStats(c),st=effStatus(c,s);if(st==='завершён'){done++;return;}act++;debt+=s.balance;over+=s.overdue;});document.getElementById('dStats').innerHTML='<div class="sc"><div class="sl">Активных</div><div class="sv cg">'+act+'</div><div class="ss">Завершённых: '+done+'</div></div><div class="sc"><div class="sl">Общий долг</div><div class="sv">'+fmt(debt)+' ₽</div></div><div class="sc"><div class="sl">Просрочка</div><div class="sv cr">'+fmt(over)+' ₽</div></div><div class="sc"><div class="sl">Всего клиентов</div><div class="sv">'+(act+done)+'</div></div>';}
 
 // ---------- CLIENTS LIST ----------
 function setTab(t,b){S.tab=t;S.CF={id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',partner:'',price_q:'',price_from:'',price_to:'',cost_q:'',cost_from:'',cost_to:'',prepay_q:'',prepay_from:'',prepay_to:'',months_q:'',months_from:'',months_to:'',firstpay_q:'',firstpay_from:'',firstpay_to:'',addr:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''};document.querySelectorAll('#page-clients .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderClients();}
@@ -1014,7 +1029,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('#fdOverlay')&&!e.tar
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&_fdCol)applyF();if(e.key==='Escape')closeDrops();});
 
 // ---------- CLIENT DETAIL ----------
-function openC(id){S.curClient=id;goTo('client');document.getElementById('nav-clients').classList.add('on');const c=S.clients.find(x=>x.id===id);if(c)renderDetail(c);}
+function openC(id){S.prevPage=S.curPage||'clients';S.curClient=id;goTo('client');document.getElementById('nav-clients').classList.add('on');const c=S.clients.find(x=>x.id===id);if(c)renderDetail(c);}
 function renderDetail(c){
   const s=getStats(c),st=effStatus(c,s),fin=getFinancials(c,s);
   const pc=s.schedule.filter(p=>p.st==='paid').length;
@@ -1819,37 +1834,65 @@ function renderReminders(){
   // Обновляем счётчики на табах
   const tabs=document.querySelectorAll('#remTabs .ft');
   if(tabs[0])tabs[0].textContent='Все ('+cntAll+')';
-  if(tabs[1])tabs[1].textContent='Предстоящие ('+cntSoon+')';
+  if(tabs[1])tabs[1].textContent='Ближайшие 5 дней ('+cntSoon+')';
   if(tabs[2])tabs[2].textContent='Сегодня ('+cntToday+')';
   if(tabs[3])tabs[3].textContent='Просрочка ('+cntOver+')';
-  // Шаблоны текстов
-  const txtOverdue=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Оплата по рассрочке просрочена на '+Math.abs(days)+' дней. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп';
-  const txtToday=(c,amt)=>'Ассаламу алейкум, '+c.name+'! Сегодня дата оплаты по рассрочке. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп';
-  const txtSoon=(c,days,amt)=>'Ассаламу алейкум, '+c.name+'! Напоминаем что через '+days+' дня дата оплаты по рассрочке. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп';
-  // Рендер карточек
+
+  // Рендер карточек — горизонтально
   function renderItem(i){
     const c=i.client;
-    let statusText='',statusCls='',txt='';
-    if(i.cat==='overdue'){statusText='Просрочка '+Math.abs(i.diffDays)+' дн.';statusCls='rem-st-over';txt=txtOverdue(c,i.diffDays,i.amount);}
-    else if(i.cat==='today'){statusText='Сегодня';statusCls='rem-st-today';txt=txtToday(c,i.amount);}
-    else{statusText='Через '+i.diffDays+' дн.';statusCls='rem-st-soon';txt=txtSoon(c,i.diffDays,i.amount);}
-    const wa=waLink(i.phone,txt);
-    const tel=telLink(i.phone);
-    // Просрочка — показываем на ВСЕХ карточках если есть
+    let statusText='',statusCls='';
+    if(i.cat==='overdue'){statusText='Просрочка '+Math.abs(i.diffDays)+' дн.';statusCls='rem-st-over';}
+    else if(i.cat==='today'){statusText='Сегодня';statusCls='rem-st-today';}
+    else{statusText='Через '+i.diffDays+' дн.';statusCls='rem-st-soon';}
     const hasOverdue=i.overdue>0;
-    const overdueHtml=hasOverdue?'<div class="rem2-overdue-info">Просрочка: <strong class="cr">'+fmt(i.overdue)+' ₽</strong> · Остаток: '+fmt(i.balance)+' ₽</div>':'';
-    // Комментарий
     const hasComment=c.comment&&c.comment.trim();
-    const commentHtml=hasComment?'<div class="rem2-comment"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>'+c.comment+'</span>'+(c.commentDate?'<span class="rem2-comment-date">'+c.commentDate+'</span>':'')+'</div>':'';
-    return'<div class="rem2-card" onclick="openC(\''+c.id+'\')"><div class="rem2-top"><div class="rem2-info"><div class="rem2-name">'+c.name+'</div><div class="rem2-details"><span>'+fmtPhone(i.phone)+'</span><span>·</span><span>'+(c.product||'')+'</span></div></div><div class="rem2-right"><div class="rem2-amount">'+fmt(i.amount)+' ₽</div><div class="rem2-status '+statusCls+'">'+statusText+'</div></div></div>'+overdueHtml+commentHtml+'<div class="rem2-actions" onclick="event.stopPropagation()"><a href="'+wa+'" target="_blank" class="rem2-btn rem2-wa"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 0 0 .611.611l4.458-1.495A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.354 0-4.542-.726-6.353-1.963l-.456-.318-2.934.984.984-2.934-.318-.456A9.959 9.959 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>WhatsApp</a><button class="rem2-btn rem2-auto" onclick="zvonokCall(\''+i.phone+'\',\''+txt.replace(/'/g,"\\'")+'\',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Автозвонок</button><a href="'+tel+'" class="rem2-btn rem2-tel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Позвонить</a></div></div>';
+    const cid=c.id.replace(/'/g,'');
+    const phoneEsc=i.phone.replace(/'/g,'');
+    return'<div class="pay-card"><div class="pay-card-main" onclick="openC(\''+c.id+'\')"><div class="pay-col pay-col-name"><div class="pay-name">'+c.name+'</div><div class="pay-sub">№'+(c.contractId||'—')+' · '+(c.partner||'—')+'</div></div><div class="pay-col pay-col-product"><div class="pay-product">'+(c.product||'—')+'</div><div class="pay-sub">'+fmtPhone(i.phone)+'</div></div><div class="pay-col pay-col-amount"><div class="pay-amount">'+fmt(i.amount)+' ₽</div><div class="pay-sub">'+fmtD(i.date)+'</div></div><div class="pay-col pay-col-balance"><div class="pay-sub2">Остаток</div><div class="pay-bal">'+fmt(i.balance)+' ₽</div></div><div class="pay-col pay-col-status"><span class="pay-status '+statusCls+'">'+statusText+'</span>'+(hasOverdue?'<div class="pay-overdue">'+fmt(i.overdue)+' ₽</div>':'')+'</div></div>'+(hasComment?'<div class="pay-comment"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+c.comment+(c.commentDate?' <span class="pay-comment-date">'+c.commentDate+'</span>':'')+'</div>':'')+'<div class="pay-actions" onclick="event.stopPropagation()"><div class="pay-action-wrap"><button class="pay-btn pay-btn-wa" onclick="showMsgMenu(event,\'wa\',\''+phoneEsc+'\',\''+cid+'\','+i.amount+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>WhatsApp</button></div><div class="pay-action-wrap"><button class="pay-btn pay-btn-auto" onclick="showMsgMenu(event,\'call\',\''+phoneEsc+'\',\''+cid+'\','+i.amount+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>Автозвонок</button></div><a href="'+telLink(i.phone)+'" class="pay-btn pay-btn-tel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Позвонить</a></div></div>';
   }
   if(!filtered.length){
     el.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3)"><div style="font-size:32px;margin-bottom:10px">✅</div><div style="font-size:14px">Нет платежей</div><div style="font-size:12px;margin-top:6px">Все платежи в порядке</div></div>';
     return;
   }
-  el.innerHTML='<div class="rem2-list">'+filtered.map(renderItem).join('')+'</div>';
+  el.innerHTML='<div class="pay-list">'+filtered.map(renderItem).join('')+'</div>';
 }
-// ------------ НАПОМИНАНИЯ (КОНЕЦ) ------------
+
+// Всплывающее меню выбора типа напоминания
+function showMsgMenu(ev,mode,phone,clientId,amount){
+  ev.stopPropagation();
+  // Удаляем старое меню если есть
+  const old=document.getElementById('msgMenu');if(old)old.remove();
+  const c=S.clients.find(x=>x.id===clientId);if(!c)return;
+  const menu=document.createElement('div');menu.id='msgMenu';menu.className='msg-menu';
+  const msgs={
+    soon:msgTemplates.soon(c,amount),
+    today:msgTemplates.today(c,amount),
+    overdue:msgTemplates.overdue(c,amount)
+  };
+  menu.innerHTML='<div class="msg-menu-title">Тип напоминания</div><button class="msg-menu-item msg-menu-soon" onclick="sendMsg(\''+mode+'\',\''+phone+'\',\'soon\',\''+clientId+'\','+amount+')">О приближении платежа</button><button class="msg-menu-item msg-menu-today" onclick="sendMsg(\''+mode+'\',\''+phone+'\',\'today\',\''+clientId+'\','+amount+')">Дата оплаты настала</button><button class="msg-menu-item msg-menu-over" onclick="sendMsg(\''+mode+'\',\''+phone+'\',\'overdue\',\''+clientId+'\','+amount+')">О просрочке</button>';
+  document.body.appendChild(menu);
+  // Позиционируем рядом с кнопкой
+  const r=ev.target.closest('.pay-btn').getBoundingClientRect();
+  menu.style.top=Math.min(r.bottom+4,window.innerHeight-menu.offsetHeight-10)+'px';
+  menu.style.left=Math.min(r.left,window.innerWidth-menu.offsetWidth-10)+'px';
+  setTimeout(()=>document.addEventListener('click',closeMsgMenu,{once:true}),10);
+}
+function closeMsgMenu(){const m=document.getElementById('msgMenu');if(m)m.remove();}
+function sendMsg(mode,phone,type,clientId,amount){
+  closeMsgMenu();
+  const c=S.clients.find(x=>x.id===clientId);if(!c)return;
+  const txt=msgTemplates[type](c,amount);
+  if(mode==='wa'){window.open(waLink(phone,txt),'_blank');}
+  else if(mode==='call'){zvonokCall(phone,txt,null);}
+}
+// Сохраняем шаблоны глобально для sendMsg
+const msgTemplates={
+  soon:(c,amt)=>'Ассаламу алейкум, '+c.name+'! Напоминаем что скоро дата оплаты по рассрочке. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп',
+  today:(c,amt)=>'Ассаламу алейкум, '+c.name+'! Сегодня дата оплаты по рассрочке. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп',
+  overdue:(c,amt)=>'Ассаламу алейкум, '+c.name+'! Оплата по рассрочке просрочена. Сумма '+fmt(amt)+' рублей. Амана Финанс, для оплаты свяжитесь по нашему рабочему номеру или напишите на ватсапп'
+};
+// ------------ ПЛАТЕЖИ (КОНЕЦ) ------------
 
 // ------------ ОТЧЁТЫ ------------
 let _reportsPeriod={type:'month',year:new Date().getFullYear(),month:new Date().getMonth(),from:'',to:''};
