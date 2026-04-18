@@ -667,7 +667,7 @@ function getStats(c,ap){
     let paid,st;
     if(rem>=size){paid=size;rem-=size;st='paid';}
     else if(rem>0){paid=rem;rem=0;st=d&&d<t?'partial':'partial_future';}
-    else{paid=0;st=d&&d<t?'overdue':diff===0?'today':diff<=1?'warning':'upcoming';}
+    else{paid=0;st=d&&d<t?'overdue':'upcoming';}
     return{month:r.month,date:r.date,size,paid,st,diff,origSize:r.origSize};
   });
   const ov=sch.filter(p=>p.st==='overdue'||p.st==='partial').reduce((s,p)=>s+(p.size-p.paid),0);
@@ -1087,13 +1087,12 @@ function tog2(bid,aid){const b=document.getElementById(bid),a=document.getElemen
 
 // ---------- PAY ROW (обновлённые статусы частичных) ----------
 function payRow(p){
-  const dots={paid:'dg',overdue:'dr',warning:'dy',partial:'dy',partial_future:'dy',upcoming:'dt3'};
-  const rows={paid:'pp',overdue:'po',warning:'pw'};
-  const stc={paid:'stg',overdue:'str',warning:'sty',partial:'sty',partial_future:'sty',upcoming:'st3'};
+  const dots={paid:'dg',overdue:'dr',partial:'dy',partial_future:'dy',upcoming:'dt3'};
+  const rows={paid:'pp',overdue:'po'};
+  const stc={paid:'stg',overdue:'str',partial:'sty',partial_future:'sty',upcoming:'st3'};
   let stsText;
   if(p.st==='paid'){stsText=p.discounted?'Погашен скидкой':'Оплачен';}
   else if(p.st==='overdue')stsText='Просрочен — '+fmt(p.size-p.paid)+' ₽';
-  else if(p.st==='warning')stsText='Завтра!';
   else if(p.st==='partial')stsText='Просрочен частично: '+fmt(p.size-p.paid)+' из '+fmt(p.size)+' ₽';
   else if(p.st==='partial_future')stsText='Оплачен частично: '+fmt(p.paid)+' из '+fmt(p.size)+' ₽';
   else stsText='Ожидается';
