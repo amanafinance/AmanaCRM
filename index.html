@@ -247,9 +247,9 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .nb svg{width:20px;height:20px;flex-shrink:0}
 .nb .nb-arrow{display:none}
 /* Подменю выпадает ВВЕРХ из bottom-nav */
-.nb-sub{position:fixed!important;bottom:62px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--brd2);border-radius:12px;padding:6px;box-shadow:0 -4px 16px rgba(0,0,0,0.15);z-index:600;min-width:200px;max-width:90vw;display:none!important;flex-direction:column;gap:2px;padding-left:6px}
+.nb-sub{position:fixed!important;bottom:62px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--brd2);border-radius:12px;padding:6px;box-shadow:0 -4px 16px rgba(0,0,0,0.15);z-index:700;min-width:200px;max-width:90vw;display:none!important;flex-direction:column;gap:2px;padding-left:6px}
 .nb-sub.show{display:flex!important}
-.nb-sub .nb{flex-direction:row;justify-content:flex-start;font-size:13px;padding:11px 14px;gap:10px;max-width:none;width:100%;text-align:left;border-radius:8px}
+.nb-sub .nb{flex-direction:row;justify-content:flex-start;font-size:13px;padding:11px 14px;gap:10px;max-width:none;width:100%;text-align:left;border-radius:8px;min-height:44px}
 .nb-sub .nb svg{width:16px;height:16px}
 .nb-sub-overlay{position:fixed!important;inset:0;background:rgba(0,0,0,0.3);z-index:599;display:none}
 .nb-sub-overlay.show{display:block!important}
@@ -277,32 +277,45 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mft{flex-direction:column-reverse;gap:6px}
 .mft .btn{width:100%;justify-content:center;padding:12px;font-size:13px;min-height:44px}
 .mft #mcDel{width:100%}
-/* ТАБЛИЦЫ на мобильном — как на десктопе, со скроллом вправо */
+/* ТАБЛИЦЫ на мобильном — компактные, помещаются в экран */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.tbl{font-size:12px}
-.tbl td{padding:10px 8px;font-size:12px}
-.tbl th{padding:10px 8px}
-.th-cell{padding:10px 8px;min-height:36px}
-.th-name{font-size:10px}
-/* Клиенты — оставляем таблицу, скрываем мобильные карточки */
+.tbl{font-size:10px}
+.tbl td{padding:6px 4px;font-size:10px}
+.tbl th{padding:6px 4px}
+.th-cell{padding:6px 4px;min-height:30px}
+.th-name{font-size:9px}
+/* Клиенты — компактная таблица */
 #cList .mobile-cards{display:none!important}
 #cList > .tbl{display:table!important}
 #page-clients > .card{padding:0!important;overflow:hidden}
 #page-clients > .card > .tbl-wrap{overflow:auto;max-height:calc(100vh - 220px);-webkit-overflow-scrolling:touch}
-#page-clients .tbl{min-width:1200px}
-/* Платежи */
+#page-clients .tbl{min-width:unset;width:100%}
+#page-clients .tbl td{padding:5px 3px;font-size:10px}
+#page-clients .tbl th{padding:5px 3px}
+#page-clients .tbl .th-name{font-size:9px}
+/* Меньше размеры внутренних элементов в клиентах */
+#page-clients .amt{font-size:10px}
+#page-clients .badge,#page-clients .rbadge{font-size:8px;padding:1px 4px}
+/* Платежи — компактная таблица */
 #page-reminders > .card{padding:0!important;overflow:hidden}
 #page-reminders > .card > .tbl-wrap{overflow:auto;max-height:calc(100vh - 200px);-webkit-overflow-scrolling:touch}
-#page-reminders .tbl{min-width:1200px}
-/* Касса — оставляем таблицу */
+#page-reminders .tbl{min-width:unset;width:100%}
+#page-reminders .tbl td{padding:5px 3px;font-size:10px}
+#page-reminders .tbl th{padding:5px 3px}
+#page-reminders .tbl .th-name{font-size:9px}
+#page-reminders .amt{font-size:10px}
+#page-reminders .badge,#page-reminders .rbadge{font-size:8px;padding:1px 4px}
+/* Касса — компактная */
 #kList .tbl{display:table!important}
 .kcards{display:none!important}
 #page-kassa > .card{padding:0!important;overflow:hidden}
 #page-kassa > .card > .tbl-wrap,#kList{overflow:auto;-webkit-overflow-scrolling:touch}
-#kList .tbl{min-width:700px}
+#kList .tbl{min-width:unset;width:100%;font-size:10px}
+#kList .tbl td{padding:6px 4px;font-size:10px}
 /* История */
 #jList{overflow:auto;-webkit-overflow-scrolling:touch}
-#jList .tbl{min-width:600px}
+#jList .tbl{min-width:unset;width:100%;font-size:10px}
+#jList .tbl td{padding:6px 4px;font-size:10px}
 /* Summary/sticky bars */
 .summary-bar{font-size:10px;gap:6px 10px;padding:8px 10px}
 .sticky-sum-bar{left:0!important;bottom:60px!important;padding:6px 10px;gap:4px}
@@ -407,7 +420,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="sg">Система</div>
 <button class="nb" id="nav-journal" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>История действий</button>
 <button class="nb nb-group" id="nav-more" onclick="toggleMenuGroup('more',event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Ещё<svg class="nb-arrow" id="nb-arrow-more" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:auto;transition:transform .2s"><polyline points="9 18 15 12 9 6"/></svg></button>
-<div class="nb-sub" id="nb-sub-more" style="display:none">
+<div class="nb-sub" id="nb-sub-more">
 <button class="nb nb-child" id="nav-journal2" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>История действий</button>
 <button class="nb nb-child" id="nav-settings2" onclick="goTo('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>Настройки</button>
 <button class="nb nb-child" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span id="themeText2">Тёмная тема</span></button>
@@ -746,6 +759,10 @@ function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}
 function refreshAll(){renderDash();renderClients();renderKassa();if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
 function goTo(p){
   if(p!=='client')S.curPage=p;
+  // Закрываем мобильные подменю
+  document.querySelectorAll('.nb-sub.show').forEach(s=>s.classList.remove('show'));
+  document.querySelectorAll('.nb-group.expanded').forEach(g=>g.classList.remove('expanded'));
+  const ov=document.getElementById('nbSubOverlay');if(ov)ov.classList.remove('show');
   document.querySelectorAll('.page').forEach(x=>x.style.display='none');
   document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
   const page=document.getElementById('page-'+p);
