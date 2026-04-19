@@ -263,31 +263,36 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mcard-row:first-of-type{border-top:none;padding-top:2px}
 .mcard-label{color:var(--t3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
 .mcard-val{font-weight:700;font-size:13px}
-/* Касса — карточки */
+/* Касса — компактные карточки */
 #kList .tbl{display:none!important}
-.kcards{display:flex!important;flex-direction:column;gap:6px}
-.kcard{background:var(--card);border:1px solid var(--brd2);border-radius:10px;padding:10px;position:relative}
-.kcard-day{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:8px 4px 4px}
-.kcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
-.kcard-amount{font-weight:800;font-size:13px;font-family:'Manrope',sans-serif}
-.kcard-desc{font-size:11px;color:var(--t2);line-height:1.3;margin-bottom:6px;word-wrap:break-word}
-.kcard-bot{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--t3);gap:6px;flex-wrap:wrap}
+.kcards{display:flex!important;flex-direction:column;gap:4px}
+.kcard{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:7px 9px;position:relative}
+.kcard-day{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:6px 4px 2px}
+.kcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:3px}
+.kcard-top .badge{font-size:8px;padding:1px 5px}
+.kcard-amount{font-weight:800;font-size:11px;font-family:'Manrope',sans-serif}
+.kcard-desc{font-size:10px;color:var(--t2);line-height:1.25;margin-bottom:3px;word-wrap:break-word}
+.kcard-bot{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:var(--t3);gap:4px;flex-wrap:wrap}
 .kcard-bal{font-weight:700;color:var(--text)}
-/* Касса — фиксируем контейнер и уменьшаем кошельки */
+/* Касса — кошельки мельче */
 #page-kassa > .card{padding:0!important;overflow:visible!important;background:transparent;border:none;min-height:200px}
-#kWallets{gap:6px!important}
-#kWallets .sc{padding:10px}
-#kWallets .sl{font-size:9px}
-#kWallets .sv{font-size:14px}
-#kWallets .ss{font-size:9px}
-/* История — компактные строки */
+#kWallets{gap:5px!important;grid-template-columns:1fr 1fr!important;margin-bottom:8px!important}
+#kWallets .sc{padding:7px 8px}
+#kWallets .sl{font-size:8px;margin-bottom:2px}
+#kWallets .sv{font-size:12px;line-height:1.15}
+#kWallets .ss{font-size:8px;margin-top:1px}
+/* Табы кассы мельче */
+#kTabs{gap:3px!important;margin-bottom:8px!important}
+#kTabs .ft{padding:6px 10px;font-size:10px;min-height:32px}
+/* История — очень плотные строки */
 #jList{overflow:auto;-webkit-overflow-scrolling:touch}
-#jList .tbl{min-width:unset;width:100%;font-size:10px}
-#jList .tbl td{padding:5px 4px;font-size:10px;line-height:1.3}
-#jList .tbl th{padding:5px 4px}
-#jList .tbl .th-name{font-size:9px}
-#jList .tbl .badge{font-size:9px;padding:2px 6px}
+#jList .tbl{min-width:unset;width:100%;font-size:9px}
+#jList .tbl td{padding:4px 3px;font-size:9px;line-height:1.2}
+#jList .tbl th{padding:4px 3px}
+#jList .tbl .th-name{font-size:8px}
+#jList .tbl .badge{font-size:8px;padding:1px 4px}
 #page-journal > .card{padding:0!important}
+#page-journal .pt{font-size:14px}
 /* Summary/sticky bars */
 .summary-bar{font-size:10px;gap:6px 10px;padding:8px 10px}
 .sticky-sum-bar{left:0!important;bottom:60px!important;padding:6px 10px;gap:4px}
