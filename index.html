@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <title>Amana CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -283,7 +284,14 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .tbl th{padding:6px 4px}
 .th-cell{padding:6px 4px;min-height:30px}
 .th-name{font-size:9px}
-/* Клиенты на мобильном — карточный вид */
+/* Мобильная кнопка фильтров */
+.mobile-filter-btn{display:none}
+.mf-sec{margin-bottom:12px}
+@media(max-width:768px){
+.mobile-filter-btn{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--text);border:1px solid var(--brd2);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;min-height:40px;font-family:'Manrope',sans-serif}
+.mobile-filter-btn:active{background:var(--card)}
+.mf-badge{background:var(--green);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;display:none}
+}
 #cList .mobile-cards{display:flex!important;flex-direction:column;gap:10px}
 #cList > .tbl{display:none!important}
 #page-clients > .card{padding:0!important;overflow:visible!important;background:transparent;border:none}
@@ -435,10 +443,10 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 <div class="nb-sub-overlay" id="nbSubOverlay" onclick="closeAllSubMenus()"></div>
 <main class="main">
 <div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div></div>
-<div id="page-clients" class="page" style="display:none"><div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button></div><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
+<div id="page-clients" class="page" style="display:none"><div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('clients')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgeClients" class="mf-badge"></span></button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
 <div id="page-client" class="page" style="display:none"><button class="bback" onclick="goTo(S.prevPage||'clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
 
-<div id="page-reminders" class="page" style="display:none"><div class="ph"><div><div class="pt">Платежи</div><div class="ps" id="remCount"></div></div></div><div class="ftabs" id="remTabs"><button class="ft on" onclick="setRemTab('all',this)">Все</button><button class="ft" onclick="setRemTab('soon',this)">Ближайшие 5 дней</button><button class="ft" onclick="setRemTab('today',this)">Сегодня</button><button class="ft" onclick="setRemTab('overdue',this)">Просрочка</button></div><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div></div></div>
+<div id="page-reminders" class="page" style="display:none"><div class="ph"><div><div class="pt">Платежи</div><div class="ps" id="remCount"></div></div></div><div class="ftabs" id="remTabs"><button class="ft on" onclick="setRemTab('all',this)">Все</button><button class="ft" onclick="setRemTab('soon',this)">Ближайшие 5 дней</button><button class="ft" onclick="setRemTab('today',this)">Сегодня</button><button class="ft" onclick="setRemTab('overdue',this)">Просрочка</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('clients')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgePayments" class="mf-badge"></span></button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div></div></div>
 
 <div id="page-kassa" class="page" style="display:none">
 <div class="ph"><div><div class="pt">Касса</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
@@ -953,8 +961,23 @@ function mobileCardsHtml(list){
   const items=list.map(c=>{
     const dups=findDups(c.name,c.id),hc=c.comment&&c.comment.trim();
     const monthDisplay=c._mi.uniform?(c._mi.value?fmt(c._mi.value)+' ₽':'—'):'разные ('+c._mi.uniqueSizes.length+')';
-    const stBadge=c._st==='завершён'?'<span class="badge bd">Завершён</span>':(c._over>0?'<span class="badge bo">Просрочка</span>':'<span class="badge ba">Активный</span>');
-    return'<div class="mcard" onclick="openC(\''+c.id+'\')"><div class="mcard-top"><div class="mcard-name">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+(hc?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+'</div><div class="mcard-id">№'+(c.contractId||'—')+'</div></div><div class="mcard-ph">'+fmtPhone((c.phones||[])[0])+'<br>'+fmtPhone((c.gphones||[])[0])+'</div><div class="mcard-row"><span class="mcard-label">Товар</span><span class="mcard-val" style="font-weight:500">'+(c.product||'—')+'</span></div><div class="mcard-row"><span class="mcard-label">Ежем. платёж</span><span class="mcard-val">'+monthDisplay+'</span></div><div class="mcard-row"><span class="mcard-label">Остаток</span><span class="mcard-val">'+fmt(c._bal)+' ₽</span></div>'+(c._over>0?'<div class="mcard-row"><span class="mcard-label">Просрочка</span><span class="mcard-val cr">'+fmt(c._over)+' ₽</span></div>':'')+'<div class="mcard-row"><span class="mcard-label">Статус</span>'+stBadge+'</div></div>';
+    const stBadge=c._st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>';
+    return'<div class="mcard" onclick="openC(\''+c.id+'\')">'+
+      '<div class="mcard-top"><div class="mcard-name">'+c.name+(dups.length?'<span class="rbadge">Повторный</span>':'')+(hc?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+'</div><div class="mcard-id">№'+(c.contractId||'—')+'</div></div>'+
+      '<div class="mcard-ph">'+fmtPhone((c.phones||[])[0])+(fmtPhone((c.gphones||[])[0])?'<br>'+fmtPhone((c.gphones||[])[0]):'')+'</div>'+
+      '<div class="mcard-row"><span class="mcard-label">Дата</span><span class="mcard-val">'+(c.date||'—')+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Товар</span><span class="mcard-val" style="font-weight:500">'+(c.product||'—')+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Партнёр</span><span class="mcard-val">'+(c.partner||'—')+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Цена</span><span class="mcard-val">'+fmt(c.price||0)+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Предоплата</span><span class="mcard-val">'+fmt(c.prepay||0)+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Себестоимость</span><span class="mcard-val">'+fmt(c.cost||0)+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Мес.</span><span class="mcard-val">'+(c.months||'—')+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Ежем. платёж</span><span class="mcard-val">'+monthDisplay+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Остаток</span><span class="mcard-val">'+fmt(c._bal)+' ₽</span></div>'+
+      (c._over>0?'<div class="mcard-row"><span class="mcard-label">Просрочка</span><span class="mcard-val cr">'+fmt(c._over)+' ₽</span></div>':'')+
+      (c.addr?'<div class="mcard-row"><span class="mcard-label">Адрес</span><span class="mcard-val" style="font-size:11px">'+c.addr+'</span></div>':'')+
+      '<div class="mcard-row"><span class="mcard-label">Статус</span>'+stBadge+'</div>'+
+      '</div>';
   }).join('');
   return'<div class="mobile-cards">'+items+'</div>';
 }
@@ -963,6 +986,75 @@ function mobileCardsHtml(list){
 function thF(col,lbl,pg){const f=isF(col,pg);return'<th><div class="th-cell" onclick="toggleDrop(event,\''+col+'\',\''+pg+'\',this)"><span class="th-name'+(f?' filtered':'')+'">'+lbl+'</span></div></th>';}
 function isF(col,pg){if(pg==='clients'){const c=S.CF;if(col==='id')return!!c.id;if(col==='date')return!!(c.date_from||c.date_to||c.date_q);if(col==='name')return!!(c.name||c.phone);if(col==='product')return!!c.product;if(col==='partner')return!!c.partner;if(col==='firstpay')return!!(c.firstpay_q||c.firstpay_from||c.firstpay_to);if(col==='pricecost')return!!(c.price_q||c.price_from||c.price_to||c.prepay_q||c.prepay_from||c.prepay_to||c.cost_q||c.cost_from||c.cost_to);if(col==='months')return!!(c.months_q||c.months_from||c.months_to);if(col==='addr')return!!c.addr;if(col==='monthly')return!!(c.monthly||c.monthly_from||c.monthly_to);if(col==='bal')return!!(c.bal_q||c.bal_from||c.bal_to);if(col==='over')return!!(c.over_q||c.over_from||c.over_to);}if(pg==='payments'){const p=S.PF;if(col==='date')return!!(p.date_q||p.date_from||p.date_to);if(col==='contract')return!!p.contract;if(col==='name')return!!p.name;if(col==='amount')return!!(p.amount_q||p.amount_from||p.amount_to);if(col==='type')return!!p.type;if(col==='payType')return!!p.payType;}if(pg==='journal'){const j=S.JF;if(col==='date')return!!(j.date_q||j.date_from||j.date_to);if(col==='type')return!!j.type;if(col==='desc')return!!j.desc;}return false;}
 function closeDrops(){document.getElementById('fdOverlay').classList.remove('on');_fdCol='';_fdPage='';}
+function openMobileFilter(pg){
+  // Открывает модалку со всеми фильтрами сразу для мобильного
+  const v=pg==='clients'?S.CF:pg==='payments'?S.PF:S.JF;
+  const html='<div class="modal" style="max-width:420px">'+
+    '<div class="mtitle">Фильтры</div>'+
+    '<div style="max-height:70vh;overflow-y:auto;padding-right:4px">'+
+      '<div class="mf-sec"><label class="lbl">№ договора</label><input class="inp" id="mf_id" value="'+(v.id||'')+'"/></div>'+
+      '<div class="mf-sec"><label class="lbl">Дата</label><input class="inp" id="mf_dq" value="'+(v.date_q||'')+'" placeholder="напр. 07.04"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><input class="inp" id="mf_df" type="date" value="'+(v.date_from||'')+'"/><input class="inp" id="mf_dt" type="date" value="'+(v.date_to||'')+'"/></div></div>'+
+      '<div class="mf-sec"><label class="lbl">ФИО клиента</label><input class="inp" id="mf_name" value="'+(v.name||'')+'"/></div>'+
+      '<div class="mf-sec"><label class="lbl">Телефон</label><input class="inp" id="mf_phone" value="'+(v.phone||'')+'"/></div>'+
+      '<div class="mf-sec"><label class="lbl">Товар</label><input class="inp" id="mf_product" value="'+(v.product||'')+'"/></div>'+
+      '<div class="mf-sec"><label class="lbl">Партнёр</label><input class="inp" id="mf_partner" value="'+(v.partner||'')+'"/></div>'+
+      '<div class="mf-sec"><label class="lbl">Адрес</label><input class="inp" id="mf_addr" value="'+(v.addr||'')+'"/></div>'+
+      '<div class="mf-sec"><label class="lbl">Цена от–до</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="inp" id="mf_pfrom" type="number" placeholder="от" value="'+(v.price_from||'')+'"/><input class="inp" id="mf_pto" type="number" placeholder="до" value="'+(v.price_to||'')+'"/></div></div>'+
+      '<div class="mf-sec"><label class="lbl">Месяцев от–до</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="inp" id="mf_mfrom" type="number" placeholder="от" value="'+(v.months_from||'')+'"/><input class="inp" id="mf_mto" type="number" placeholder="до" value="'+(v.months_to||'')+'"/></div></div>'+
+      '<div class="mf-sec"><label class="lbl">Ежем. платёж от–до</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="inp" id="mf_mpfrom" type="number" placeholder="от" value="'+(v.monthly_from||'')+'"/><input class="inp" id="mf_mpto" type="number" placeholder="до" value="'+(v.monthly_to||'')+'"/></div></div>'+
+      '<div class="mf-sec"><label class="lbl">Остаток от–до</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="inp" id="mf_bfrom" type="number" placeholder="от" value="'+(v.bal_from||'')+'"/><input class="inp" id="mf_bto" type="number" placeholder="до" value="'+(v.bal_to||'')+'"/></div></div>'+
+      '<div class="mf-sec"><label class="lbl">Просрочка от–до</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="inp" id="mf_ofrom" type="number" placeholder="от" value="'+(v.over_from||'')+'"/><input class="inp" id="mf_oto" type="number" placeholder="до" value="'+(v.over_to||'')+'"/></div></div>'+
+    '</div>'+
+    '<div class="mft"><button class="btn bgh" onclick="resetMobileFilter()">Сбросить</button><button class="btn bg" onclick="applyMobileFilter()">Применить</button></div>'+
+  '</div>';
+  const mov=document.createElement('div');mov.className='mover on';mov.id='mfOver';mov.onclick=e=>{if(e.target===mov)closeMobileFilter();};
+  mov.innerHTML=html;document.body.appendChild(mov);
+}
+function closeMobileFilter(){const m=document.getElementById('mfOver');if(m)m.remove();}
+function applyMobileFilter(){
+  const CF=S.CF;
+  CF.id=document.getElementById('mf_id').value.trim();
+  CF.date_q=document.getElementById('mf_dq').value.trim();
+  CF.date_from=document.getElementById('mf_df').value;
+  CF.date_to=document.getElementById('mf_dt').value;
+  CF.name=document.getElementById('mf_name').value.trim();
+  CF.phone=document.getElementById('mf_phone').value.trim();
+  CF.product=document.getElementById('mf_product').value.trim();
+  CF.partner=document.getElementById('mf_partner').value.trim();
+  CF.addr=document.getElementById('mf_addr').value.trim();
+  CF.price_from=document.getElementById('mf_pfrom').value;
+  CF.price_to=document.getElementById('mf_pto').value;
+  CF.months_from=document.getElementById('mf_mfrom').value;
+  CF.months_to=document.getElementById('mf_mto').value;
+  CF.monthly_from=document.getElementById('mf_mpfrom').value;
+  CF.monthly_to=document.getElementById('mf_mpto').value;
+  CF.bal_from=document.getElementById('mf_bfrom').value;
+  CF.bal_to=document.getElementById('mf_bto').value;
+  CF.over_from=document.getElementById('mf_ofrom').value;
+  CF.over_to=document.getElementById('mf_oto').value;
+  closeMobileFilter();
+  if(typeof renderClients==='function')renderClients();
+  if(S.curPage==='reminders'&&typeof renderReminders==='function')renderReminders();
+  updateMobileFilterBadge();
+}
+function resetMobileFilter(){
+  S.CF={};
+  closeMobileFilter();
+  if(typeof renderClients==='function')renderClients();
+  if(S.curPage==='reminders'&&typeof renderReminders==='function')renderReminders();
+  updateMobileFilterBadge();
+}
+function updateMobileFilterBadge(){
+  const CF=S.CF||{};
+  let cnt=0;
+  ['id','date_q','date_from','date_to','name','phone','product','partner','addr','price_from','price_to','months_from','months_to','monthly_from','monthly_to','bal_from','bal_to','over_from','over_to'].forEach(k=>{if(CF[k])cnt++;});
+  ['mfBadgeClients','mfBadgePayments'].forEach(id=>{
+    const b=document.getElementById(id);if(!b)return;
+    if(cnt>0){b.textContent=cnt;b.style.display='inline-flex';}
+    else{b.style.display='none';}
+  });
+}
+
 function toggleDrop(ev,col,pg,el){
   ev.stopPropagation();
   if(_fdCol===col&&_fdPage===pg){closeDrops();return;}
@@ -2948,5 +3040,6 @@ function closeM(id){document.getElementById(id).classList.remove('on');}
 function toast(m,c){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 </script>
+
 </body>
 </html>
