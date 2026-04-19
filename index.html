@@ -22,7 +22,9 @@ window.dispatchEvent(new Event('dbReady'));
 :root{--bg:#09100b;--bg2:#0f1812;--bg3:#162018;--card:#111a14;--green:#95c11f;--text:#e2ede5;--t2:#7a9882;--t3:#4a6450;--red:#ff4757;--yellow:#ffa502;--blue:#5b8ff9;--brd:rgba(149,193,31,0.1);--brd2:rgba(149,193,31,0.05);--sh:0 4px 20px rgba(0,0,0,0.5);--r:12px;--r2:8px}
 body.light{--bg:#f5f7f4;--bg2:#ffffff;--bg3:#eef2eb;--card:#ffffff;--green:#6d9416;--text:#1a2820;--t2:#556b5c;--t3:#8ca595;--red:#d93545;--yellow:#e68a00;--blue:#3b6fd4;--brd:rgba(109,148,22,0.18);--brd2:rgba(109,148,22,0.1);--sh:0 2px 12px rgba(0,0,0,0.08)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;touch-action:manipulation}
+*{-webkit-tap-highlight-color:transparent}
+button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 #loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.2),transparent 60%)}
 body.light #loginWrap{background:radial-gradient(ellipse at 30% 50%,rgba(149,193,31,0.15),transparent 60%)}
 .lbox{width:340px;padding:40px 32px;background:var(--card);border:1px solid var(--brd);border-radius:16px;box-shadow:var(--sh)}
@@ -40,7 +42,7 @@ body.light #loginWrap{background:radial-gradient(ellipse at 30% 50%,rgba(149,193
 .sname{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;margin-bottom:24px}
 .sg{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:2px;margin:14px 0 5px}
 .nb{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:var(--r2);cursor:pointer;color:var(--t2);font-size:13px;font-weight:600;margin-bottom:2px;transition:.2s;border:none;background:none;width:100%;text-align:left}
-.nb:hover{background:var(--bg3);color:var(--text)}
+@media (hover:hover){.nb:hover{background:var(--bg3);color:var(--text)}}
 .nb.on{background:linear-gradient(135deg,rgba(149,193,31,0.12),rgba(17,92,48,0.16));color:var(--green);border:1px solid rgba(149,193,31,0.16)}
 body.light .nb.on{background:linear-gradient(135deg,rgba(109,148,22,0.1),rgba(109,148,22,0.04));border:1px solid rgba(109,148,22,0.25)}
 .nb-group.expanded .nb-arrow{transform:rotate(90deg)}
@@ -146,6 +148,7 @@ body.light .mp-sel{background-image:url("data:image/svg+xml;utf8,<svg xmlns='htt
 .cph{margin-top:8px}.cphhdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border-radius:var(--r2);cursor:pointer;user-select:none}
 .cphbody{display:none;margin-top:4px}.cphbody.on{display:block}
 .mover{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+@media(max-width:768px){.mover{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(0,0,0,0.7)!important}}
 body.light .mover{background:rgba(30,40,35,0.5)}
 .mover.on{display:flex}
 .modal{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:28px;width:680px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:var(--sh)}.msm{width:420px}
@@ -190,7 +193,8 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .slogo,.sname,.sg,.sfoot,.theme-toggle{display:none!important}
 #nav-journal,#nav-settings{display:none!important}
 #nav-more{display:flex!important}
-.nb{flex-direction:column;gap:2px;padding:6px 4px;font-size:9px;min-width:0;flex:1;max-width:80px;align-items:center;justify-content:center;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:8px}
+.nb{flex-direction:column;gap:2px;padding:6px 4px;font-size:9px;min-width:0;flex:1;max-width:80px;align-items:center;justify-content:center;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:8px;transition:none!important;-webkit-tap-highlight-color:rgba(149,193,31,0.2)}
+.nb:active{background:var(--bg3)!important;opacity:0.7}
 .nb svg{width:20px;height:20px;flex-shrink:0}
 .nb .nb-arrow{display:none}
 /* Подменю выпадает ВВЕРХ из bottom-nav — привязано к кнопке Ещё справа */
@@ -377,7 +381,24 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .nb svg{width:18px;height:18px}
 #reportsContent .sg4{grid-template-columns:1fr!important}
 }
+
+/* ===== Отключение hover эффектов на touch-устройствах (Android fix) ===== */
+@media (hover:none){
+*:hover{background:inherit!important;color:inherit!important;filter:none!important;border-color:inherit!important}
+.bg:hover{background:var(–green)!important;color:#09100b!important}
+body.light .bg:hover{color:#ffffff!important}
+.bgh:hover{background:var(–bg3)!important;color:var(–t2)!important;border-color:var(–brd)!important}
+.btn{transition:none!important}
+.ig:hover{background:rgba(149,193,31,0.1)!important;color:var(–green)!important}
+.ir:hover{background:rgba(255,71,87,0.08)!important;color:var(–red)!important}
+}
+/* ===== Быстрые отклики на мобильном ===== */
+@media (max-width:768px){
+.btn,.nb,.ft,.mobile-filter-btn{transition:none!important;touch-action:manipulation;-webkit-tap-highlight-color:rgba(149,193,31,0.3)}
+.btn:active,.ft:active,.mobile-filter-btn:active{opacity:0.7;transform:scale(0.97)}
+}
 </style>
+
 </head>
 <body>
 <div id="loginWrap"><div class="lbox"><div class="llogo">AMANA FINANCE</div><div class="ltitle">CRM <span>Система</span></div><div id="loginFields"><label class="lbl">Email</label><input class="inp" type="email" id="lemail" placeholder="email@example.com" style="margin-bottom:10px"/><label class="lbl">Пароль</label><input class="inp" type="password" id="lpass" placeholder="Введите пароль" style="margin-bottom:10px"/><button class="btn bg" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">Войти</button></div><div id="loginLoading" style="display:none;text-align:center;padding:20px"><div class="spin" style="margin:0 auto"></div></div><div id="lerr" style="color:var(--red);font-size:11px;margin-top:6px;text-align:center;display:none"></div></div></div>
@@ -597,8 +618,28 @@ function doLogout(){if(_authMode==='firebase')window.SIGN_OUT(window.AUTH);locat
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
 function initApp(){if(_inited)return;_inited=true;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
-function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();},()=>{});}
-function refreshAll(){renderDash();renderClients();renderKassa();if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
+function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassaDebounced();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassaDebounced();},()=>{});}
+let _refreshTimer=null;
+function refreshAll(){
+  if(_refreshTimer)clearTimeout(_refreshTimer);
+  _refreshTimer=setTimeout(()=>{
+    _refreshTimer=null;
+    // Рендерим только активную страницу
+    const cur=S.curPage||'dash';
+    if(cur==='dash'||!cur)renderDash();
+    if(cur==='clients')renderClients();
+    if(cur==='kassa')renderKassa();
+    if(cur==='reminders'&&typeof renderReminders==='function')renderReminders();
+    if(cur==='client'&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}
+    // Дашборд обновляем всегда (быстрый)
+    if(cur!=='dash')renderDash();
+  },80);
+}
+let _kassaTimer=null;
+function renderKassaDebounced(){
+  if(_kassaTimer)clearTimeout(_kassaTimer);
+  _kassaTimer=setTimeout(()=>{_kassaTimer=null;if(S.curPage==='kassa')renderKassa();renderDash();},80);
+}
 function goTo(p){
   if(p!=='client')S.curPage=p;
   // Закрываем мобильные подменю
