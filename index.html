@@ -382,20 +382,10 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 #reportsContent .sg4{grid-template-columns:1fr!important}
 }
 
-/* ===== Отключение hover эффектов на touch-устройствах (Android fix) ===== */
-@media (hover:none){
-*:hover{background:inherit!important;color:inherit!important;filter:none!important;border-color:inherit!important}
-.bg:hover{background:var(–green)!important;color:#09100b!important}
-body.light .bg:hover{color:#ffffff!important}
-.bgh:hover{background:var(–bg3)!important;color:var(–t2)!important;border-color:var(–brd)!important}
-.btn{transition:none!important}
-.ig:hover{background:rgba(149,193,31,0.1)!important;color:var(–green)!important}
-.ir:hover{background:rgba(255,71,87,0.08)!important;color:var(–red)!important}
-}
 /* ===== Быстрые отклики на мобильном ===== */
 @media (max-width:768px){
 .btn,.nb,.ft,.mobile-filter-btn{transition:none!important;touch-action:manipulation;-webkit-tap-highlight-color:rgba(149,193,31,0.3)}
-.btn:active,.ft:active,.mobile-filter-btn:active{opacity:0.7;transform:scale(0.97)}
+.btn:active,.ft:active,.mobile-filter-btn:active{opacity:0.7}
 }
 </style>
 
@@ -1471,7 +1461,12 @@ function renderKassa(){
   const chevron='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:6px;transition:transform .2s;'+(cardsExpanded?'transform:rotate(180deg)':'')+'"><polyline points="6 9 12 15 18 9"/></svg>';
   const cardsList=cardsExpanded?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd2);display:flex;flex-direction:column;gap:6px">'+(cards.length?cards.map(w=>'<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px"><span style="color:var(--t2)">'+w.name+'</span><span style="font-weight:700">'+fmt(w.balance||0)+' ₽</span></div>').join(''):'<div style="font-size:11px;color:var(--t3)">Нет карт</div>')+'</div>':'';
   el.innerHTML='<div class="sc"><div class="sl">Общий баланс</div><div class="sv cg" style="font-size:17px">'+fmt(totalBal)+' ₽</div></div><div class="sc"><div class="sl">Наличные</div><div class="sv" style="font-size:17px">'+fmt(cashBal)+' ₽</div></div><div class="sc" style="cursor:pointer" onclick="toggleCardsExpanded()"><div class="sl" style="display:flex;align-items:center;justify-content:space-between">На картах/счетах'+chevron+'</div><div class="sv" style="font-size:17px">'+fmt(cardBal)+' ₽</div><div class="ss">'+cards.length+' '+(cards.length===1?'карта':(cards.length>=2&&cards.length<=4?'карты':'карт'))+'</div>'+cardsList+'</div>';
-  el.style.gridTemplateColumns='repeat(3,1fr)';
+  // Grid columns: 3 на компе, 1 на мобильном (одна под другой)
+  if(window.matchMedia('(max-width:768px)').matches){
+    el.style.gridTemplateColumns='1fr';
+  }else{
+    el.style.gridTemplateColumns='repeat(3,1fr)';
+  }
   document.getElementById('kassaDate').textContent=S.kassaOps.length+' операций';
   let ops=S.kassaOps.slice();
   // Фильтр по группе (таб)
