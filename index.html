@@ -618,28 +618,8 @@ function doLogout(){if(_authMode==='firebase')window.SIGN_OUT(window.AUTH);locat
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
 function initApp(){if(_inited)return;_inited=true;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
-function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassaDebounced();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassaDebounced();},()=>{});}
-let _refreshTimer=null;
-function refreshAll(){
-  if(_refreshTimer)clearTimeout(_refreshTimer);
-  _refreshTimer=setTimeout(()=>{
-    _refreshTimer=null;
-    // Рендерим только активную страницу
-    const cur=S.curPage||'dash';
-    if(cur==='dash'||!cur)renderDash();
-    if(cur==='clients')renderClients();
-    if(cur==='kassa')renderKassa();
-    if(cur==='reminders'&&typeof renderReminders==='function')renderReminders();
-    if(cur==='client'&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}
-    // Дашборд обновляем всегда (быстрый)
-    if(cur!=='dash')renderDash();
-  },80);
-}
-let _kassaTimer=null;
-function renderKassaDebounced(){
-  if(_kassaTimer)clearTimeout(_kassaTimer);
-  _kassaTimer=setTimeout(()=>{_kassaTimer=null;if(S.curPage==='kassa')renderKassa();renderDash();},80);
-}
+function startAll(){loadSettings();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();},()=>{});}
+function refreshAll(){renderDash();renderClients();renderKassa();if(typeof renderReminders==='function')renderReminders();if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
 function goTo(p){
   if(p!=='client')S.curPage=p;
   // Закрываем мобильные подменю
