@@ -415,6 +415,19 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .inv-terms-title{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
 .inv-terms-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:6px;align-items:end}
 .inv-terms-grid .fgp{min-width:0}
+#ioTermsRow .inv-terms-grid,#mInvDep .inv-terms-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.inv-terms-grid .inv-span2{grid-column:1/-1}
+.inp:disabled{opacity:.55;cursor:not-allowed}
+.inv-per{margin-bottom:12px;max-width:320px}
+.inv-per2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;max-width:520px}
+.inv-per2 label{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--t3)}
+td.inv-rent{font-size:11.5px;line-height:1.55;min-width:250px;white-space:normal}
+.inv-rent b{font-size:12.5px}
+.inv-rl{color:var(--t3)}
+.inv-rent-m{margin-top:8px;padding-top:8px;border-top:1px solid var(--brd2);font-size:12px;line-height:1.6}
+.inv-ending{margin-bottom:14px}
+.inv-end-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r2);background:var(--bg3);margin-top:6px;cursor:pointer;font-size:13px}
+.inv-end-row:hover{outline:1px solid var(--green)}
 .inv-subrow td{font-size:11px!important;color:var(--t2);padding-top:5px!important;padding-bottom:5px!important;border-top:none!important}
 .inv-subrow td:first-child{padding-left:26px!important;white-space:normal}
 .mf-body,.vw-list,.modal{-webkit-overflow-scrolling:auto!important;overscroll-behavior:contain}
@@ -422,7 +435,8 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .sidebar .nb,.ft,.btn{touch-action:manipulation}
 #mInvMonth .tbl td,#mInvMonth .tbl th.plain{padding-left:9px;padding-right:9px}
 @media(max-width:768px){
-.inv-terms-grid{grid-template-columns:minmax(0,1fr)}
+.inv-terms-grid,#ioTermsRow .inv-terms-grid,#mInvDep .inv-terms-grid,.inv-per2{grid-template-columns:minmax(0,1fr)!important}
+.inv-per{max-width:none}
 .main{min-width:0}
 #nav-investors{display:none!important}
 .inv-desk{display:none!important}
@@ -619,12 +633,12 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 <div style="font-size:14px;font-weight:700;margin-bottom:12px" id="ioWho"></div>
 <div class="inv-hint" id="ioHint"></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><div style="display:flex;gap:6px"><input class="inp num-fmt" type="text" inputmode="decimal" id="ioAmt" autocomplete="off"/><button class="btn bgh" id="ioAll" onclick="invOpFillMax()">Всё</button></div></div>
-<div class="fgp" style="margin-bottom:10px;display:none" id="ioDepRow"><label class="lbl">Из какого вклада</label><select class="inp sel" id="ioDep" onchange="invOpHint()"></select></div>
+<div class="fgp" style="margin-bottom:10px;display:none" id="ioDepRow"><label class="lbl" id="ioDepLbl">Из какого вклада</label><select class="inp sel" id="ioDep" onchange="invOpHint()"></select></div>
 <div class="fgp" style="margin-bottom:10px" id="ioWalletRow"><label class="lbl" id="ioWalletLbl">Кошелёк</label><select class="inp sel" id="ioWallet" onchange="invOpHint()"></select></div>
 <div class="fgp" style="margin-bottom:10px" id="ioDateRow"><label class="lbl">Дата</label><input class="inp" type="date" id="ioDate" onchange="invOpDateChanged()"/></div>
 <div id="ioTermsRow" style="display:none"><div class="inv-terms-box"><div class="inv-terms-title">Условия вклада</div>
 <div class="inv-terms-grid"><div class="fgp"><label class="lbl">Доля прибыли инвестору, %</label><input class="inp" type="number" inputmode="decimal" min="0" max="100" step="1" id="ioPct" oninput="invOpHint()"/></div>
-<div class="fgp"><label class="lbl">Прибыль начисляется с</label><input class="inp" type="date" id="ioStart" onchange="this.dataset.touched='1';invOpHint()"/></div></div>
+<div class="fgp"><label class="lbl">Срок, мес.</label><input class="inp" type="number" inputmode="numeric" min="0" max="600" step="1" id="ioTerm" placeholder="без срока" oninput="invOpHint()"/></div></div>
 <div class="inv-muted" id="ioTermsHint" style="line-height:1.5"></div></div></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="ioDesc" autocomplete="off"/></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mInvOp')">Отмена</button><button class="btn bg" id="ioBtn" onclick="saveInvOp()"></button></div>
@@ -634,7 +648,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 <div class="mtitle">Условия вклада</div>
 <div class="inv-hint" id="idInfo"></div>
 <div class="inv-terms-grid"><div class="fgp"><label class="lbl">Доля прибыли инвестору, %</label><input class="inp" type="number" inputmode="decimal" min="0" max="100" step="1" id="idPct" oninput="depEditHint()"/></div>
-<div class="fgp"><label class="lbl">Прибыль начисляется с</label><input class="inp" type="date" id="idStart"/></div></div>
+<div class="fgp"><label class="lbl">Срок, мес.</label><input class="inp" type="number" inputmode="numeric" min="0" max="600" step="1" id="idTerm" placeholder="без срока" oninput="depEditHint()"/></div></div>
 <div class="inv-muted" id="idHint" style="line-height:1.5;margin:4px 0 6px"></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mInvDep')">Отмена</button><button class="btn bg" onclick="saveDepEdit()">Сохранить</button></div>
 </div></div>
@@ -1882,7 +1896,7 @@ document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if
 //    Первый взнос уменьшает финансирование, прибыли в нём нет.
 //  • Прибыль и расходы (зарплата, опер. расходы из Кассы) делятся по долям,
 //    действующим в момент операции. Расходы вычитаются до деления с инвестором.
-//  • У каждого вклада свой % инвестору и дата старта прибыли. До старта доля вклада идёт компании.
+//  • У каждого вклада свой % инвестору и необязательный срок (от даты вклада). Вклад участвует в прибыли с даты внесения.
 //  • Часть инвестора = доля вклада × % по условиям вклада; остальное — компании,
 //    доля компании распределяется между учредителями по их капиталу.
 //  • Прибыль фиксируется при закрытии месяца: плюс → «К выплате», минус → уменьшает капитал.
@@ -1956,123 +1970,6 @@ function invTermsShort(M,i){
 }
 
 // ---------- МОДЕЛЬ ----------
-function invModel(){
-  const now=new Date(),curMk=monthKey(now);
-  const ops=S.invOps.map(o=>({...o,_d:invD(o.date),_a:parseFloat(o.amount)||0})).filter(o=>o._d).sort((a,b)=>a._d-b._d);
-  const closed={};S.invMonths.forEach(m=>closed[m.id]=m);
-  const closedKeys=Object.keys(closed).sort();
-  const lastClosed=closedKeys.length?closedKeys[closedKeys.length-1]:null;
-  const invById={};S.inv.forEach(i=>invById[i.id]=i);
-  // Вклады (транши капитала) и движения капитала по ним
-  const tranches={},tcapNow={},capEvents=[];
-  const push=(d,depId,delta,src)=>{capEvents.push({_d:d,depId,delta,src});tcapNow[depId]=(tcapNow[depId]||0)+delta;};
-  ops.forEach(o=>{
-    const inv=invById[o.invId];if(!inv)return;const isF=inv.role==='founder';
-    if(o.type==='deposit'||o.type==='reinvest'){
-      const pct=isF?100:(o.pct!==undefined&&o.pct!==null&&o.pct!==''?parseFloat(o.pct)||0:invPct(inv,monthKey(o._d)));
-      let st=isF?o._d:(invD(o.startDate)||o._d);if(st<o._d)st=o._d;
-      tranches[o.id]={id:o.id,invId:o.invId,kind:o.type,date:o._d,amount:o._a,pct,start:st,op:o};
-      push(o._d,o.id,o._a,o.id);
-    }else if(o.type==='withdraw'){
-      let rem=o._a;
-      if(o.depId&&tranches[o.depId]&&tranches[o.depId].invId===o.invId){push(o._d,o.depId,-rem,o.id);return;}
-      Object.values(tranches).filter(t=>t.invId===o.invId&&(tcapNow[t.id]||0)>0.004).sort((a,b)=>a.date-b.date).forEach(t=>{if(rem<=0.004)return;const take=Math.min(rem,tcapNow[t.id]);push(o._d,t.id,-take,o.id);rem-=take;});
-    }else if(o.type==='loss'){
-      if(Array.isArray(o.deps)&&o.deps.length){o.deps.forEach(x=>{if(tranches[x.depId])push(o._d,x.depId,-(parseFloat(x.amount)||0),o.id);});return;}
-      const ts=Object.values(tranches).filter(t=>t.invId===o.invId&&(tcapNow[t.id]||0)>0.004);const tot=ts.reduce((s,t)=>s+tcapNow[t.id],0);
-      if(tot>0)ts.forEach(t=>push(o._d,t.id,-o._a*tcapNow[t.id]/tot,o.id));
-    }
-  });
-  // события прибыли по договорам
-  const byClient={};
-  S.payments.forEach(p=>{if(p.type!=='payment'&&p.type!=='discount')return;const d=invD(p.date);if(!d)return;(byClient[p.clientId]=byClient[p.clientId]||[]).push({p,d});});
-  const events=[];let inDeals=0,noCost=0;
-  S.clients.forEach(c=>{
-    const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0,prepay=parseFloat(c.prepay)||0;
-    if(price<=0)return;
-    if(cost<=0){if(byClient[c.id])noCost++;return;}
-    let bodyRem=Math.max(0,cost-prepay),profRem=Math.max(0,price-cost);
-    (byClient[c.id]||[]).sort((a,b)=>a.d-b.d).forEach(({p,d})=>{
-      const a=parseFloat(p.amount)||0;if(a<=0)return;
-      if(p.type==='discount'){const t=Math.min(a,profRem);profRem-=t;bodyRem=Math.max(0,bodyRem-(a-t));return;}
-      const R=bodyRem+profRem;let prof,body;
-      if(R<=0){prof=a;body=0;}
-      else{const x=Math.min(a,R);prof=x*profRem/R;body=x-prof;profRem-=prof;bodyRem-=body;prof+=a-x;}
-      events.push({d,amount:prof,body,kind:'profit',ref:'№'+(c.contractId||'—')+' '+(c.name||'')});
-    });
-    inDeals+=Math.max(0,bodyRem);
-  });
-  S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:'expense',ref:o.desc||kMeta(o.type).name});});
-  events.sort((a,b)=>a.d-b.d);
-  // балансы участников
-  const bal={};
-  S.inv.forEach(i=>bal[i.id]={capital:0,payable:0,earned:0,deposited:0,withdrawn:0,paid:0,reinvested:0,ops:0});
-  ops.forEach(o=>{const b=bal[o.invId];const m=INV_OP[o.type];if(!b||!m)return;b.ops++;b.payable+=m.pay*o._a;
-    if(o.type==='profit')b.earned+=o._a;if(o.type==='loss')b.earned-=o._a;if(o.type==='deposit')b.deposited+=o._a;if(o.type==='withdraw')b.withdrawn+=o._a;if(o.type==='payout')b.paid+=o._a;if(o.type==='reinvest')b.reinvested+=o._a;});
-  Object.values(tranches).forEach(t=>{if(bal[t.invId])bal[t.invId].capital+=tcapNow[t.id]||0;});
-  Object.values(bal).forEach(b=>{['capital','payable','earned'].forEach(k=>b[k]=invR(b[k]));});
-  Object.keys(tcapNow).forEach(k=>tcapNow[k]=invR(tcapNow[k]));
-  const poolCap=invR(Object.values(bal).reduce((s,b)=>s+Math.max(0,b.capital),0));
-  const firstMk=ops.length?monthKey(ops[0]._d):null;
-  let startMk=firstMk;if(closedKeys.length&&(!startMk||closedKeys[0]<startMk))startMk=closedKeys[0];
-  const months=[];if(startMk){let mk=startMk;while(mk<=curMk){months.push(mk);mk=mkNext(mk);}}
-  const firstOpen=months.find(mk=>!closed[mk])||curMk;
-  const kassaTotal=S.wallets.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
-  capEvents.sort((a,b)=>a._d-b._d);
-  return{now,curMk,ops,tranches,tcapNow,capEvents,closed,closedKeys,lastClosed,events,inDeals:invR(inDeals),noCost,bal,poolCap,months,firstOpen,kassaTotal,_mc:{}};
-}
-// Расчёт месяца (живой)
-// До даты старта вклад участвует в пуле, но его доля прибыли и расходов целиком идёт компании (учредителям).
-function invComputeMonth(M,mk){
-  if(M._mc[mk])return M._mc[mk];
-  const st=mkStart(mk),en=mkStart(mkNext(mk));
-  const evs=M.events.filter(e=>e.d>=st&&e.d<en);
-  const tcap={};Object.keys(M.tranches).forEach(id=>tcap[id]=0);
-  const rows={};
-  S.inv.forEach(i=>{rows[i.id]={invId:i.id,name:i.name,role:i.role||'investor',gross:0,exp:0,toInv:0,toComp:0,fromComp:0,pre:0,pcts:new Set()};});
-  const dep={};
-  let k=0;const ce=M.capEvents;
-  const apply=t=>{while(k<ce.length&&ce[k]._d<=t){const e=ce[k];if(tcap[e.depId]!==undefined)tcap[e.depId]+=e.delta;k++;}};
-  let gross=0,exp=0,unalloc=0,noFounder=false;
-  evs.forEach(e=>{
-    apply(e.d);
-    const amt=e.amount;if(e.kind==='profit')gross+=amt;else exp-=amt;
-    const act=Object.keys(tcap).filter(id=>tcap[id]>0.004&&rows[M.tranches[id].invId]);
-    const tot=act.reduce((s,id)=>s+tcap[id],0);
-    if(tot<=0){unalloc+=amt;return;}
-    const fcap={};act.forEach(id=>{const iv=M.tranches[id].invId;if(rows[iv].role==='founder')fcap[iv]=(fcap[iv]||0)+tcap[id];});
-    const ftot=Object.values(fcap).reduce((s,v)=>s+v,0);
-    act.forEach(id=>{
-      const tr=M.tranches[id],r=rows[tr.invId],sl=amt*tcap[id]/tot;
-      const dg=dep[id]||(dep[id]={depId:id,invId:tr.invId,pct:tr.pct,date:fmtD(tr.date),start:fmtD(tr.start),gross:0,exp:0,toInv:0,toComp:0,pre:0});
-      if(e.kind==='profit'){r.gross+=sl;dg.gross+=sl;}else{r.exp-=sl;dg.exp-=sl;}
-      let pct;
-      if(r.role==='founder')pct=1;
-      else if(e.d<tr.start){pct=0;r.pre+=sl;dg.pre+=sl;}
-      else{pct=tr.pct/100;r.pcts.add(tr.pct);}
-      r.toInv+=sl*pct;dg.toInv+=sl*pct;
-      const cp=sl*(1-pct);r.toComp+=cp;dg.toComp+=cp;
-      if(Math.abs(cp)>1e-9){if(ftot>0)Object.keys(fcap).forEach(fid=>rows[fid].fromComp+=cp*fcap[fid]/ftot);else{unalloc+=cp;noFounder=true;}}
-    });
-  });
-  apply(new Date(en.getTime()-1));
-  const capBy={},depCaps={};
-  Object.keys(tcap).forEach(id=>{const iv=M.tranches[id].invId;const v=Math.max(0,tcap[id]);capBy[iv]=(capBy[iv]||0)+v;if(v>0.004)(depCaps[iv]=depCaps[iv]||{})[id]=invR(v);});
-  const totEnd=Object.values(capBy).reduce((s,v)=>s+v,0);
-  const list=Object.values(rows).map(r=>{
-    const cap=capBy[r.invId]||0;
-    if(r.role!=='founder'&&!r.pcts.size)Object.keys(depCaps[r.invId]||{}).forEach(id=>r.pcts.add(M.tranches[id].pct));
-    const pcts=[...r.pcts].sort((a,b)=>a-b);
-    const deps=Object.values(dep).filter(d=>d.invId===r.invId).map(d=>({depId:d.depId,pct:d.pct,date:d.date,start:d.start,gross:invR(d.gross),exp:invR(d.exp),toInv:invR(d.toInv),toComp:invR(d.toComp),pre:invR(d.pre),capEnd:(depCaps[r.invId]||{})[d.depId]||0}));
-    return{invId:r.invId,name:r.name,role:r.role,pct:pcts.length===1?pcts[0]:null,pcts,gross:invR(r.gross),exp:invR(r.exp),net:invR(r.gross-r.exp),toInv:invR(r.toInv),toComp:invR(r.toComp),fromComp:invR(r.fromComp),pre:invR(r.pre),total:invR(r.toInv+r.fromComp),capEnd:invR(cap),shareEnd:totEnd>0?cap/totEnd:0,deps,depCaps:depCaps[r.invId]||{}};
-  }).filter(r=>r.gross||r.exp||r.total||r.capEnd>0);
-  const want=invR(gross-exp-unalloc),got=invR(list.reduce((s,r)=>s+r.total,0)),diff=invR(want-got);
-  if(diff&&Math.abs(diff)<1){const f=list.filter(r=>r.role==='founder').sort((a,b)=>b.capEnd-a.capEnd)[0];if(f){f.total=invR(f.total+diff);f.fromComp=invR(f.fromComp+diff);}}
-  const res={mk,gross:invR(gross),exp:invR(exp),net:invR(gross-exp),unalloc:invR(unalloc),noFounder,rows:list,count:evs.length,live:true};
-  M._mc[mk]=res;return res;
-}
-
-function invMonthData(M,mk){const c=M.closed[mk];if(c)return{mk,gross:c.gross||0,exp:c.exp||0,net:c.net||0,unalloc:c.unalloc||0,rows:c.rows||[],closedAt:c.closedAt,live:false};return invComputeMonth(M,mk);}
 function invMonthStatus(M,mk){
   if(M.closed[mk])return{st:'closed',canReopen:mk===M.lastClosed};
   if(mk>=M.curMk)return{st:'current'};
@@ -2082,79 +1979,7 @@ function invMonthStatus(M,mk){
 
 // ---------- СТРАНИЦА ----------
 function setInvTab(t,b){S.invTab=t;document.querySelectorAll('#invTabs .ft').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderInvestors();}
-function renderInvestors(){
-  const el=document.getElementById('invContent');if(!el)return;
-  const M=invModel();
-  const active=S.inv.filter(i=>!i.archived);
-  const payable=invR(S.inv.reduce((s,i)=>s+Math.max(0,M.bal[i.id].payable),0));
-  const free=invR(M.poolCap-M.inDeals);
-  document.getElementById('invCount').textContent=active.length?active.length+' '+invPlural(active.length,'участник','участника','участников'):'Общий пул капитала';
-  document.getElementById('invStats').innerHTML=
-    '<div class="sc"><div class="sl">Капитал пула</div><div class="sv">'+fmt(M.poolCap)+' ₽</div><div class="ss">вложено участниками</div></div>'+
-    '<div class="sc"><div class="sl">В сделках</div><div class="sv">'+fmt(M.inDeals)+' ₽</div><div class="ss">тело по договорам</div></div>'+
-    '<div class="sc"><div class="sl">Свободно</div><div class="sv'+(free<0?' cr':'')+'">'+invMoney(free)+'</div><div class="ss">в кассе сейчас '+fmt(M.kassaTotal)+' ₽</div></div>'+
-    '<div class="sc"><div class="sl">К выплате</div><div class="sv cy">'+fmt(payable)+' ₽</div><div class="ss">прибыль закрытых месяцев</div></div>';
-  // уведомления
-  let al='';
-  const toClose=M.months.filter(mk=>invMonthStatus(M,mk).canClose);
-  if(toClose.length)al+='<div class="inv-alert"><span><b>'+mkLabel(toClose[0])+'</b> завершился. Закройте месяц, чтобы начислить прибыль участникам.</span><button class="btn bg bsm" onclick="openInvMonth(\''+toClose[0]+'\')">Закрыть месяц</button></div>';
-  if(active.length&&!active.some(i=>i.role==='founder'))al+='<div class="inv-alert"><span>Нет учредителя. Доле компании в прибыли инвесторов некуда начисляться.</span><button class="btn bgh bsm" onclick="openInvForm(null,\'founder\')">Добавить учредителя</button></div>';
-  if(M.noCost)al+='<div class="inv-alert"><span>'+M.noCost+' '+invPlural(M.noCost,'договор','договора','договоров')+' без себестоимости — прибыль по ним не считается.</span></div>';
-  document.getElementById('invAlerts').innerHTML=al;
-  if(S.invTab==='months')el.innerHTML=invMonthsHtml(M);
-  else if(S.invTab==='ops')el.innerHTML=invOpsHtml(M,null);
-  else el.innerHTML=invListHtml(M);
-}
 function invPlural(n,a,b,c){const m10=n%10,m100=n%100;if(m10===1&&m100!==11)return a;if(m10>=2&&m10<=4&&(m100<10||m100>=20))return b;return c;}
-
-function invListHtml(M){
-  if(!S.inv.length)return'<div class="card"><div class="inv-empty">Участников пока нет.<br>Добавьте учредителя и инвесторов, затем внесите их вклады — с первого вклада начнётся учёт пула.<br><button class="btn bg" onclick="openInvForm(null,\'founder\')">+ Добавить учредителя</button></div></div>';
-  const cur=invComputeMonth(M,M.curMk);const curBy={};cur.rows.forEach(r=>curBy[r.invId]=r);
-  const arch=S.inv.filter(i=>i.archived);
-  const list=S.inv.filter(i=>S.invShowArch?i.archived:!i.archived).sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||M.bal[b.id].capital-M.bal[a.id].capital);
-  let rows='',cards='',sCap=0,sMon=0,sPay=0;
-  list.forEach(i=>{
-    const b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0,mon=curBy[i.id]?curBy[i.id].total:0;
-    sCap+=b.capital;sMon+=mon;sPay+=b.payable;
-    const tt=invTrTerms(M,i.id);
-    const wait=i.role!=='founder'&&tt.waiting?' <span class="badge by2" title="Есть вклады, по которым прибыль ещё не начисляется">ждёт старта</span>':'';
-    rows+='<tr class="crow" onclick="openInv(\''+i.id+'\')"><td><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:700">'+invEsc(i.name)+'</span>'+invRoleBadge(i)+wait+'</div>'+(i.phone?'<div class="inv-muted" style="margin-top:2px">'+invEsc(fmtPhone(i.phone))+'</div>':'')+'</td><td>'+invTermsShort(M,i)+'</td><td class="num"><span class="amt">'+fmt(b.capital)+' ₽</span></td><td class="num" style="min-width:110px">'+invPctFmt(share)+'<div class="inv-bar"><i style="width:'+(share*100).toFixed(2)+'%"></i></div></td><td class="num"><span class="amt '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</span></td><td class="num"><span class="amt cy">'+fmt(b.payable)+' ₽</span></td></tr>';
-    cards+='<div class="mcard" onclick="openInv(\''+i.id+'\')"><div class="mcard-top"><div class="mcard-name">'+invEsc(i.name)+' '+invRoleBadge(i)+wait+'</div><div class="mcard-id">'+invTermsShort(M,i)+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Капитал</span><span class="mcard-val">'+fmt(b.capital)+' ₽</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Доля пула</span><span class="mcard-val">'+invPctFmt(share)+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Этот месяц</span><span class="mcard-val '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">К выплате</span><span class="mcard-val cy">'+fmt(b.payable)+' ₽</span></div></div>';
-  });
-  const archLink=arch.length?'<div style="margin-top:10px"><button class="ft'+(S.invShowArch?' on':'')+'" onclick="S.invShowArch=!S.invShowArch;renderInvestors()">'+(S.invShowArch?'← Активные':'Архив ('+arch.length+')')+'</button></div>':'';
-  if(!list.length)return'<div class="card"><div class="inv-empty">В архиве пусто.</div></div>'+archLink;
-  return'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain">Условия, инв./комп.</th><th class="plain num">Капитал</th><th class="plain num">Доля пула</th><th class="plain num">'+mkLabel(M.curMk)+'</th><th class="plain num">К выплате</th></tr></thead><tbody>'+rows+
-    '<tr class="sum-row"><td colspan="2" style="font-weight:700">Итого</td><td class="num"><span class="amt">'+fmt(invR(sCap))+' ₽</span></td><td></td><td class="num"><span class="amt">'+invMoney(sMon,true)+'</span></td><td class="num"><span class="amt">'+fmt(invR(sPay))+' ₽</span></td></tr></tbody></table></div></div>'+
-    '<div class="inv-mob">'+cards+'</div>'+
-    '<div class="inv-muted" style="margin-top:8px">Колонка «'+mkLabel(M.curMk)+'» — предварительный итог текущего месяца: прибыль с платежей минус расходы, с учётом условий каждого вклада. Окончательно фиксируется при закрытии месяца.</div>'+archLink;
-}
-
-
-function invMonthsHtml(M){
-  if(!M.months.length)return'<div class="card"><div class="inv-empty">Месяцы появятся после первого пополнения капитала.</div></div>';
-  let rows='',cards='';
-  M.months.slice().reverse().forEach(mk=>{
-    const d=invMonthData(M,mk),s=invMonthStatus(M,mk);
-    const toI=invR(d.rows.filter(r=>r.role!=='founder').reduce((a,r)=>a+r.total,0)),toF=invR(d.rows.filter(r=>r.role==='founder').reduce((a,r)=>a+r.total,0));
-    let st;
-    if(s.st==='closed')st='<span class="badge ba">Закрыт</span>';
-    else if(s.st==='current')st='<span class="badge bd">Идёт</span>';
-    else if(s.canClose)st='<button class="btn bg bsm" onclick="event.stopPropagation();openInvMonth(\''+mk+'\')">Закрыть</button>';
-    else st='<span class="badge by2">Не закрыт</span>';
-    rows+='<tr class="crow" onclick="openInvMonth(\''+mk+'\')"><td style="font-weight:700">'+mkLabel(mk)+'</td><td class="num"><span class="amt">'+fmt(d.gross)+' ₽</span></td><td class="num"><span class="amt cr">'+(d.exp?'−'+fmt(d.exp)+' ₽':'—')+'</span></td><td class="num"><span class="amt '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</span></td><td class="num"><span class="amt">'+invMoney(toI)+'</span></td><td class="num"><span class="amt">'+invMoney(toF)+'</span></td><td class="num">'+st+'</td></tr>';
-    cards+='<div class="mcard" onclick="openInvMonth(\''+mk+'\')"><div class="mcard-top"><div class="mcard-name">'+mkLabel(mk)+'</div><div>'+st+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Прибыль с платежей</span><span class="mcard-val">'+fmt(d.gross)+' ₽</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Расходы</span><span class="mcard-val cr">'+(d.exp?'−'+fmt(d.exp)+' ₽':'—')+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Чистая прибыль</span><span class="mcard-val '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Инвесторам / учредителям</span><span class="mcard-val">'+invMoney(toI)+' / '+invMoney(toF)+'</span></div></div>';
-  });
-  return'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Месяц</th><th class="plain num">Прибыль с платежей</th><th class="plain num">Расходы</th><th class="plain num">Чистая прибыль</th><th class="plain num">Инвесторам</th><th class="plain num">Учредителям</th><th class="plain num">Статус</th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob">'+cards+'</div>'+
-    '<div class="inv-muted" style="margin-top:8px">Месяцы закрываются по порядку. Отменить можно только последнее закрытие, пока после него не было выплат и реинвестов.</div>';
-}
 
 function invOpsHtml(M,invId){
   const types={all:null,deposit:['deposit'],withdraw:['withdraw'],profit:['profit','loss'],reinvest:['reinvest'],payout:['payout']};
@@ -2172,8 +1997,9 @@ function invOpsHtml(M,invId){
     const del=canDel?'<button class="ib ir" style="width:22px;height:22px" onclick="event.stopPropagation();delInvOp(\''+o.id+'\')" title="Удалить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>':'';
     let extra='';
     const tr=M.tranches[o.id];
-    if(tr&&i&&i.role!=='founder')extra=tr.pct+'% инвестору'+(tr.start-tr.date>43200000?', прибыль с '+fmtD(tr.start):'');
-    if(o.type==='withdraw'&&o.depId&&M.tranches[o.depId])extra='из вклада от '+fmtD(M.tranches[o.depId].date);
+    if(tr&&i&&i.role!=='founder')extra=tr.pct+'% инвестору';
+    if(o.depId&&M.tranches[o.depId]&&o.type!=='deposit')extra=(o.type==='withdraw'?'из вклада от ':'вклад от ')+fmtD(M.tranches[o.depId].date);
+    if(tr&&tr.term)extra+=(extra?', ':'')+'срок '+tr.term+' мес.';
     const base=invEsc(o.desc||'')||((o.type==='profit'||o.type==='loss')&&o.month?mkLabel(o.month):'');
     const desc=[extra,base].filter(Boolean).join(' · ');
     const amt=(m.sign>0?'+':'−')+fmt(o._a)+' ₽';
@@ -2185,125 +2011,14 @@ function invOpsHtml(M,invId){
 
 // ---------- КАРТОЧКА УЧАСТНИКА ----------
 function openInv(id){S.curInv=id;S.invOpsTab='all';goTo('investor');window.scrollTo(0,0);}
-function invDepStatus(M,t){
-  const cap=M.tcapNow[t.id]||0;
-  if(cap<=0.004)return'<span class="badge brp">Выведен</span>';
-  if(t.start>M.now)return'<span class="badge by2">Ждёт старта</span>';
-  return'<span class="badge ba">Работает</span>';
-}
-function invDepsHtml(M,i){
-  const isF=i.role==='founder';
-  const trs=Object.values(M.tranches).filter(t=>t.invId===i.id).sort((a,b)=>b.date-a.date);
-  if(!trs.length)return'<div class="card" style="margin-bottom:14px"><div class="ct">Вклады</div><div class="empty">Вкладов пока нет — нажмите «Пополнить»</div></div>';
-  // сколько заработал каждый вклад в закрытых месяцах
-  const earned={};S.invMonths.forEach(m=>(m.rows||[]).forEach(r=>{if(r.invId===i.id)(r.deps||[]).forEach(d=>{earned[d.depId]=(earned[d.depId]||0)+(parseFloat(d.toInv)||0);});}));
-  let rows='',cards='';
-  trs.forEach(t=>{
-    const cap=M.tcapNow[t.id]||0;
-    const canEdit=!isF&&(!M.lastClosed||monthKey(t.start)>M.lastClosed)&&(!M.lastClosed||monthKey(t.date)>M.lastClosed);
-    const edit=canEdit?'<button class="ib ig" style="width:26px;height:26px" onclick="event.stopPropagation();openDepEdit(\''+t.id+'\')" title="Изменить условия"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>':'';
-    const kind=t.kind==='reinvest'?' <span class="inv-muted">реинвест</span>':'';
-    const ern=earned[t.id]?invMoney(earned[t.id]):'—';
-    rows+='<tr><td style="color:var(--t2)">'+fmtD(t.date)+kind+'</td><td class="num">'+fmt(t.amount)+' ₽</td><td class="num"><span class="amt">'+fmt(cap)+' ₽</span></td>'+(isF?'':'<td class="num">'+t.pct+'% <span class="inv-muted">/ '+invR(100-t.pct)+'%</span></td><td>'+fmtD(t.start)+'</td><td class="num">'+ern+'</td>')+'<td>'+invDepStatus(M,t)+'</td><td style="width:34px">'+edit+'</td></tr>';
-    cards+='<div class="mcard" style="cursor:default"><div class="mcard-top"><div class="mcard-name">'+fmt(t.amount)+' ₽'+kind+'</div><div style="display:flex;gap:6px;align-items:center">'+invDepStatus(M,t)+edit+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Внесён</span><span class="mcard-val">'+fmtD(t.date)+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Сейчас в пуле</span><span class="mcard-val">'+fmt(cap)+' ₽</span></div>'+
-      (isF?'':'<div class="mcard-row"><span class="mcard-label">Доля инвестору</span><span class="mcard-val">'+t.pct+'% / компании '+invR(100-t.pct)+'%</span></div><div class="mcard-row"><span class="mcard-label">Прибыль с</span><span class="mcard-val">'+fmtD(t.start)+'</span></div><div class="mcard-row"><span class="mcard-label">Заработал</span><span class="mcard-val">'+ern+'</span></div>')+'</div>';
-  });
-  return'<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px"><div class="ct" style="padding:16px 18px 0">Вклады</div><div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Дата</th><th class="plain num">Внесено</th><th class="plain num">Сейчас в пуле</th>'+(isF?'':'<th class="plain num">Инвестору / комп.</th><th class="plain">Прибыль с</th><th class="plain num">Заработал</th>')+'<th class="plain">Статус</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob" style="padding:0 10px 10px">'+cards+'</div>'+(isF?'':'<div class="inv-muted" style="padding:0 18px 14px">До даты старта деньги вклада уже работают в пуле, но их доля прибыли и расходов идёт компании. «Заработал» — по закрытым месяцам.</div>')+'</div>';
-}
-function renderInvDetail(){
-  const el=document.getElementById('invPg');if(!el)return;
-  const i=S.inv.find(x=>x.id===S.curInv);
-  if(!i){el.innerHTML='<div class="card"><div class="empty">Участник не найден</div></div>';return;}
-  const M=invModel(),b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0;
-  const cur=invComputeMonth(M,M.curMk).rows.find(r=>r.invId===i.id);const mon=cur?cur.total:0;
-  const id=i.id;
-  let h='<div class="inv-hd"><div><div class="inv-name">'+invEsc(i.name)+invRoleBadge(i)+(i.archived?'<span class="badge by2">Архив</span>':'')+'</div><div class="inv-sub">'+invTermsText(i,M)+'</div></div>'+
-    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgh" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bgh" onclick="openInvOp(\'reinvest\',\''+id+'\')">Реинвест</button><button class="btn bgh" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
-  h+='<div class="sg4">'+
-    '<div class="sc"><div class="sl">Капитал</div><div class="sv">'+fmt(b.capital)+' ₽</div><div class="ss">доля пула '+invPctFmt(share)+'</div><div class="inv-bar"><i style="width:'+(share*100).toFixed(2)+'%"></i></div></div>'+
-    '<div class="sc"><div class="sl">К выплате</div><div class="sv cy">'+fmt(b.payable)+' ₽</div><div class="ss">выплачено '+fmt(b.paid)+' ₽, реинвест '+fmt(b.reinvested)+' ₽</div></div>'+
-    '<div class="sc"><div class="sl">'+mkLabel(M.curMk)+'</div><div class="sv '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</div><div class="ss">предварительно, до закрытия</div></div>'+
-    '<div class="sc"><div class="sl">Заработано всего</div><div class="sv '+(b.earned<0?'cr':'cg')+'">'+invMoney(b.earned)+'</div><div class="ss">вложено '+fmt(b.deposited)+' ₽, выведено '+fmt(b.withdrawn)+' ₽</div></div></div>';
-  h+=invDepsHtml(M,i);
-  const isF=i.role==='founder';let mr='',mc='';
-  M.months.slice().reverse().forEach(mk=>{
-    const d=invMonthData(M,mk);const r=d.rows.find(x=>x.invId===id);if(!r)return;
-    const s=invMonthStatus(M,mk);const st=s.st==='closed'?'<span class="badge ba">Закрыт</span>':s.st==='current'?'<span class="badge bd">Идёт</span>':'<span class="badge by2">Не закрыт</span>';
-    const pctTxt=r.pct!==null&&r.pct!==undefined?r.pct+'%':'разные';
-    mr+='<tr class="crow" onclick="openInvMonth(\''+mk+'\')"><td style="font-weight:700">'+mkLabel(mk)+'</td><td class="num">'+invPctFmt(r.shareEnd||0)+'</td><td class="num">'+fmt(r.gross)+' ₽</td><td class="num cr">'+(r.exp?'−'+fmt(r.exp)+' ₽':'—')+'</td><td class="num">'+invMoney(r.net)+'</td>'+(isF?'<td class="num">'+invMoney(r.fromComp)+'</td>':'<td class="num inv-muted">'+pctTxt+'</td>')+'<td class="num"><span class="amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></td><td class="num">'+st+'</td></tr>';
-    mc+='<div class="mcard" onclick="openInvMonth(\''+mk+'\')"><div class="mcard-top"><div class="mcard-name">'+mkLabel(mk)+'</div><div>'+st+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Чистая прибыль его денег</span><span class="mcard-val">'+invMoney(r.net)+'</span></div>'+
-      (isF?'<div class="mcard-row"><span class="mcard-label">От компании</span><span class="mcard-val">'+invMoney(r.fromComp)+'</span></div>':'')+
-      '<div class="mcard-row"><span class="mcard-label">Итого '+(isF?'':'('+pctTxt+')')+'</span><span class="mcard-val '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></div></div>';
-  });
-  h+='<div class="card" style="padding:0;overflow:hidden"><div class="ct" style="padding:16px 18px 0">По месяцам</div>'+(mr?'<div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Месяц</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">'+(isF?'От компании':'Условия')+'</th><th class="plain num">Итого</th><th class="plain num">Статус</th></tr></thead><tbody>'+mr+'</tbody></table></div></div><div class="inv-mob" style="padding:0 10px 10px">'+mc+'</div>':'<div class="empty">Пока нет данных — появятся после пополнения капитала</div>')+'</div>';
-  h+='<div class="ct" style="margin-top:18px">Операции</div>'+invOpsHtml(M,id);
-  h+='<div class="card" style="margin-top:14px"><div class="ct">Анкета</div><div class="ig2" style="margin-bottom:0"><div class="ii"><div class="il">Телефон</div><div class="iv">'+(i.phone?invEsc(fmtPhone(i.phone)):'—')+'</div></div><div class="ii"><div class="il">Добавлен</div><div class="iv">'+(fmtD(invD(i.createdAt))||'—')+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Заметка</div><div class="iv" style="white-space:pre-wrap">'+(i.note?invEsc(i.note):'—')+'</div></div></div></div>';
-  el.innerHTML=h;
-}
-
 // ---------- МЕСЯЦ (разбивка / закрытие) ----------
 let _imMk=null;
-function openInvMonth(mk,refresh){
-  _imMk=mk;const M=invModel(),d=invMonthData(M,mk),s=invMonthStatus(M,mk);
-  document.getElementById('imTitle').textContent=mkLabel(mk)+(s.st==='closed'?' — закрыт':s.st==='current'?' — идёт':'');
-  let note='';
-  if(s.st==='current')note='<div class="inv-hint">Месяц ещё идёт — цифры предварительные и меняются с каждым платежом и расходом.</div>';
-  else if(s.st==='open'&&s.canClose)note='<div class="inv-hint">После закрытия плюс участника попадёт в «К выплате», минус уменьшит его капитал. Новые платежи и расходы на этот месяц уже не повлияют.</div>';
-  else if(s.st==='open')note='<div class="inv-hint">Сначала закройте предыдущие месяцы.</div>';
-  else note='<div class="inv-hint">Закрыт '+(fmtD(invD(d.closedAt))||'')+'. Суммы зафиксированы.</div>';
-  if(d.unalloc)note+='<div class="inv-alert"><span><b>'+invMoney(d.unalloc)+'</b> не распределено: '+(d.noFounder?'нет учредителя для доли компании':'в момент операции в пуле не было капитала')+'.</span></div>';
-  let rows='';
-  d.rows.slice().sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||b.capEnd-a.capEnd).forEach(r=>{
-    const isF=r.role==='founder';
-    const badge=isF?'<span class="badge ba">Учр.</span>':'<span class="badge bd">'+(r.pct!==null&&r.pct!==undefined?r.pct+'%':'разн.')+'</span>';
-    rows+='<tr><td><span style="font-weight:700">'+invEsc(r.name)+'</span> '+badge+'</td><td class="num">'+invPctFmt(r.shareEnd||0)+'</td><td class="num">'+fmt(r.gross)+'</td><td class="num cr">'+(r.exp?'−'+fmt(r.exp):'—')+'</td><td class="num">'+invMoney(r.net)+'</td><td class="num">'+(isF?'—':invMoney(r.toComp))+'</td><td class="num">'+(isF?invMoney(r.fromComp):'—')+'</td><td class="num"><span class="amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></td></tr>';
-    const deps=r.deps||[];
-    if(!isF&&(deps.length>1||deps.some(x=>x.pre))){
-      deps.forEach(x=>{
-        const net=invR(x.gross-x.exp);
-        rows+='<tr class="inv-subrow"><td>вклад от '+x.date+' · '+x.pct+'%'+(x.pre?' · до старта '+x.start+' — компании '+invMoney(x.pre):'')+'</td><td></td><td class="num">'+fmt(x.gross)+'</td><td class="num">'+(x.exp?'−'+fmt(x.exp):'—')+'</td><td class="num">'+invMoney(net)+'</td><td class="num">'+invMoney(x.toComp)+'</td><td></td><td class="num">'+invMoney(x.toInv)+'</td></tr>';
-      });
-    }
-  });
-  const sum='<div class="sg4" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px"><div class="sc"><div class="sl">Прибыль с платежей</div><div class="sv">'+fmt(d.gross)+' ₽</div></div><div class="sc"><div class="sl">Расходы</div><div class="sv cr">'+(d.exp?'−'+fmt(d.exp):'0')+' ₽</div></div><div class="sc"><div class="sl">Чистая прибыль</div><div class="sv '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</div></div></div>';
-  document.getElementById('imBody').innerHTML=note+sum+(rows?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">Компании</th><th class="plain num">От компании</th><th class="plain num">Итого</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="inv-muted" style="margin-top:8px">«Компании» — часть прибыли инвестора, которая остаётся компании (включая всю долю вклада до его даты старта). «От компании» — эта часть, распределённая между учредителями по их капиталу.</div>':'<div class="empty">В этом месяце нет движений</div>');
-  let ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Закрыть окно</button>';
-  if(s.st==='open'&&s.canClose)ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Отмена</button><button class="btn bg" id="imBtn" onclick="invCloseMonth(\''+mk+'\')">Закрыть месяц</button>';
-  if(s.st==='closed'&&s.canReopen)ft='<button class="btn br bsm" style="margin-right:auto" onclick="invReopenMonth(\''+mk+'\')">Отменить закрытие</button>'+ft;
-  document.getElementById('imFt').innerHTML=ft;
-  if(!refresh)openM('mInvMonth');
-}
 function invSplitLoss(amount,depCaps){
   const ids=Object.keys(depCaps||{});if(!ids.length)return[];
   const tot=ids.reduce((s,id)=>s+depCaps[id],0);let left=invR(amount);const out=[];
   ids.forEach((id,n)=>{const v=n===ids.length-1?left:invR(amount*depCaps[id]/tot);left=invR(left-v);out.push({depId:id,amount:v});});
   return out;
 }
-async function invCloseMonth(mk){
-  if(_saving)return;
-  const M=invModel(),s=invMonthStatus(M,mk);
-  if(s.st!=='open'||!s.canClose){toast('Этот месяц сейчас нельзя закрыть','ter');return;}
-  const d=invComputeMonth(M,mk);
-  _saving=true;const btn=document.getElementById('imBtn');if(btn)btn.classList.add('saving');
-  try{
-    const{db,doc,collection,writeBatch}=window.DB;const bt=writeBatch(db);const end=mkEnd(mk);
-    bt.set(doc(db,'invMonths',mk),{month:mk,closedAt:new Date(),gross:d.gross,exp:d.exp,net:d.net,unalloc:d.unalloc,noFounder:!!d.noFounder,rows:d.rows.map(r=>{const x={...r};delete x.depCaps;return x;})});
-    d.rows.forEach(r=>{
-      if(!r.total)return;
-      const op={invId:r.invId,invName:r.name,type:r.total>0?'profit':'loss',amount:Math.abs(r.total),month:mk,date:end,dateStr:fmtD(end),auto:true,desc:'Итог за '+mkLabel(mk).toLowerCase(),createdAt:new Date()};
-      if(r.total<0)op.deps=invSplitLoss(Math.abs(r.total),r.depCaps);
-      bt.set(doc(collection(db,'invOps')),op);
-    });
-    await bt.commit();
-    await logA('Инвесторы: закрытие месяца',mkLabel(mk)+' — чистая прибыль '+invMoney(d.net));
-    closeM('mInvMonth');toast('Месяц закрыт','tok');
-  }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
-  finally{_saving=false;if(btn)btn.classList.remove('saving');}
-}
-
 function invReopenMonth(mk){
   const M=invModel(),c=M.closed[mk];if(!c||mk!==M.lastClosed){toast('Отменить можно только последнее закрытие','ter');return;}
   const ca=invD(c.closedAt)||new Date(0);
@@ -2374,18 +2089,459 @@ function invFormDelete(){
 }
 
 // ---------- ОПЕРАЦИИ ----------
-const IO_META={
-  deposit:{title:'Новый вклад',btn:'Внести вклад',wallet:true,date:true,k:'inv_in',walletLbl:'Куда поступили деньги',terms:true},
-  withdraw:{title:'Вывод капитала',btn:'Вывести',wallet:true,date:true,k:'inv_out',walletLbl:'Из какого кошелька',dep:true},
-  reinvest:{title:'Реинвест прибыли',btn:'Реинвестировать',wallet:false,date:false,terms:true},
-  payout:{title:'Выплата прибыли',btn:'Выплатить',wallet:true,date:false,k:'inv_pay',walletLbl:'Из какого кошелька'}
-};
+
 let _io={type:null,invId:null};
 function invLastPct(M,invId){const t=Object.values(M.tranches).filter(x=>x.invId===invId).sort((a,b)=>b.date-a.date)[0];return t?t.pct:50;}
+function invOpDateChanged(){invOpHint();}
+function invOpFillMax(){const{max}=invOpLimits();if(max!==null){const el=document.getElementById('ioAmt');el.value=String(max).replace('.',',');fmtInput(el);}}
+// ---------- УСЛОВИЯ ВКЛАДА (изменение) ----------
+let _dep=null;
+
+function invAddMonths(d,n){const x=new Date(d.getFullYear(),d.getMonth()+n,1,d.getHours(),d.getMinutes(),d.getSeconds());const last=new Date(x.getFullYear(),x.getMonth()+1,0).getDate();x.setDate(Math.min(d.getDate(),last));return x;}
+function invDaysLeft(M,t){if(!t.termEnd)return null;return Math.ceil((t.termEnd-M.now)/86400000);}
+function invRentFmt(x){if(x===null||x===undefined||!isFinite(x))return'—';const p=x*100;const v=Math.abs(p)<10?p.toFixed(2):p.toFixed(1);return v.replace('.',',').replace(/,00$/,'')+'%';}
+// ---------- МОДЕЛЬ ----------
+function invModel(){
+  const now=new Date(),curMk=monthKey(now);
+  const ops=S.invOps.map(o=>({...o,_d:invD(o.date),_a:parseFloat(o.amount)||0})).filter(o=>o._d).sort((a,b)=>a._d-b._d);
+  const closed={};S.invMonths.forEach(m=>closed[m.id]=m);
+  const closedKeys=Object.keys(closed).sort();
+  const lastClosed=closedKeys.length?closedKeys[closedKeys.length-1]:null;
+  const invById={};S.inv.forEach(i=>invById[i.id]=i);
+  // Вклады, их капитал и «к выплате» по каждому вкладу
+  const tranches={},tcapNow={},tpay={},capEvents=[];
+  const pushCap=(d,depId,delta,src)=>{capEvents.push({_d:d,depId,delta,src});tcapNow[depId]=(tcapNow[depId]||0)+delta;};
+  const addPay=(depId,delta)=>{tpay[depId]=(tpay[depId]||0)+delta;};
+  const trOf=invId=>Object.values(tranches).filter(t=>t.invId===invId).sort((a,b)=>a.date-b.date);
+  const fifoPay=(invId,amt)=>{let rem=amt;const ts=trOf(invId);ts.forEach(t=>{if(rem<=0.004)return;const take=Math.min(rem,Math.max(0,tpay[t.id]||0));if(take>0){addPay(t.id,-take);rem-=take;}});if(rem>0.004&&ts.length)addPay(ts[0].id,-rem);};
+  const propPay=(invId,amt)=>{const ts=trOf(invId);if(!ts.length)return;const act=ts.filter(t=>(tcapNow[t.id]||0)>0.004);const tot=act.reduce((s,t)=>s+tcapNow[t.id],0);if(tot>0)act.forEach(t=>addPay(t.id,amt*tcapNow[t.id]/tot));else addPay(ts[0].id,amt);};
+  const newTranche=(o,inv,kind)=>{
+    const isF=inv.role==='founder';
+    const pct=isF?100:(o.pct!==undefined&&o.pct!==null&&o.pct!==''?parseFloat(o.pct)||0:invPct(inv,monthKey(o._d)));
+    const st=o._d;
+    const term=isF?0:(parseInt(o.termMonths)||0);
+    tranches[o.id]={id:o.id,invId:o.invId,kind,date:o._d,amount:o._a,pct,start:st,term,termEnd:term>0?invAddMonths(st,term):null,op:o};
+    tpay[o.id]=tpay[o.id]||0;pushCap(o._d,o.id,o._a,o.id);
+  };
+  ops.forEach(o=>{
+    const inv=invById[o.invId];if(!inv)return;
+    const dep=o.depId&&tranches[o.depId]&&tranches[o.depId].invId===o.invId?o.depId:null;
+    if(o.type==='deposit')newTranche(o,inv,'deposit');
+    else if(o.type==='reinvest'){
+      if(dep){pushCap(o._d,dep,o._a,o.id);addPay(dep,-o._a);}
+      else{fifoPay(o.invId,o._a);newTranche(o,inv,'reinvest');}
+    }
+    else if(o.type==='payout'){if(dep)addPay(dep,-o._a);else fifoPay(o.invId,o._a);}
+    else if(o.type==='profit'){if(dep)addPay(dep,o._a);else propPay(o.invId,o._a);}
+    else if(o.type==='withdraw'){
+      if(dep){pushCap(o._d,dep,-o._a,o.id);return;}
+      let rem=o._a;trOf(o.invId).filter(t=>(tcapNow[t.id]||0)>0.004).forEach(t=>{if(rem<=0.004)return;const take=Math.min(rem,tcapNow[t.id]);pushCap(o._d,t.id,-take,o.id);rem-=take;});
+    }
+    else if(o.type==='loss'){
+      if(dep){pushCap(o._d,dep,-o._a,o.id);return;}
+      if(Array.isArray(o.deps)&&o.deps.length){o.deps.forEach(x=>{if(tranches[x.depId])pushCap(o._d,x.depId,-(parseFloat(x.amount)||0),o.id);});return;}
+      const ts=trOf(o.invId).filter(t=>(tcapNow[t.id]||0)>0.004);const tot=ts.reduce((s,t)=>s+tcapNow[t.id],0);
+      if(tot>0)ts.forEach(t=>pushCap(o._d,t.id,-o._a*tcapNow[t.id]/tot,o.id));
+    }
+  });
+  // события прибыли по договорам
+  const byClient={};
+  S.payments.forEach(p=>{if(p.type!=='payment'&&p.type!=='discount')return;const d=invD(p.date);if(!d)return;(byClient[p.clientId]=byClient[p.clientId]||[]).push({p,d});});
+  const events=[];let inDeals=0,noCost=0;
+  S.clients.forEach(c=>{
+    const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0,prepay=parseFloat(c.prepay)||0;
+    if(price<=0)return;
+    if(cost<=0){if(byClient[c.id])noCost++;return;}
+    let bodyRem=Math.max(0,cost-prepay),profRem=Math.max(0,price-cost);
+    (byClient[c.id]||[]).sort((a,b)=>a.d-b.d).forEach(({p,d})=>{
+      const a=parseFloat(p.amount)||0;if(a<=0)return;
+      if(p.type==='discount'){const t=Math.min(a,profRem);profRem-=t;bodyRem=Math.max(0,bodyRem-(a-t));return;}
+      const R=bodyRem+profRem;let prof,body;
+      if(R<=0){prof=a;body=0;}
+      else{const x=Math.min(a,R);prof=x*profRem/R;body=x-prof;profRem-=prof;bodyRem-=body;prof+=a-x;}
+      events.push({d,amount:prof,body,kind:'profit',ref:'№'+(c.contractId||'—')+' '+(c.name||'')});
+    });
+    inDeals+=Math.max(0,bodyRem);
+  });
+  S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:'expense',ref:o.desc||kMeta(o.type).name});});
+  events.sort((a,b)=>a.d-b.d);
+  // балансы участников
+  const bal={};
+  S.inv.forEach(i=>bal[i.id]={capital:0,payable:0,earned:0,deposited:0,withdrawn:0,paid:0,reinvested:0,ops:0});
+  ops.forEach(o=>{const b=bal[o.invId];const m=INV_OP[o.type];if(!b||!m)return;b.ops++;
+    if(o.type==='profit')b.earned+=o._a;if(o.type==='loss')b.earned-=o._a;if(o.type==='deposit')b.deposited+=o._a;if(o.type==='withdraw')b.withdrawn+=o._a;if(o.type==='payout')b.paid+=o._a;if(o.type==='reinvest')b.reinvested+=o._a;});
+  Object.values(tranches).forEach(t=>{if(bal[t.invId]){bal[t.invId].capital+=tcapNow[t.id]||0;bal[t.invId].payable+=tpay[t.id]||0;}});
+  Object.values(bal).forEach(b=>{['capital','payable','earned'].forEach(k=>b[k]=invR(b[k]));});
+  Object.keys(tcapNow).forEach(k=>tcapNow[k]=invR(tcapNow[k]));Object.keys(tpay).forEach(k=>tpay[k]=invR(tpay[k]));
+  const poolCap=invR(Object.values(bal).reduce((s,b)=>s+Math.max(0,b.capital),0));
+  const firstMk=ops.length?monthKey(ops[0]._d):null;
+  let startMk=firstMk;if(closedKeys.length&&(!startMk||closedKeys[0]<startMk))startMk=closedKeys[0];
+  const months=[];if(startMk){let mk=startMk;while(mk<=curMk){months.push(mk);mk=mkNext(mk);}}
+  const firstOpen=months.find(mk=>!closed[mk])||curMk;
+  const kassaTotal=S.wallets.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
+  capEvents.sort((a,b)=>a._d-b._d);
+  return{now,curMk,ops,tranches,tcapNow,tpay,capEvents,closed,closedKeys,lastClosed,events,inDeals:invR(inDeals),noCost,bal,poolCap,months,firstOpen,kassaTotal,_mc:{}};
+}
+// Расчёт месяца (живой).
+function invComputeMonth(M,mk){
+  if(M._mc[mk])return M._mc[mk];
+  const st=mkStart(mk),en=mkStart(mkNext(mk));
+  const evs=M.events.filter(e=>e.d>=st&&e.d<en);
+  const tcap={};Object.keys(M.tranches).forEach(id=>tcap[id]=0);
+  const rows={};
+  S.inv.forEach(i=>{rows[i.id]={invId:i.id,name:i.name,role:i.role||'investor',gross:0,exp:0,toInv:0,toComp:0,fromComp:0,pre:0,pcts:new Set()};});
+  const dep={};
+  const dg=id=>{const tr=M.tranches[id];return dep[id]||(dep[id]={depId:id,invId:tr.invId,pct:tr.pct,date:fmtD(tr.date),start:fmtD(tr.start),gross:0,exp:0,toInv:0,toComp:0,fromComp:0,pre:0});};
+  let k=0;const ce=M.capEvents;
+  const apply=t=>{while(k<ce.length&&ce[k]._d<=t){const e=ce[k];if(tcap[e.depId]!==undefined)tcap[e.depId]+=e.delta;k++;}};
+  let gross=0,exp=0,unalloc=0,noFounder=false;
+  evs.forEach(e=>{
+    apply(e.d);
+    const amt=e.amount;if(e.kind==='profit')gross+=amt;else exp-=amt;
+    const act=Object.keys(tcap).filter(id=>tcap[id]>0.004&&rows[M.tranches[id].invId]);
+    const tot=act.reduce((s,id)=>s+tcap[id],0);
+    if(tot<=0){unalloc+=amt;return;}
+    const fT=act.filter(id=>rows[M.tranches[id].invId].role==='founder');
+    const ftot=fT.reduce((s,id)=>s+tcap[id],0);
+    act.forEach(id=>{
+      const tr=M.tranches[id],r=rows[tr.invId],sl=amt*tcap[id]/tot,g=dg(id);
+      if(e.kind==='profit'){r.gross+=sl;g.gross+=sl;}else{r.exp-=sl;g.exp-=sl;}
+      let pct;
+      if(r.role==='founder')pct=1;
+      else if(e.d<tr.start){pct=0;r.pre+=sl;g.pre+=sl;}
+      else{pct=tr.pct/100;r.pcts.add(tr.pct);}
+      r.toInv+=sl*pct;g.toInv+=sl*pct;
+      const cp=sl*(1-pct);r.toComp+=cp;g.toComp+=cp;
+      if(Math.abs(cp)>1e-9){
+        if(ftot>0)fT.forEach(fid=>{const part=cp*tcap[fid]/ftot;dg(fid).fromComp+=part;rows[M.tranches[fid].invId].fromComp+=part;});
+        else{unalloc+=cp;noFounder=true;}
+      }
+    });
+  });
+  apply(new Date(en.getTime()-1));
+  Object.keys(tcap).forEach(id=>{if(tcap[id]>0.004)dg(id);});
+  const capBy={};Object.keys(tcap).forEach(id=>{const iv=M.tranches[id].invId;capBy[iv]=(capBy[iv]||0)+Math.max(0,tcap[id]);});
+  const totEnd=Object.values(capBy).reduce((s,v)=>s+v,0);
+  const list=Object.values(rows).map(r=>{
+    const cap=capBy[r.invId]||0;
+    const deps=Object.values(dep).filter(d=>d.invId===r.invId).map(d=>{const tr=M.tranches[d.depId];const toInv=invR(d.toInv),fromComp=invR(d.fromComp);
+      if(r.role!=='founder'&&!r.pcts.size&&tcap[d.depId]>0.004)r.pcts.add(tr.pct);
+      return{depId:d.depId,pct:d.pct,date:d.date,start:d.start,gross:invR(d.gross),exp:invR(d.exp),toInv,toComp:invR(d.toComp),fromComp,pre:invR(d.pre),total:invR(toInv+fromComp),capEnd:invR(Math.max(0,tcap[d.depId])),started:tr.start<en};});
+    const pcts=[...r.pcts].sort((a,b)=>a-b);
+    const total=invR(deps.reduce((s,x)=>s+x.total,0));
+    const startedCap=invR(deps.filter(x=>x.started).reduce((s,x)=>s+x.capEnd,0));
+    return{invId:r.invId,name:r.name,role:r.role,pct:pcts.length===1?pcts[0]:null,pcts,gross:invR(r.gross),exp:invR(r.exp),net:invR(r.gross-r.exp),toInv:invR(r.toInv),toComp:invR(r.toComp),fromComp:invR(r.fromComp),pre:invR(r.pre),total,capEnd:invR(cap),startedCap,shareEnd:totEnd>0?cap/totEnd:0,deps};
+  }).filter(r=>r.gross||r.exp||r.total||r.capEnd>0);
+  const want=invR(gross-exp-unalloc),got=invR(list.reduce((s,r)=>s+r.total,0)),diff=invR(want-got);
+  if(diff&&Math.abs(diff)<1){const f=list.filter(r=>r.role==='founder').sort((a,b)=>b.capEnd-a.capEnd)[0];if(f&&f.deps.length){const fd=f.deps.slice().sort((a,b)=>b.capEnd-a.capEnd)[0];fd.total=invR(fd.total+diff);fd.fromComp=invR(fd.fromComp+diff);f.total=invR(f.total+diff);f.fromComp=invR(f.fromComp+diff);}}
+  const net=invR(gross-exp);
+  const res={mk,gross:invR(gross),exp:invR(exp),net,unalloc:invR(unalloc),noFounder,rows:list,count:evs.length,live:true,poolCap:invR(totEnd),poolRent:totEnd>0?net/totEnd:null};
+  M._mc[mk]=res;return res;
+}
+function invMonthData(M,mk){
+  const c=M.closed[mk];
+  if(c){const rows=c.rows||[];const pc=c.poolCap!==undefined?c.poolCap:rows.reduce((s,r)=>s+(r.capEnd||0),0);return{mk,gross:c.gross||0,exp:c.exp||0,net:c.net||0,unalloc:c.unalloc||0,rows,closedAt:c.closedAt,live:false,poolCap:pc,poolRent:pc>0?(c.net||0)/pc:null};}
+  return invComputeMonth(M,mk);
+}
+function invRowRent(r){const base=r.startedCap!==undefined?r.startedCap:r.capEnd;return base>0?r.total/base:null;}
+
+// ---------- ДОХОД ПО ВКЛАДАМ ЗА ПЕРИОД ----------
+S.invPer=S.invPer||{mode:'month',mk:null,from:null,to:null};
+function invPeriodMonths(M,per,tr){
+  const all=M.months;if(!all.length)return[];
+  if(per.mode==='month')return all.includes(per.mk)?[per.mk]:[];
+  if(per.mode==='range'){const a=per.from<=per.to?per.from:per.to,b=per.from<=per.to?per.to:per.from;return all.filter(mk=>mk>=a&&mk<=b);}
+  if(per.mode==='ytd'){const y=M.curMk.slice(0,4);return all.filter(mk=>mk.slice(0,4)===y);}
+  if(per.mode==='term'&&tr){const s=monthKey(tr.start),e=tr.termEnd?monthKey(tr.termEnd):M.curMk;return all.filter(mk=>mk>=s&&mk<=e);}
+  return all.slice();
+}
+function invIncome(M,invId,per){
+  const trs=Object.values(M.tranches).filter(t=>t.invId===invId).sort((a,b)=>a.date-b.date);
+  const cache={};const md=mk=>cache[mk]||(cache[mk]=invMonthData(M,mk));
+  const blank=()=>({gross:0,exp:0,toInv:0,toComp:0,fromComp:0,pre:0,total:0,baseEnd:0,monthly:[]});
+  const add=(a,x)=>{['gross','exp','toInv','toComp','fromComp','pre','total'].forEach(k=>a[k]+=parseFloat(x[k])||0);};
+  let prelim=false;const tot=blank();const byMonth={};
+  const deps=trs.map(tr=>{
+    const months=invPeriodMonths(M,per,tr).filter(mk=>mk>=monthKey(tr.date));const a=blank();a.tr=tr;a.months=months.length;
+    months.forEach((mk,n)=>{
+      const d=md(mk);if(d.live&&mk===M.curMk)prelim=true;
+      const r=d.rows.find(x=>x.invId===invId);if(!r||!r.deps)return;
+      const x=r.deps.find(z=>z.depId===tr.id);if(!x)return;
+      add(a,x);const base=x.started?(x.capEnd||0):0;
+      if(n===months.length-1)a.baseEnd=base;
+      if(base>0)a.monthly.push({mine:x.total/base,dep:(x.gross-x.exp)/base});
+      const bm=byMonth[mk]||(byMonth[mk]={total:0,net:0,base:0});bm.total+=x.total;bm.net+=x.gross-x.exp;bm.base+=base;
+    });
+    add(tot,a);tot.baseEnd+=a.baseEnd;return a;
+  });
+  // старые закрытые месяцы без разбивки по вкладам
+  const legacy=blank();let hasLegacy=false;
+  if(per.mode!=='term')invPeriodMonths(M,per,null).forEach(mk=>{const d=md(mk);const r=d.rows.find(x=>x.invId===invId);if(r&&!r.deps){hasLegacy=true;add(legacy,{gross:r.gross,exp:r.exp,toInv:r.toInv,toComp:r.toComp,fromComp:r.fromComp,pre:0,total:r.total});add(tot,{gross:r.gross,exp:r.exp,toInv:r.toInv,toComp:r.toComp,fromComp:r.fromComp,pre:0,total:r.total});}});
+  Object.values(byMonth).forEach(bm=>{if(bm.base>0)tot.monthly.push({mine:bm.total/bm.base,dep:bm.net/bm.base});});
+  const rent=a=>{const net=a.gross-a.exp;const avg=k=>a.monthly.length?a.monthly.reduce((s,m)=>s+m[k],0)/a.monthly.length:null;
+    return{mine:a.baseEnd>0?a.total/a.baseEnd:null,dep:a.baseEnd>0?net/a.baseEnd:null,mineAvg:avg('mine'),depAvg:avg('dep'),mineYear:a.monthly.length?avg('mine')*12:null,depYear:a.monthly.length?avg('dep')*12:null};};
+  deps.forEach(a=>a.rent=rent(a));tot.rent=rent(tot);
+  return{deps,tot,prelim,legacy:hasLegacy?legacy:null};
+}
+function setInvPer(k,v){S.invPer[k]=v;renderInvDetail();}
+function invIncomeHtml(M,i){
+  const isF=i.role==='founder';
+  if(!M.months.length)return'';
+  const P=S.invPer;
+  if(!P.mk||!M.months.includes(P.mk))P.mk=M.lastClosed||M.curMk;
+  if(!P.from||!M.months.includes(P.from))P.from=M.months[0];
+  if(!P.to||!M.months.includes(P.to))P.to=M.lastClosed||M.curMk;
+  const modes=[['month','Месяц'],['range','Период'],['ytd','С начала года'],['term','Весь срок вклада'],['all','Всё время']];
+  const opts=sel=>M.months.slice().reverse().map(mk=>'<option value="'+mk+'"'+(mk===sel?' selected':'')+'>'+mkLabel(mk)+(M.closed[mk]?'':mk===M.curMk?' (идёт)':' (не закрыт)')+'</option>').join('');
+  let ctl='<div class="ftabs" style="margin-bottom:10px">'+modes.map(m=>'<button class="ft'+(P.mode===m[0]?' on':'')+'" onclick="setInvPer(\'mode\',\''+m[0]+'\')">'+m[1]+'</button>').join('')+'</div>';
+  if(P.mode==='month')ctl+='<div class="inv-per"><select class="inp sel" onchange="setInvPer(\'mk\',this.value)">'+opts(P.mk)+'</select></div>';
+  if(P.mode==='range')ctl+='<div class="inv-per inv-per2"><label><span>с</span><select class="inp sel" onchange="setInvPer(\'from\',this.value)">'+opts(P.from)+'</select></label><label><span>по</span><select class="inp sel" onchange="setInvPer(\'to\',this.value)">'+opts(P.to)+'</select></label></div>';
+  const I=invIncome(M,i.id,P);
+  const multi=P.mode!=='month';
+  const rentCell=r=>{
+    const main=isF?'С долей компании':'Инвестору',sec=isF?'Со своих денег':'Вклада до деления';
+    const line=(lbl,p,avg,yr,muted)=>'<div'+(muted?' class="inv-muted"':'')+'><span class="inv-rl">'+lbl+':</span> <b class="'+(p<0?'cr':'')+'">'+invRentFmt(p)+'</b>'+(multi?' за период · '+invRentFmt(avg)+' в мес.':' за месяц')+' · ≈'+invRentFmt(yr)+' за год</div>';
+    if(r.mine===null&&r.dep===null)return'<span class="inv-muted">нет работающего капитала на конец периода</span>';
+    return line(main,r.mine,r.mineAvg,r.mineYear,false)+line(sec,r.dep,r.depAvg,r.depYear,true);
+  };
+  let rows='',cards='';
+  const rowFor=(label,a,sub)=>{
+    const net=invR(a.gross-a.exp);
+    rows+='<tr><td>'+label+'</td><td class="num">'+fmt(invR(a.gross))+'</td><td class="num cr">'+(a.exp?'−'+fmt(invR(a.exp)):'—')+'</td><td class="num">'+invMoney(net)+'</td>'+(isF?'<td class="num">'+invMoney(a.fromComp)+'</td>':'<td class="num">'+invMoney(a.toComp)+'</td>')+'<td class="num"><span class="amt '+(a.total<0?'cr':'cg')+'">'+invMoney(a.total)+'</span></td><td class="inv-rent">'+(a.rent?rentCell(a.rent):'—')+'</td></tr>';
+    cards+='<div class="mcard" style="cursor:default"><div class="mcard-top"><div class="mcard-name" style="font-size:14px">'+label+'</div><div class="amt '+(a.total<0?'cr':'cg')+'" style="font-weight:800">'+invMoney(a.total)+'</div></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Прибыль вклада</span><span class="mcard-val">'+fmt(invR(a.gross))+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Расходы</span><span class="mcard-val cr">'+(a.exp?'−'+fmt(invR(a.exp))+' ₽':'—')+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Чистыми до деления</span><span class="mcard-val">'+invMoney(net)+'</span></div>'+
+      (isF?'<div class="mcard-row"><span class="mcard-label">От компании</span><span class="mcard-val">'+invMoney(a.fromComp)+'</span></div>':'<div class="mcard-row"><span class="mcard-label">Компании</span><span class="mcard-val">'+invMoney(a.toComp)+'</span></div>')+
+      (a.rent?'<div class="inv-rent-m">'+rentCell(a.rent)+'</div>':'')+'</div>';
+  };
+  I.deps.filter(a=>a.months).forEach(a=>{const t=a.tr;rowFor('<b>'+fmtD(t.date)+'</b> · '+fmt(t.amount)+' ₽'+(isF?'':' · '+t.pct+'%')+(a.months?'':' <span class="inv-muted">нет месяцев в периоде</span>'),a);});
+  if(I.legacy)rowFor('<span class="inv-muted">Без разбивки по вкладам (старые месяцы)</span>',I.legacy);
+  const totHtml=()=>{const a=I.tot,net=invR(a.gross-a.exp);return'<tr class="sum-row"><td style="font-weight:800">Весь капитал</td><td class="num">'+fmt(invR(a.gross))+'</td><td class="num cr">'+(a.exp?'−'+fmt(invR(a.exp)):'—')+'</td><td class="num">'+invMoney(net)+'</td>'+(isF?'<td class="num">'+invMoney(a.fromComp)+'</td>':'<td class="num">'+invMoney(a.toComp)+'</td>')+'<td class="num"><span class="amt '+(a.total<0?'cr':'cg')+'">'+invMoney(a.total)+'</span></td><td class="inv-rent">'+rentCell(a.rent)+'</td></tr>';};
+  const a=I.tot;
+  const totCard='<div class="mcard" style="cursor:default;border-color:rgba(149,193,31,.35)"><div class="mcard-top"><div class="mcard-name">Весь капитал</div><div class="amt '+(a.total<0?'cr':'cg')+'" style="font-weight:800">'+invMoney(a.total)+'</div></div><div class="inv-rent-m">'+rentCell(a.rent)+'</div></div>';
+  const note=(I.prelim?'<div class="inv-hint" style="margin:0 18px 10px">'+mkLabel(M.curMk)+' ещё идёт — его цифры предварительные и изменятся до закрытия месяца.</div>':'')+
+    (P.mode==='term'?'<div class="inv-muted" style="padding:0 18px 8px">У каждого вклада свой срок: от месяца внесения до месяца окончания (бессрочный — до сегодня).</div>':'');
+  return'<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px"><div class="ct" style="padding:16px 18px 10px">Доход по вкладам</div><div style="padding:0 18px">'+ctl+'</div>'+note+
+    '<div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Вклад</th><th class="plain num">Прибыль вклада</th><th class="plain num">Расходы</th><th class="plain num">Чистыми до деления</th>'+(isF?'<th class="plain num">От компании</th>':'<th class="plain num">Компании</th>')+'<th class="plain num">'+(isF?'Итого ему':'Инвестору')+'</th><th class="plain">Рентабельность</th></tr></thead><tbody>'+rows+totHtml()+'</tbody></table></div></div>'+
+    '<div class="inv-mob" style="padding:0 10px 10px">'+cards+totCard+'</div>'+
+    '<div class="inv-muted" style="padding:2px 18px 14px">Рентабельность = прибыль за период / капитал на конец периода. «≈ за год» — средний месяц × 12.</div></div>';
+}
+
+function invDepStatus(M,t){
+  const cap=M.tcapNow[t.id]||0;
+  if(cap<=0.004)return'<span class="badge brp">Выведен</span>';
+  if(t.termEnd&&t.termEnd<=M.now)return'<span class="badge bo">Срок вышел</span>';
+  return'<span class="badge ba">Работает</span>';
+}
+function invTermCell(M,t){
+  if(!t.term)return'<span class="inv-muted">бессрочно</span>';
+  const dl=invDaysLeft(M,t);
+  const left=dl===null?'':(dl<=0?'<span class="cr">срок вышел</span>':(dl<=30?'<span class="cy">осталось '+dl+' дн.</span>':'осталось '+dl+' дн.'));
+  return t.term+' мес. · до '+fmtD(t.termEnd)+'<div class="inv-muted">'+left+'</div>';
+}
+function invDepsHtml(M,i){
+  const isF=i.role==='founder';
+  const trs=Object.values(M.tranches).filter(t=>t.invId===i.id).sort((a,b)=>b.date-a.date);
+  if(!trs.length)return'<div class="card" style="margin-bottom:14px"><div class="ct">Вклады</div><div class="empty">Вкладов пока нет — нажмите «Пополнить»</div></div>';
+  let rows='',cards='';
+  trs.forEach(t=>{
+    const cap=M.tcapNow[t.id]||0,pay=M.tpay[t.id]||0;
+    const edit=isF?'':'<button class="ib ig" style="width:26px;height:26px" onclick="event.stopPropagation();openDepEdit(\''+t.id+'\')" title="Изменить условия и срок"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>';
+    const kind=t.kind==='reinvest'?' <span class="inv-muted">реинвест</span>':'';
+    rows+='<tr><td style="color:var(--t2)">'+fmtD(t.date)+kind+'</td><td class="num">'+fmt(t.amount)+' ₽</td><td class="num"><span class="amt">'+fmt(cap)+' ₽</span></td>'+(isF?'':'<td class="num">'+t.pct+'% <span class="inv-muted">/ '+invR(100-t.pct)+'%</span></td><td style="font-size:12px">'+invTermCell(M,t)+'</td>')+'<td class="num"><span class="amt cy">'+fmt(pay)+' ₽</span></td><td>'+invDepStatus(M,t)+'</td><td style="width:34px">'+edit+'</td></tr>';
+    cards+='<div class="mcard" style="cursor:default"><div class="mcard-top"><div class="mcard-name">'+fmt(t.amount)+' ₽'+kind+'</div><div style="display:flex;gap:6px;align-items:center">'+invDepStatus(M,t)+edit+'</div></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Внесён</span><span class="mcard-val">'+fmtD(t.date)+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Сейчас в пуле</span><span class="mcard-val">'+fmt(cap)+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">К выплате</span><span class="mcard-val cy">'+fmt(pay)+' ₽</span></div>'+
+      (isF?'':'<div class="mcard-row"><span class="mcard-label">Доля инвестору</span><span class="mcard-val">'+t.pct+'% / компании '+invR(100-t.pct)+'%</span></div><div class="mcard-row"><span class="mcard-label">Срок</span><span class="mcard-val" style="text-align:right">'+invTermCell(M,t)+'</span></div>')+'</div>';
+  });
+  return'<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px"><div class="ct" style="padding:16px 18px 0">Вклады</div><div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Дата</th><th class="plain num">Внесено</th><th class="plain num">Сейчас в пуле</th>'+(isF?'':'<th class="plain num">Инвестору / комп.</th><th class="plain">Срок</th>')+'<th class="plain num">К выплате</th><th class="plain">Статус</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob" style="padding:0 10px 10px">'+cards+'</div>'+(isF?'':'<div class="inv-muted" style="padding:0 18px 14px">Вклад участвует в прибыли с даты внесения. Срок считается от даты вклада; после срока вклад продолжает работать, пока его не выведут.</div>')+'</div>';
+}
+function renderInvDetail(){
+  const el=document.getElementById('invPg');if(!el)return;
+  const i=S.inv.find(x=>x.id===S.curInv);
+  if(!i){el.innerHTML='<div class="card"><div class="empty">Участник не найден</div></div>';return;}
+  const M=invModel(),b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0;
+  const cur=invComputeMonth(M,M.curMk).rows.find(r=>r.invId===i.id);const mon=cur?cur.total:0;
+  const id=i.id;
+  let h='<div class="inv-hd"><div><div class="inv-name">'+invEsc(i.name)+invRoleBadge(i)+(i.archived?'<span class="badge by2">Архив</span>':'')+'</div><div class="inv-sub">'+invTermsText(i,M)+'</div></div>'+
+    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgh" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bgh" onclick="openInvOp(\'reinvest\',\''+id+'\')">Реинвест</button><button class="btn bgh" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
+  h+='<div class="sg4">'+
+    '<div class="sc"><div class="sl">Капитал</div><div class="sv">'+fmt(b.capital)+' ₽</div><div class="ss">доля пула '+invPctFmt(share)+'</div><div class="inv-bar"><i style="width:'+(share*100).toFixed(2)+'%"></i></div></div>'+
+    '<div class="sc"><div class="sl">К выплате</div><div class="sv cy">'+fmt(b.payable)+' ₽</div><div class="ss">выплачено '+fmt(b.paid)+' ₽, реинвест '+fmt(b.reinvested)+' ₽</div></div>'+
+    '<div class="sc"><div class="sl">'+mkLabel(M.curMk)+'</div><div class="sv '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</div><div class="ss">предварительно, до закрытия</div></div>'+
+    '<div class="sc"><div class="sl">Заработано всего</div><div class="sv '+(b.earned<0?'cr':'cg')+'">'+invMoney(b.earned)+'</div><div class="ss">вложено '+fmt(b.deposited)+' ₽, выведено '+fmt(b.withdrawn)+' ₽</div></div></div>';
+  h+=invDepsHtml(M,i);
+  h+=invIncomeHtml(M,i);
+  const isF=i.role==='founder';let mr='',mc='';
+  M.months.slice().reverse().forEach(mk=>{
+    const d=invMonthData(M,mk);const r=d.rows.find(x=>x.invId===id);if(!r)return;
+    const s=invMonthStatus(M,mk);const st=s.st==='closed'?'<span class="badge ba">Закрыт</span>':s.st==='current'?'<span class="badge bd">Идёт</span>':'<span class="badge by2">Не закрыт</span>';
+    const pctTxt=r.pct!==null&&r.pct!==undefined?r.pct+'%':'разные';
+    const rent=invRentFmt(invRowRent(r));
+    mr+='<tr class="crow" onclick="openInvMonth(\''+mk+'\')"><td style="font-weight:700">'+mkLabel(mk)+'</td><td class="num">'+invPctFmt(r.shareEnd||0)+'</td><td class="num">'+fmt(r.gross)+' ₽</td><td class="num cr">'+(r.exp?'−'+fmt(r.exp)+' ₽':'—')+'</td><td class="num">'+invMoney(r.net)+'</td>'+(isF?'<td class="num">'+invMoney(r.fromComp)+'</td>':'<td class="num inv-muted">'+pctTxt+'</td>')+'<td class="num"><span class="amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></td><td class="num">'+rent+'</td><td class="num">'+st+'</td></tr>';
+    mc+='<div class="mcard" onclick="openInvMonth(\''+mk+'\')"><div class="mcard-top"><div class="mcard-name">'+mkLabel(mk)+'</div><div>'+st+'</div></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Чистая прибыль его денег</span><span class="mcard-val">'+invMoney(r.net)+'</span></div>'+
+      (isF?'<div class="mcard-row"><span class="mcard-label">От компании</span><span class="mcard-val">'+invMoney(r.fromComp)+'</span></div>':'')+
+      '<div class="mcard-row"><span class="mcard-label">Итого '+(isF?'':'('+pctTxt+')')+'</span><span class="mcard-val '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Рентабельность</span><span class="mcard-val">'+rent+'</span></div></div>';
+  });
+  h+='<div class="card" style="padding:0;overflow:hidden"><div class="ct" style="padding:16px 18px 0">По месяцам</div>'+(mr?'<div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Месяц</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">'+(isF?'От компании':'Условия')+'</th><th class="plain num">Итого</th><th class="plain num">Рент.</th><th class="plain num">Статус</th></tr></thead><tbody>'+mr+'</tbody></table></div></div><div class="inv-mob" style="padding:0 10px 10px">'+mc+'</div>':'<div class="empty">Пока нет данных — появятся после пополнения капитала</div>')+'</div>';
+  h+='<div class="ct" style="margin-top:18px">Операции</div>'+invOpsHtml(M,id);
+  h+='<div class="card" style="margin-top:14px"><div class="ct">Анкета</div><div class="ig2" style="margin-bottom:0"><div class="ii"><div class="il">Телефон</div><div class="iv">'+(i.phone?invEsc(fmtPhone(i.phone)):'—')+'</div></div><div class="ii"><div class="il">Добавлен</div><div class="iv">'+(fmtD(invD(i.createdAt))||'—')+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Заметка</div><div class="iv" style="white-space:pre-wrap">'+(i.note?invEsc(i.note):'—')+'</div></div></div></div>';
+  el.innerHTML=h;
+}
+
+function renderInvestors(){
+  const el=document.getElementById('invContent');if(!el)return;
+  const M=invModel();
+  const active=S.inv.filter(i=>!i.archived);
+  const payable=invR(S.inv.reduce((s,i)=>s+Math.max(0,M.bal[i.id].payable),0));
+  const free=invR(M.poolCap-M.inDeals);
+  document.getElementById('invCount').textContent=active.length?active.length+' '+invPlural(active.length,'участник','участника','участников'):'Общий пул капитала';
+  document.getElementById('invStats').innerHTML=
+    '<div class="sc"><div class="sl">Капитал пула</div><div class="sv">'+fmt(M.poolCap)+' ₽</div><div class="ss">вложено участниками</div></div>'+
+    '<div class="sc"><div class="sl">В сделках</div><div class="sv">'+fmt(M.inDeals)+' ₽</div><div class="ss">тело по договорам</div></div>'+
+    '<div class="sc"><div class="sl">Свободно</div><div class="sv'+(free<0?' cr':'')+'">'+invMoney(free)+'</div><div class="ss">в кассе сейчас '+fmt(M.kassaTotal)+' ₽</div></div>'+
+    '<div class="sc"><div class="sl">К выплате</div><div class="sv cy">'+fmt(payable)+' ₽</div><div class="ss">прибыль закрытых месяцев</div></div>';
+  let al='';
+  const toClose=M.months.filter(mk=>invMonthStatus(M,mk).canClose);
+  if(toClose.length)al+='<div class="inv-alert"><span><b>'+mkLabel(toClose[0])+'</b> завершился. Закройте месяц, чтобы начислить прибыль участникам.</span><button class="btn bg bsm" onclick="openInvMonth(\''+toClose[0]+'\')">Закрыть месяц</button></div>';
+  if(active.length&&!active.some(i=>i.role==='founder'))al+='<div class="inv-alert"><span>Нет учредителя. Доле компании в прибыли инвесторов некуда начисляться.</span><button class="btn bgh bsm" onclick="openInvForm(null,\'founder\')">Добавить учредителя</button></div>';
+  if(M.noCost)al+='<div class="inv-alert"><span>'+M.noCost+' '+invPlural(M.noCost,'договор','договора','договоров')+' без себестоимости — прибыль по ним не считается.</span></div>';
+  // сроки вкладов
+  const ending=Object.values(M.tranches).filter(t=>t.termEnd&&(M.tcapNow[t.id]||0)>0.004&&invDaysLeft(M,t)<=30).sort((a,b)=>a.termEnd-b.termEnd);
+  if(ending.length){
+    al+='<div class="card inv-ending"><div class="ct" style="margin-bottom:8px">Скоро заканчиваются и истёкшие сроки</div>'+ending.map(t=>{const i=S.inv.find(x=>x.id===t.invId);const dl=invDaysLeft(M,t);
+      return'<div class="inv-end-row" onclick="openInv(\''+t.invId+'\')"><div><b>'+invEsc(i?i.name:'')+'</b><div class="inv-muted">вклад от '+fmtD(t.date)+' · '+fmt(M.tcapNow[t.id])+' ₽ · '+t.pct+'%</div></div><div style="text-align:right"><div>до '+fmtD(t.termEnd)+'</div><div class="'+(dl<=0?'cr':'cy')+'" style="font-size:12px;font-weight:700">'+(dl<=0?'срок вышел '+(-dl)+' дн. назад':'осталось '+dl+' дн.')+'</div></div></div>';}).join('')+'</div>';
+  }
+  document.getElementById('invAlerts').innerHTML=al;
+  if(S.invTab==='months')el.innerHTML=invMonthsHtml(M);
+  else if(S.invTab==='ops')el.innerHTML=invOpsHtml(M,null);
+  else el.innerHTML=invListHtml(M);
+}
+function invListHtml(M){
+  if(!S.inv.length)return'<div class="card"><div class="inv-empty">Участников пока нет.<br>Добавьте учредителя и инвесторов, затем внесите их вклады — с первого вклада начнётся учёт пула.<br><button class="btn bg" onclick="openInvForm(null,\'founder\')">+ Добавить учредителя</button></div></div>';
+  const cur=invComputeMonth(M,M.curMk);const curBy={};cur.rows.forEach(r=>curBy[r.invId]=r);
+  const rm=M.lastClosed;const rmData=rm?invMonthData(M,rm):null;const rentBy={};if(rmData)rmData.rows.forEach(r=>rentBy[r.invId]=invRowRent(r));
+  const arch=S.inv.filter(i=>i.archived);
+  const list=S.inv.filter(i=>S.invShowArch?i.archived:!i.archived).sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||M.bal[b.id].capital-M.bal[a.id].capital);
+  let rows='',cards='',sCap=0,sMon=0,sPay=0;
+  list.forEach(i=>{
+    const b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0,mon=curBy[i.id]?curBy[i.id].total:0;
+    sCap+=b.capital;sMon+=mon;sPay+=b.payable;
+    const tt=invTrTerms(M,i.id);
+    const wait='';
+    const rent=rm?invRentFmt(rentBy[i.id]):'—';
+    rows+='<tr class="crow" onclick="openInv(\''+i.id+'\')"><td><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:700">'+invEsc(i.name)+'</span>'+invRoleBadge(i)+wait+'</div>'+(i.phone?'<div class="inv-muted" style="margin-top:2px">'+invEsc(fmtPhone(i.phone))+'</div>':'')+'</td><td>'+invTermsShort(M,i)+'</td><td class="num"><span class="amt">'+fmt(b.capital)+' ₽</span></td><td class="num" style="min-width:110px">'+invPctFmt(share)+'<div class="inv-bar"><i style="width:'+(share*100).toFixed(2)+'%"></i></div></td><td class="num"><span class="amt '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</span></td><td class="num">'+rent+'</td><td class="num"><span class="amt cy">'+fmt(b.payable)+' ₽</span></td></tr>';
+    cards+='<div class="mcard" onclick="openInv(\''+i.id+'\')"><div class="mcard-top"><div class="mcard-name">'+invEsc(i.name)+' '+invRoleBadge(i)+wait+'</div><div class="mcard-id">'+invTermsShort(M,i)+'</div></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Капитал</span><span class="mcard-val">'+fmt(b.capital)+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Доля пула</span><span class="mcard-val">'+invPctFmt(share)+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Этот месяц</span><span class="mcard-val '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</span></div>'+
+      (rm?'<div class="mcard-row"><span class="mcard-label">Рентабельность, '+mkLabel(rm).toLowerCase()+'</span><span class="mcard-val">'+rent+'</span></div>':'')+
+      '<div class="mcard-row"><span class="mcard-label">К выплате</span><span class="mcard-val cy">'+fmt(b.payable)+' ₽</span></div></div>';
+  });
+  const archLink=arch.length?'<div style="margin-top:10px"><button class="ft'+(S.invShowArch?' on':'')+'" onclick="S.invShowArch=!S.invShowArch;renderInvestors()">'+(S.invShowArch?'← Активные':'Архив ('+arch.length+')')+'</button></div>':'';
+  if(!list.length)return'<div class="card"><div class="inv-empty">В архиве пусто.</div></div>'+archLink;
+  return'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain">Условия, инв./комп.</th><th class="plain num">Капитал</th><th class="plain num">Доля пула</th><th class="plain num">'+mkLabel(M.curMk)+'</th><th class="plain num">Рент. '+(rm?mkLabel(rm).split(' ')[0].toLowerCase():'')+'</th><th class="plain num">К выплате</th></tr></thead><tbody>'+rows+
+    '<tr class="sum-row"><td colspan="2" style="font-weight:700">Итого</td><td class="num"><span class="amt">'+fmt(invR(sCap))+' ₽</span></td><td></td><td class="num"><span class="amt">'+invMoney(sMon,true)+'</span></td><td class="num">'+(rmData?invRentFmt(rmData.poolRent):'—')+'</td><td class="num"><span class="amt">'+fmt(invR(sPay))+' ₽</span></td></tr></tbody></table></div></div>'+
+    '<div class="inv-mob">'+cards+'</div>'+
+    '<div class="inv-muted" style="margin-top:8px">«'+mkLabel(M.curMk)+'» — предварительный итог текущего месяца. «Рент.» — рентабельность последнего закрытого месяца: прибыль участника / его работающий капитал на конец месяца; в строке «Итого» — по всему пулу.</div>'+archLink;
+}
+function invMonthsHtml(M){
+  if(!M.months.length)return'<div class="card"><div class="inv-empty">Месяцы появятся после первого пополнения капитала.</div></div>';
+  let rows='',cards='';
+  M.months.slice().reverse().forEach(mk=>{
+    const d=invMonthData(M,mk),s=invMonthStatus(M,mk);
+    const toI=invR(d.rows.filter(r=>r.role!=='founder').reduce((a,r)=>a+r.total,0)),toF=invR(d.rows.filter(r=>r.role==='founder').reduce((a,r)=>a+r.total,0));
+    let st;
+    if(s.st==='closed')st='<span class="badge ba">Закрыт</span>';
+    else if(s.st==='current')st='<span class="badge bd">Идёт</span>';
+    else if(s.canClose)st='<button class="btn bg bsm" onclick="event.stopPropagation();openInvMonth(\''+mk+'\')">Закрыть</button>';
+    else st='<span class="badge by2">Не закрыт</span>';
+    const pr=invRentFmt(d.poolRent);
+    rows+='<tr class="crow" onclick="openInvMonth(\''+mk+'\')"><td style="font-weight:700">'+mkLabel(mk)+'</td><td class="num"><span class="amt">'+fmt(d.gross)+' ₽</span></td><td class="num"><span class="amt cr">'+(d.exp?'−'+fmt(d.exp)+' ₽':'—')+'</span></td><td class="num"><span class="amt '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</span></td><td class="num">'+pr+'</td><td class="num"><span class="amt">'+invMoney(toI)+'</span></td><td class="num"><span class="amt">'+invMoney(toF)+'</span></td><td class="num">'+st+'</td></tr>';
+    cards+='<div class="mcard" onclick="openInvMonth(\''+mk+'\')"><div class="mcard-top"><div class="mcard-name">'+mkLabel(mk)+'</div><div>'+st+'</div></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Прибыль с платежей</span><span class="mcard-val">'+fmt(d.gross)+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Расходы</span><span class="mcard-val cr">'+(d.exp?'−'+fmt(d.exp)+' ₽':'—')+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Чистая прибыль</span><span class="mcard-val '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Рентабельность пула</span><span class="mcard-val">'+pr+'</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Инвесторам / учредителям</span><span class="mcard-val">'+invMoney(toI)+' / '+invMoney(toF)+'</span></div></div>';
+  });
+  return'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Месяц</th><th class="plain num">Прибыль с платежей</th><th class="plain num">Расходы</th><th class="plain num">Чистая прибыль</th><th class="plain num">Рент. пула</th><th class="plain num">Инвесторам</th><th class="plain num">Учредителям</th><th class="plain num">Статус</th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob">'+cards+'</div>'+
+    '<div class="inv-muted" style="margin-top:8px">Рентабельность пула = чистая прибыль месяца / весь капитал пула на конец месяца. Месяцы закрываются по порядку; отменить можно только последнее закрытие, пока после него не было выплат и реинвестов.</div>';
+}
+
+function openInvMonth(mk,refresh){
+  _imMk=mk;const M=invModel(),d=invMonthData(M,mk),s=invMonthStatus(M,mk);
+  document.getElementById('imTitle').textContent=mkLabel(mk)+(s.st==='closed'?' — закрыт':s.st==='current'?' — идёт':'');
+  let note='';
+  if(s.st==='current')note='<div class="inv-hint">Месяц ещё идёт — цифры предварительные и меняются с каждым платежом и расходом.</div>';
+  else if(s.st==='open'&&s.canClose)note='<div class="inv-hint">После закрытия плюс каждого вклада попадёт в его «К выплате», минус уменьшит капитал этого вклада. Новые платежи и расходы на этот месяц уже не повлияют.</div>';
+  else if(s.st==='open')note='<div class="inv-hint">Сначала закройте предыдущие месяцы.</div>';
+  else note='<div class="inv-hint">Закрыт '+(fmtD(invD(d.closedAt))||'')+'. Суммы зафиксированы.</div>';
+  if(d.unalloc)note+='<div class="inv-alert"><span><b>'+invMoney(d.unalloc)+'</b> не распределено: '+(d.noFounder?'нет учредителя для доли компании':'в момент операции в пуле не было капитала')+'.</span></div>';
+  let rows='';
+  d.rows.slice().sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||b.capEnd-a.capEnd).forEach(r=>{
+    const isF=r.role==='founder';
+    const badge=isF?'<span class="badge ba">Учр.</span>':'<span class="badge bd">'+(r.pct!==null&&r.pct!==undefined?r.pct+'%':'разн.')+'</span>';
+    rows+='<tr><td><span style="font-weight:700">'+invEsc(r.name)+'</span> '+badge+'</td><td class="num">'+invPctFmt(r.shareEnd||0)+'</td><td class="num">'+fmt(r.gross)+'</td><td class="num cr">'+(r.exp?'−'+fmt(r.exp):'—')+'</td><td class="num">'+invMoney(r.net)+'</td><td class="num">'+(isF?'—':invMoney(r.toComp))+'</td><td class="num">'+(isF?invMoney(r.fromComp):'—')+'</td><td class="num"><span class="amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></td><td class="num">'+invRentFmt(invRowRent(r))+'</td></tr>';
+    const deps=(r.deps||[]).filter(x=>x.gross||x.exp||x.total);
+    if(!isF&&deps.length>1){
+      deps.forEach(x=>{
+        const net=invR(x.gross-x.exp);const base=x.started?x.capEnd:0;
+        rows+='<tr class="inv-subrow"><td>вклад от '+x.date+' · '+x.pct+'%'+'</td><td></td><td class="num">'+fmt(x.gross)+'</td><td class="num">'+(x.exp?'−'+fmt(x.exp):'—')+'</td><td class="num">'+invMoney(net)+'</td><td class="num">'+invMoney(x.toComp)+'</td><td></td><td class="num">'+invMoney(x.total)+'</td><td class="num">'+invRentFmt(base>0?x.total/base:null)+'</td></tr>';
+      });
+    }
+  });
+  const sum='<div class="sg4" style="margin-bottom:14px"><div class="sc"><div class="sl">Прибыль с платежей</div><div class="sv">'+fmt(d.gross)+' ₽</div></div><div class="sc"><div class="sl">Расходы</div><div class="sv cr">'+(d.exp?'−'+fmt(d.exp):'0')+' ₽</div></div><div class="sc"><div class="sl">Чистая прибыль</div><div class="sv '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</div></div><div class="sc"><div class="sl">Рентабельность пула</div><div class="sv">'+invRentFmt(d.poolRent)+'</div><div class="ss">капитал '+fmt(d.poolCap||0)+' ₽</div></div></div>';
+  document.getElementById('imBody').innerHTML=note+sum+(rows?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">Компании</th><th class="plain num">От компании</th><th class="plain num">Итого</th><th class="plain num">Рент.</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="inv-muted" style="margin-top:8px">«Компании» — часть прибыли инвестора, которая остаётся компании. «От компании» — эта часть, распределённая между учредителями по их капиталу. «Рент.» — итог участника / его работающий капитал на конец месяца.</div>':'<div class="empty">В этом месяце нет движений</div>');
+  let ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Закрыть окно</button>';
+  if(s.st==='open'&&s.canClose)ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Отмена</button><button class="btn bg" id="imBtn" onclick="invCloseMonth(\''+mk+'\')">Закрыть месяц</button>';
+  if(s.st==='closed'&&s.canReopen)ft='<button class="btn br bsm" style="margin-right:auto" onclick="invReopenMonth(\''+mk+'\')">Отменить закрытие</button>'+ft;
+  document.getElementById('imFt').innerHTML=ft;
+  if(!refresh)openM('mInvMonth');
+}
+async function invCloseMonth(mk){
+  if(_saving)return;
+  const M=invModel(),s=invMonthStatus(M,mk);
+  if(s.st!=='open'||!s.canClose){toast('Этот месяц сейчас нельзя закрыть','ter');return;}
+  const d=invComputeMonth(M,mk);
+  _saving=true;const btn=document.getElementById('imBtn');if(btn)btn.classList.add('saving');
+  try{
+    const{db,doc,collection,writeBatch}=window.DB;const bt=writeBatch(db);const end=mkEnd(mk);
+    bt.set(doc(db,'invMonths',mk),{month:mk,closedAt:new Date(),gross:d.gross,exp:d.exp,net:d.net,unalloc:d.unalloc,noFounder:!!d.noFounder,poolCap:d.poolCap,rows:d.rows});
+    d.rows.forEach(r=>{(r.deps||[]).forEach(x=>{
+      if(!x.total)return;
+      bt.set(doc(collection(db,'invOps')),{invId:r.invId,invName:r.name,depId:x.depId,type:x.total>0?'profit':'loss',amount:Math.abs(x.total),month:mk,date:end,dateStr:fmtD(end),auto:true,desc:'Итог за '+mkLabel(mk).toLowerCase(),createdAt:new Date()});
+    });});
+    await bt.commit();
+    await logA('Инвесторы: закрытие месяца',mkLabel(mk)+' — чистая прибыль '+invMoney(d.net));
+    closeM('mInvMonth');toast('Месяц закрыт','tok');
+  }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  finally{_saving=false;if(btn)btn.classList.remove('saving');}
+}
+
+const IO_META={
+  deposit:{title:'Новый вклад',btn:'Внести вклад',wallet:true,date:true,k:'inv_in',walletLbl:'Куда поступили деньги',terms:true},
+  withdraw:{title:'Вывод капитала',btn:'Вывести',wallet:true,date:true,k:'inv_out',walletLbl:'Из какого кошелька',dep:'cap',depLbl:'Из какого вклада'},
+  reinvest:{title:'Реинвест прибыли',btn:'Реинвестировать',wallet:false,date:false,dep:'pay',depLbl:'Прибыль какого вклада'},
+  payout:{title:'Выплата прибыли',btn:'Выплатить',wallet:true,date:false,k:'inv_pay',walletLbl:'Из какого кошелька',dep:'pay',depLbl:'Прибыль какого вклада'}
+};
 function openInvOp(type,invId){
   const i=S.inv.find(x=>x.id===invId);if(!i)return;const meta=IO_META[type];const M=invModel();
   if(meta.wallet&&!S.wallets.length){toast('Сначала добавьте кошельки в настройках','ter');return;}
   const isF=i.role==='founder';
+  const depRow=document.getElementById('ioDepRow');
+  if(meta.dep){
+    let trs=Object.values(M.tranches).filter(t=>t.invId===invId).sort((a,b)=>a.date-b.date);
+    trs=meta.dep==='cap'?trs.filter(t=>(M.tcapNow[t.id]||0)>0.004):trs.filter(t=>(M.tpay[t.id]||0)>0.004);
+    if(!trs.length){toast(meta.dep==='cap'?'У участника нет капитала для вывода':'У участника нет прибыли к выплате','ter');return;}
+    document.getElementById('ioDepLbl').textContent=meta.depLbl;
+    document.getElementById('ioDep').innerHTML=trs.map(t=>'<option value="'+t.id+'">'+invDepLabel(M,t,isF,meta.dep)+'</option>').join('');
+    depRow.style.display='flex';
+  }else depRow.style.display='none';
   _io={type,invId};
   document.getElementById('ioTitle').textContent=meta.title;
   document.getElementById('ioWho').innerHTML=invEsc(i.name)+' '+invRoleBadge(i);
@@ -2398,57 +2554,49 @@ function openInvOp(type,invId){
   const today0=dayKey(new Date());
   document.getElementById('ioDate').value=today0;
   document.getElementById('ioAll').style.display=type==='deposit'?'none':'inline-flex';
-  // условия вклада
-  const showTerms=meta.terms&&!isF;
-  document.getElementById('ioTermsRow').style.display=showTerms?'block':'none';
+  document.getElementById('ioTermsRow').style.display=meta.terms&&!isF?'block':'none';
   document.getElementById('ioPct').value=invLastPct(M,invId);
-  const stEl=document.getElementById('ioStart');stEl.value=today0;stEl.dataset.touched='';
-  // выбор вклада для вывода
-  const depRow=document.getElementById('ioDepRow');
-  if(meta.dep){
-    const trs=Object.values(M.tranches).filter(t=>t.invId===invId&&(M.tcapNow[t.id]||0)>0.004).sort((a,b)=>a.date-b.date);
-    if(!trs.length){toast('У участника нет капитала для вывода','ter');return;}
-    document.getElementById('ioDep').innerHTML=trs.map(t=>'<option value="'+t.id+'">'+invDepLabel(M,t,isF)+'</option>').join('');
-    depRow.style.display='flex';
-  }else depRow.style.display='none';
+  document.getElementById('ioTerm').value='';
   invOpHint();openM('mInvOp');
 }
-function invDepLabel(M,t,isF){return'Вклад от '+fmtD(t.date)+(isF?'':' · '+t.pct+'%')+' · в пуле '+fmt(M.tcapNow[t.id]||0)+' ₽';}
-function invOpDateChanged(){const st=document.getElementById('ioStart');if(st.dataset.touched!=='1')st.value=document.getElementById('ioDate').value;invOpHint();}
+function invDepLabel(M,t,isF,what){return'Вклад от '+fmtD(t.date)+(isF?'':' · '+t.pct+'%')+(what==='pay'?' · к выплате '+fmt(M.tpay[t.id]||0)+' ₽':' · в пуле '+fmt(M.tcapNow[t.id]||0)+' ₽');}
 function invOpLimits(){
   const M=invModel(),b=M.bal[_io.invId],w=S.wallets.find(x=>x.id===document.getElementById('ioWallet').value);
-  const wb=w?invR(parseFloat(w.balance)||0):0;
-  let max=Infinity,depCap=0;
-  if(_io.type==='withdraw'){const dep=document.getElementById('ioDep').value;depCap=invR(M.tcapNow[dep]||0);max=Math.min(depCap,wb);}
-  if(_io.type==='payout')max=Math.min(Math.max(0,b.payable),wb);
-  if(_io.type==='reinvest')max=Math.max(0,b.payable);
-  return{M,b,w,wb,depCap,max:max===Infinity?null:invR(max)};
+  const wb=w?invR(parseFloat(w.balance)||0):0;const meta=IO_META[_io.type];
+  const depId=meta.dep?document.getElementById('ioDep').value:null;const tr=depId?M.tranches[depId]:null;
+  const depCap=tr?invR(M.tcapNow[depId]||0):0,depPay=tr?invR(M.tpay[depId]||0):0;
+  let max=Infinity;
+  if(_io.type==='withdraw')max=Math.min(depCap,wb);
+  if(_io.type==='payout')max=Math.min(Math.max(0,depPay),wb);
+  if(_io.type==='reinvest')max=Math.max(0,depPay);
+  return{M,b,w,wb,tr,depId,depCap,depPay,max:max===Infinity?null:invR(max)};
 }
 function invOpHint(){
-  const{M,b,w,wb,depCap}=invOpLimits();const t=_io.type;let h='';
+  const{M,b,w,wb,tr,depCap,depPay}=invOpLimits();const t=_io.type;let h='';
   const i=S.inv.find(x=>x.id===_io.invId);const isF=i&&i.role==='founder';
   const share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0;
   if(t==='deposit')h='Капитал сейчас <b>'+fmt(b.capital)+' ₽</b> ('+invPctFmt(share)+' пула). Деньги поступят в кассу и начнут работать в пуле с даты вклада.';
-  if(t==='withdraw')h='В выбранном вкладе <b>'+fmt(depCap)+' ₽</b>, в кошельке «'+invEsc(w?w.name:'')+'» <b>'+fmt(wb)+' ₽</b>. Вывести можно только имеющиеся деньги.';
-  if(t==='reinvest')h='К выплате <b>'+fmt(b.payable)+' ₽</b>. Сумма станет новым вкладом и добавится к капиталу.';
-  if(t==='payout')h='К выплате <b>'+fmt(b.payable)+' ₽</b>, в кошельке «'+invEsc(w?w.name:'')+'» <b>'+fmt(wb)+' ₽</b>.';
+  if(t==='withdraw'){h='В этом вкладе <b>'+fmt(depCap)+' ₽</b>, в кошельке «'+invEsc(w?w.name:'')+'» <b>'+fmt(wb)+' ₽</b>. Вывести можно только имеющиеся деньги.';
+    if(tr&&tr.termEnd&&tr.termEnd>M.now)h+='<br><span class="cr" style="font-weight:700">Срок вклада ещё не вышел — до '+fmtD(tr.termEnd)+'.</span>';}
+  if(t==='reinvest')h='К выплате по этому вкладу <b>'+fmt(depPay)+' ₽</b>. Сумма добавится к телу этого же вклада на его условиях.';
+  if(t==='payout')h='К выплате по этому вкладу <b>'+fmt(depPay)+' ₽</b>, в кошельке «'+invEsc(w?w.name:'')+'» <b>'+fmt(wb)+' ₽</b>.';
   document.getElementById('ioHint').innerHTML=h;
   if(IO_META[t].terms&&!isF){
     const p=Math.min(100,Math.max(0,parseFloat(document.getElementById('ioPct').value)||0));
-    const sd=document.getElementById('ioStart').value,dd=IO_META[t].date?document.getElementById('ioDate').value:dayKey(new Date());
+    const dv=document.getElementById('ioDate').value,dd=dv?safeDateFromInput(dv):new Date();
+    const term=parseInt(document.getElementById('ioTerm').value)||0;
     let th='С каждых 100 000 ₽ прибыли этого вклада: <b>'+fmt(p*1000)+' ₽</b> инвестору, <b>'+fmt((100-p)*1000)+' ₽</b> компании.';
-    if(sd&&dd&&sd>dd)th+='<br>До '+fmtD(safeDateFromInput(sd))+' доля этого вклада целиком идёт компании.';
+    th+='<br>'+(term>0&&dd?'Срок: '+term+' мес., с '+fmtD(dd)+' по <b>'+fmtD(invAddMonths(dd,term))+'</b>.':'Без срока — вклад работает, пока его не выведут.');
     document.getElementById('ioTermsHint').innerHTML=th;
   }
 }
-function invOpFillMax(){const{max}=invOpLimits();if(max!==null){const el=document.getElementById('ioAmt');el.value=String(max).replace('.',',');fmtInput(el);}}
 async function saveInvOp(){
   if(_saving)return;
   const t=_io.type,meta=IO_META[t],i=S.inv.find(x=>x.id===_io.invId);if(!i)return;
   const isF=i.role==='founder';
   const amt=invR(parseNum(document.getElementById('ioAmt').value));
   if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
-  const{M,b,w,wb,depCap}=invOpLimits();
+  const{M,b,w,wb,tr,depId,depCap,depPay}=invOpLimits();
   if(meta.wallet&&!w){toast('Выберите кошелёк','ter');return;}
   let d=new Date();
   if(meta.date){
@@ -2461,48 +2609,55 @@ async function saveInvOp(){
   if(meta.terms&&!isF){
     const pct=parseFloat(String(document.getElementById('ioPct').value).replace(',','.'));
     if(isNaN(pct)||pct<0||pct>100){toast('Доля инвестору — от 0 до 100%','ter');return;}
-    const sv=document.getElementById('ioStart').value;
-    let sd=sv?safeDateFromInput(sv):new Date(d);
-    if(!sd){toast('Укажите дату старта прибыли','ter');return;}
-    if(dayKey(sd)<dayKey(d)){toast('Прибыль не может начисляться раньше даты вклада','ter');return;}
-    if(dayKey(sd)===dayKey(d))sd=new Date(d);else sd.setHours(0,0,0,0);
-    extra.pct=pct;extra.startDate=sd;extra.startStr=fmtD(sd);
+    const tv=String(document.getElementById('ioTerm').value).trim();const term=tv===''?0:parseInt(tv);
+    if(isNaN(term)||term<0||term>600){toast('Срок — целое число месяцев или пусто','ter');return;}
+    extra.pct=pct;extra.termMonths=term||null;
   }
+  if(meta.dep){if(!tr){toast('Выберите вклад','ter');return;}extra.depId=depId;}
   if(t==='withdraw'){
-    extra.depId=document.getElementById('ioDep').value;
     if(amt>depCap){toast('В этом вкладе только '+fmt(depCap)+' ₽','ter');return;}
     if(amt>wb){toast('В кошельке «'+w.name+'» только '+fmt(wb)+' ₽. Вывод возможен только из имеющихся денег','ter');return;}
   }
   if(t==='payout'||t==='reinvest'){
-    if(amt>invR(b.payable)){toast('К выплате всего '+fmt(b.payable)+' ₽','ter');return;}
+    if(amt>depPay){toast('К выплате по этому вкладу '+fmt(depPay)+' ₽','ter');return;}
     if(t==='payout'&&amt>wb){toast('В кошельке «'+w.name+'» только '+fmt(wb)+' ₽','ter');return;}
   }
   const desc=document.getElementById('ioDesc').value.trim();
-  _saving=true;const btn=document.getElementById('ioBtn');btn.classList.add('saving');
-  try{
-    const{db,doc,collection,writeBatch}=window.DB;const bt=writeBatch(db);
-    const opRef=doc(collection(db,'invOps'));let kId=null;
-    if(meta.wallet){
-      const kRef=doc(collection(db,'kassaOps'));kId=kRef.id;
-      const dir=kTypeMeta[meta.k].dir==='in'?1:-1;
-      bt.set(kRef,{type:meta.k,amount:amt,wallet:w.id,walletName:w.name||'',desc:kTypeMeta[meta.k].name+': '+i.name+(desc?' ('+desc+')':''),date:d,dateStr:fmtD(d),auto:true,refType:'investor',refId:i.id,invOpId:opRef.id});
-      bt.update(doc(db,'wallets',w.id),{balance:invR((parseFloat(w.balance)||0)+dir*amt)});
-    }
-    bt.set(opRef,{invId:i.id,invName:i.name,type:t,amount:amt,date:d,dateStr:fmtD(d),desc,wallet:w&&meta.wallet?w.id:'',walletName:w&&meta.wallet?w.name:'',kassaOpId:kId,auto:false,createdAt:new Date(),...extra});
-    await bt.commit();
-    const termsLog=extra.pct!==undefined?' ('+extra.pct+'% инвестору, прибыль с '+extra.startStr+')':'';
-    await logA('Инвесторы: '+INV_OP[t].name.toLowerCase(),i.name+' — '+fmt(amt)+' ₽'+termsLog+(meta.wallet?' ('+w.name+')':''));
-    closeM('mInvOp');toast({deposit:'Вклад внесён',withdraw:'Капитал выведен',reinvest:'Прибыль реинвестирована',payout:'Выплата записана'}[t],'tok');
-  }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
-  finally{_saving=false;btn.classList.remove('saving');}
+  const commit=async()=>{
+    _saving=true;const btn=document.getElementById('ioBtn');btn.classList.add('saving');
+    try{
+      const{db,doc,collection,writeBatch}=window.DB;const bt=writeBatch(db);
+      const opRef=doc(collection(db,'invOps'));let kId=null;
+      if(meta.wallet){
+        const kRef=doc(collection(db,'kassaOps'));kId=kRef.id;
+        const dir=kTypeMeta[meta.k].dir==='in'?1:-1;
+        bt.set(kRef,{type:meta.k,amount:amt,wallet:w.id,walletName:w.name||'',desc:kTypeMeta[meta.k].name+': '+i.name+(desc?' ('+desc+')':''),date:d,dateStr:fmtD(d),auto:true,refType:'investor',refId:i.id,invOpId:opRef.id});
+        bt.update(doc(db,'wallets',w.id),{balance:invR((parseFloat(w.balance)||0)+dir*amt)});
+      }
+      bt.set(opRef,{invId:i.id,invName:i.name,type:t,amount:amt,date:d,dateStr:fmtD(d),desc,wallet:w&&meta.wallet?w.id:'',walletName:w&&meta.wallet?w.name:'',kassaOpId:kId,auto:false,createdAt:new Date(),...extra});
+      await bt.commit();
+      let lg='';
+      if(extra.pct!==undefined)lg=' ('+extra.pct+'% инвестору'+(extra.termMonths?', срок '+extra.termMonths+' мес.':', без срока')+')';
+      if(tr)lg=' (вклад от '+fmtD(tr.date)+')';
+      await logA('Инвесторы: '+INV_OP[t].name.toLowerCase(),i.name+' — '+fmt(amt)+' ₽'+lg+(meta.wallet?' ('+w.name+')':''));
+      closeM('mInvOp');toast({deposit:'Вклад внесён',withdraw:'Капитал выведен',reinvest:'Прибыль добавлена к вкладу',payout:'Выплата записана'}[t],'tok');
+    }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+    finally{_saving=false;btn.classList.remove('saving');}
+  };
+  if(t==='withdraw'&&tr&&tr.termEnd&&tr.termEnd>M.now){
+    showConfirm('Срок вклада не вышел','Вклад от '+fmtD(tr.date)+' рассчитан до <strong>'+fmtD(tr.termEnd)+'</strong>. Всё равно вывести '+fmt(amt)+' ₽?',commit);
+    return;
+  }
+  await commit();
 }
 function delInvOp(id){
   const o=S.invOps.find(x=>x.id===id);if(!o)return;
   if(o.auto){toast('Начисления за месяц удаляются через «Отменить закрытие»','ter');return;}
   const M=invModel(),od=invD(o.date);
   if(M.closed[monthKey(od)]){toast('Месяц операции закрыт — удалить нельзя','ter');return;}
-  if(M.tranches[o.id]&&M.capEvents.some(e=>e.depId===o.id&&e.src!==o.id)){toast('Из этого вклада уже выводили деньги — сначала удалите вывод','ter');return;}
+  if(M.tranches[o.id]&&(M.capEvents.some(e=>e.depId===o.id&&e.src!==o.id)||S.invOps.some(x=>x.depId===o.id))){toast('По этому вкладу уже есть операции — сначала удалите их','ter');return;}
   const a=parseFloat(o.amount)||0;
+  if(o.type==='reinvest'&&o.depId&&M.tranches[o.depId]&&invR((M.tcapNow[o.depId]||0)-a)<0){toast('Капитал вклада уйдёт в минус — сначала удалите более поздний вывод','ter');return;}
   const m=INV_OP[o.type];const i=S.inv.find(x=>x.id===o.invId);
   showConfirm('Удалить операцию?','<strong>'+m.name+' '+fmt(a)+' ₽</strong><br>'+invEsc(i?i.name:o.invName||'')+(o.kassaOpId?'<br>Операция в кассе и баланс кошелька тоже откатятся':''),async()=>{
     try{
@@ -2517,42 +2672,46 @@ function delInvOp(id){
     }catch(e){toast('Ошибка: '+e.message,'ter');}
   });
 }
-// ---------- УСЛОВИЯ ВКЛАДА (изменение) ----------
-let _dep=null;
 function openDepEdit(depId){
   const M=invModel(),t=M.tranches[depId];if(!t)return;
   _dep=depId;
-  document.getElementById('idInfo').innerHTML='Вклад от <b>'+fmtD(t.date)+'</b> на <b>'+fmt(t.amount)+' ₽</b>, сейчас в пуле '+fmt(M.tcapNow[depId]||0)+' ₽';
-  document.getElementById('idPct').value=t.pct;
-  document.getElementById('idStart').value=dayKey(t.start);
+  const locked=!!(M.lastClosed&&monthKey(t.date)<=M.lastClosed);
+  document.getElementById('idInfo').innerHTML='Вклад от <b>'+fmtD(t.date)+'</b> на <b>'+fmt(t.amount)+' ₽</b>, сейчас в пуле '+fmt(M.tcapNow[depId]||0)+' ₽'+(locked?'<br><span class="cy">По вкладу уже есть закрытые месяцы — долю изменить нельзя, срок — можно.</span>':'');
+  const pe=document.getElementById('idPct');pe.value=t.pct;pe.disabled=locked;
+  document.getElementById('idTerm').value=t.term||'';
   depEditHint();openM('mInvDep');
 }
 function depEditHint(){
+  const t=_dep?invModel().tranches[_dep]:null;
   const p=Math.min(100,Math.max(0,parseFloat(document.getElementById('idPct').value)||0));
-  document.getElementById('idHint').innerHTML='С каждых 100 000 ₽ прибыли вклада: <b>'+fmt(p*1000)+' ₽</b> инвестору, <b>'+fmt((100-p)*1000)+' ₽</b> компании. Новые условия пересчитают только незакрытые месяцы.';
+  const term=parseInt(document.getElementById('idTerm').value)||0;
+  document.getElementById('idHint').innerHTML='С каждых 100 000 ₽ прибыли вклада: <b>'+fmt(p*1000)+' ₽</b> инвестору, <b>'+fmt((100-p)*1000)+' ₽</b> компании.<br>'+(term>0&&t?'Срок: '+term+' мес., до <b>'+fmtD(invAddMonths(t.date,term))+'</b>.':'Без срока.');
 }
 async function saveDepEdit(){
   if(_saving)return;
   const M=invModel(),t=M.tranches[_dep];if(!t)return;
-  const pct=parseFloat(String(document.getElementById('idPct').value).replace(',','.'));
-  if(isNaN(pct)||pct<0||pct>100){toast('Доля инвестору — от 0 до 100%','ter');return;}
-  const sv=document.getElementById('idStart').value;let sd=sv?safeDateFromInput(sv):null;
-  if(!sd){toast('Укажите дату старта','ter');return;}
-  if(dayKey(sd)<dayKey(t.date)){toast('Прибыль не может начисляться раньше даты вклада','ter');return;}
-  if(dayKey(sd)===dayKey(t.date))sd=new Date(t.date);else sd.setHours(0,0,0,0);
-  const from=monthKey(sd<t.start?sd:t.start);
-  if(M.lastClosed&&from<=M.lastClosed){toast(mkLabel(M.lastClosed)+' уже закрыт — эти условия изменить нельзя','ter');return;}
+  const tv=String(document.getElementById('idTerm').value).trim();const term=tv===''?0:parseInt(tv);
+  if(isNaN(term)||term<0||term>600){toast('Срок — целое число месяцев или пусто','ter');return;}
+  const upd={termMonths:term||null};
+  const pe=document.getElementById('idPct');
+  if(!pe.disabled){
+    const pct=parseFloat(String(pe.value).replace(',','.'));
+    if(isNaN(pct)||pct<0||pct>100){toast('Доля инвестору — от 0 до 100%','ter');return;}
+    if(pct!==t.pct){
+      if(M.lastClosed&&monthKey(t.date)<=M.lastClosed){toast(mkLabel(M.lastClosed)+' уже закрыт — долю изменить нельзя','ter');return;}
+      upd.pct=pct;
+    }
+  }
   _saving=true;
   try{
     const{db,doc,updateDoc}=window.DB;
-    await updateDoc(doc(db,'invOps',_dep),{pct,startDate:sd,startStr:fmtD(sd)});
+    await updateDoc(doc(db,'invOps',_dep),upd);
     const i=S.inv.find(x=>x.id===t.invId);
-    await logA('Инвесторы: условия вклада',(i?i.name:'')+' — вклад от '+fmtD(t.date)+': '+pct+'% инвестору, прибыль с '+fmtD(sd));
-    closeM('mInvDep');toast('Условия вклада сохранены','tok');
+    await logA('Инвесторы: условия вклада',(i?i.name:'')+' — вклад от '+fmtD(t.date)+(upd.pct!==undefined?': '+upd.pct+'% инвестору':'')+', срок '+(term?term+' мес.':'без срока'));
+    closeM('mInvDep');toast('Вклад сохранён','tok');
   }catch(e){toast('Ошибка: '+e.message,'ter');}
   finally{_saving=false;}
 }
-
 </script>
 <script>
 // =====================================================================
