@@ -417,6 +417,30 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .inv-terms-grid .fgp{min-width:0}
 #ioTermsRow .inv-terms-grid,#mInvDep .inv-terms-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .inv-terms-grid .inv-span2{grid-column:1/-1}
+#ioTermsRow .inv-terms-grid,#mInvDep .inv-terms-grid{grid-template-columns:minmax(0,1fr)!important}
+.inv-sw{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg3);padding:4px;border-radius:var(--r2);border:1px solid var(--brd2)}
+.inv-sw button{border:none;background:transparent;padding:9px 8px;border-radius:7px;font-size:13px;font-weight:700;color:var(--t2);cursor:pointer;font-family:inherit;min-height:38px}
+.inv-sw button.on{background:var(--card);color:var(--text);box-shadow:0 0 0 1px var(--green)}
+.inv-chart-hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.inv-chart{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.inv-bars{display:flex;align-items:flex-end;gap:10px;min-height:170px;padding-top:6px}
+.inv-bc{flex:1 0 46px;max-width:90px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;border-radius:8px;padding:4px 2px}
+.inv-bc:hover{background:var(--bg3)}
+.inv-bl{font-size:12px;font-weight:700;margin-bottom:5px;white-space:nowrap}
+.inv-bv{width:70%;min-width:24px;background:var(--green);border-radius:5px 5px 0 0}
+.inv-bv.neg{background:var(--red)}
+.inv-bv.pre{opacity:.4;background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(255,255,255,.25) 4px 8px)}
+.inv-bm{font-size:12px;color:var(--t2);margin-top:5px;font-weight:600}
+.inv-by{font-size:10px;color:var(--t3);line-height:1.2}
+.inv-dep{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--brd2)}
+.inv-dep:first-of-type{border-top:none}
+.inv-dep.gone{opacity:.55}
+.inv-dep-l{flex:1;min-width:0}
+.inv-dep-t{font-size:14px;font-weight:800}
+.inv-dep-s{font-size:12px;color:var(--t2);margin-top:2px}
+.inv-dep-r{text-align:right}
+.inv-dep-e{font-size:15px;font-weight:800}
+.inv-dep-edit{width:28px;height:28px;flex:0 0 28px}
 .inp:disabled{opacity:.55;cursor:not-allowed}
 .inv-per{margin-bottom:12px;max-width:320px}
 .inv-per2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;max-width:520px}
@@ -435,6 +459,9 @@ td.inv-rent{font-size:11.5px;line-height:1.55;min-width:250px;white-space:normal
 .sidebar .nb,.ft,.btn{touch-action:manipulation}
 #mInvMonth .tbl td,#mInvMonth .tbl th.plain{padding-left:9px;padding-right:9px}
 @media(max-width:768px){
+.inv-bars{gap:6px;min-height:150px}
+.inv-bc{flex:1 0 40px}
+.inv-dep{align-items:flex-start}
 .inv-terms-grid,#ioTermsRow .inv-terms-grid,#mInvDep .inv-terms-grid,.inv-per2{grid-template-columns:minmax(0,1fr)!important}
 .inv-per{max-width:none}
 .main{min-width:0}
@@ -635,11 +662,14 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><div style="display:flex;gap:6px"><input class="inp num-fmt" type="text" inputmode="decimal" id="ioAmt" autocomplete="off"/><button class="btn bgh" id="ioAll" onclick="invOpFillMax()">Всё</button></div></div>
 <div class="fgp" style="margin-bottom:10px;display:none" id="ioDepRow"><label class="lbl" id="ioDepLbl">Из какого вклада</label><select class="inp sel" id="ioDep" onchange="invOpHint()"></select></div>
 <div class="fgp" style="margin-bottom:10px" id="ioWalletRow"><label class="lbl" id="ioWalletLbl">Кошелёк</label><select class="inp sel" id="ioWallet" onchange="invOpHint()"></select></div>
-<div class="fgp" style="margin-bottom:10px" id="ioDateRow"><label class="lbl">Дата</label><input class="inp" type="date" id="ioDate" onchange="invOpDateChanged()"/></div>
+<div class="fgp" style="margin-bottom:10px" id="ioDateRow"><label class="lbl">Дата вклада / операции</label><input class="inp" type="date" id="ioDate" onchange="invOpDateChanged()"/></div>
 <div id="ioTermsRow" style="display:none"><div class="inv-terms-box"><div class="inv-terms-title">Условия вклада</div>
 <div class="inv-terms-grid"><div class="fgp"><label class="lbl">Доля прибыли инвестору, %</label><input class="inp" type="number" inputmode="decimal" min="0" max="100" step="1" id="ioPct" oninput="invOpHint()"/></div>
-<div class="fgp"><label class="lbl">Срок, мес.</label><input class="inp" type="number" inputmode="numeric" min="0" max="600" step="1" id="ioTerm" placeholder="без срока" oninput="invOpHint()"/></div></div>
-<div class="inv-muted" id="ioTermsHint" style="line-height:1.5"></div></div></div>
+</div>
+<label class="lbl" style="display:block;margin:4px 0 6px">Срок</label>
+<div class="inv-sw" id="ioTermSw" data-mode="none"><button type="button" data-k="none" class="on" onclick="invTermMode('io','none')">Без срока</button><button type="button" data-k="term" onclick="invTermMode('io','term')">Со сроком</button></div>
+<div class="fgp" id="ioEndRow" style="display:none;margin-top:8px"><label class="lbl">Дата окончания</label><input class="inp" type="date" id="ioEnd" onchange="invOpHint()"/></div>
+<div class="inv-muted" id="ioTermsHint" style="line-height:1.5;margin-top:10px"></div></div></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="ioDesc" autocomplete="off"/></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mInvOp')">Отмена</button><button class="btn bg" id="ioBtn" onclick="saveInvOp()"></button></div>
 </div></div>
@@ -648,7 +678,10 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 <div class="mtitle">Условия вклада</div>
 <div class="inv-hint" id="idInfo"></div>
 <div class="inv-terms-grid"><div class="fgp"><label class="lbl">Доля прибыли инвестору, %</label><input class="inp" type="number" inputmode="decimal" min="0" max="100" step="1" id="idPct" oninput="depEditHint()"/></div>
-<div class="fgp"><label class="lbl">Срок, мес.</label><input class="inp" type="number" inputmode="numeric" min="0" max="600" step="1" id="idTerm" placeholder="без срока" oninput="depEditHint()"/></div></div>
+</div>
+<label class="lbl" style="display:block;margin:4px 0 6px">Срок</label>
+<div class="inv-sw" id="idTermSw" data-mode="none"><button type="button" data-k="none" class="on" onclick="invTermMode('id','none')">Без срока</button><button type="button" data-k="term" onclick="invTermMode('id','term')">Со сроком</button></div>
+<div class="fgp" id="idEndRow" style="display:none;margin-top:8px"><label class="lbl">Дата окончания</label><input class="inp" type="date" id="idEnd" onchange="depEditHint()"/></div>
 <div class="inv-muted" id="idHint" style="line-height:1.5;margin:4px 0 6px"></div>
 <div class="mft"><button class="btn bgh" onclick="closeM('mInvDep')">Отмена</button><button class="btn bg" onclick="saveDepEdit()">Сохранить</button></div>
 </div></div>
@@ -1999,7 +2032,7 @@ function invOpsHtml(M,invId){
     const tr=M.tranches[o.id];
     if(tr&&i&&i.role!=='founder')extra=tr.pct+'% инвестору';
     if(o.depId&&M.tranches[o.depId]&&o.type!=='deposit')extra=(o.type==='withdraw'?'из вклада от ':'вклад от ')+fmtD(M.tranches[o.depId].date);
-    if(tr&&tr.term)extra+=(extra?', ':'')+'срок '+tr.term+' мес.';
+    if(tr&&tr.termEnd)extra+=(extra?', ':'')+'срок до '+fmtD(tr.termEnd);
     const base=invEsc(o.desc||'')||((o.type==='profit'||o.type==='loss')&&o.month?mkLabel(o.month):'');
     const desc=[extra,base].filter(Boolean).join(' · ');
     const amt=(m.sign>0?'+':'−')+fmt(o._a)+' ₽';
@@ -2119,8 +2152,9 @@ function invModel(){
     const isF=inv.role==='founder';
     const pct=isF?100:(o.pct!==undefined&&o.pct!==null&&o.pct!==''?parseFloat(o.pct)||0:invPct(inv,monthKey(o._d)));
     const st=o._d;
-    const term=isF?0:(parseInt(o.termMonths)||0);
-    tranches[o.id]={id:o.id,invId:o.invId,kind,date:o._d,amount:o._a,pct,start:st,term,termEnd:term>0?invAddMonths(st,term):null,op:o};
+    let termEnd=null;
+    if(!isF){if(o.endDate!==undefined)termEnd=invD(o.endDate)||null;else if(parseInt(o.termMonths)>0)termEnd=invAddMonths(st,parseInt(o.termMonths));}
+    tranches[o.id]={id:o.id,invId:o.invId,kind,date:o._d,amount:o._a,pct,start:st,termEnd,op:o};
     tpay[o.id]=tpay[o.id]||0;pushCap(o._d,o.id,o._a,o.id);
   };
   ops.forEach(o=>{
@@ -2246,153 +2280,12 @@ function invMonthData(M,mk){
 function invRowRent(r){const base=r.startedCap!==undefined?r.startedCap:r.capEnd;return base>0?r.total/base:null;}
 
 // ---------- ДОХОД ПО ВКЛАДАМ ЗА ПЕРИОД ----------
-S.invPer=S.invPer||{mode:'month',mk:null,from:null,to:null};
-function invPeriodMonths(M,per,tr){
-  const all=M.months;if(!all.length)return[];
-  if(per.mode==='month')return all.includes(per.mk)?[per.mk]:[];
-  if(per.mode==='range'){const a=per.from<=per.to?per.from:per.to,b=per.from<=per.to?per.to:per.from;return all.filter(mk=>mk>=a&&mk<=b);}
-  if(per.mode==='ytd'){const y=M.curMk.slice(0,4);return all.filter(mk=>mk.slice(0,4)===y);}
-  if(per.mode==='term'&&tr){const s=monthKey(tr.start),e=tr.termEnd?monthKey(tr.termEnd):M.curMk;return all.filter(mk=>mk>=s&&mk<=e);}
-  return all.slice();
-}
-function invIncome(M,invId,per){
-  const trs=Object.values(M.tranches).filter(t=>t.invId===invId).sort((a,b)=>a.date-b.date);
-  const cache={};const md=mk=>cache[mk]||(cache[mk]=invMonthData(M,mk));
-  const blank=()=>({gross:0,exp:0,toInv:0,toComp:0,fromComp:0,pre:0,total:0,baseEnd:0,monthly:[]});
-  const add=(a,x)=>{['gross','exp','toInv','toComp','fromComp','pre','total'].forEach(k=>a[k]+=parseFloat(x[k])||0);};
-  let prelim=false;const tot=blank();const byMonth={};
-  const deps=trs.map(tr=>{
-    const months=invPeriodMonths(M,per,tr).filter(mk=>mk>=monthKey(tr.date));const a=blank();a.tr=tr;a.months=months.length;
-    months.forEach((mk,n)=>{
-      const d=md(mk);if(d.live&&mk===M.curMk)prelim=true;
-      const r=d.rows.find(x=>x.invId===invId);if(!r||!r.deps)return;
-      const x=r.deps.find(z=>z.depId===tr.id);if(!x)return;
-      add(a,x);const base=x.started?(x.capEnd||0):0;
-      if(n===months.length-1)a.baseEnd=base;
-      if(base>0)a.monthly.push({mine:x.total/base,dep:(x.gross-x.exp)/base});
-      const bm=byMonth[mk]||(byMonth[mk]={total:0,net:0,base:0});bm.total+=x.total;bm.net+=x.gross-x.exp;bm.base+=base;
-    });
-    add(tot,a);tot.baseEnd+=a.baseEnd;return a;
-  });
-  // старые закрытые месяцы без разбивки по вкладам
-  const legacy=blank();let hasLegacy=false;
-  if(per.mode!=='term')invPeriodMonths(M,per,null).forEach(mk=>{const d=md(mk);const r=d.rows.find(x=>x.invId===invId);if(r&&!r.deps){hasLegacy=true;add(legacy,{gross:r.gross,exp:r.exp,toInv:r.toInv,toComp:r.toComp,fromComp:r.fromComp,pre:0,total:r.total});add(tot,{gross:r.gross,exp:r.exp,toInv:r.toInv,toComp:r.toComp,fromComp:r.fromComp,pre:0,total:r.total});}});
-  Object.values(byMonth).forEach(bm=>{if(bm.base>0)tot.monthly.push({mine:bm.total/bm.base,dep:bm.net/bm.base});});
-  const rent=a=>{const net=a.gross-a.exp;const avg=k=>a.monthly.length?a.monthly.reduce((s,m)=>s+m[k],0)/a.monthly.length:null;
-    return{mine:a.baseEnd>0?a.total/a.baseEnd:null,dep:a.baseEnd>0?net/a.baseEnd:null,mineAvg:avg('mine'),depAvg:avg('dep'),mineYear:a.monthly.length?avg('mine')*12:null,depYear:a.monthly.length?avg('dep')*12:null};};
-  deps.forEach(a=>a.rent=rent(a));tot.rent=rent(tot);
-  return{deps,tot,prelim,legacy:hasLegacy?legacy:null};
-}
-function setInvPer(k,v){S.invPer[k]=v;renderInvDetail();}
-function invIncomeHtml(M,i){
-  const isF=i.role==='founder';
-  if(!M.months.length)return'';
-  const P=S.invPer;
-  if(!P.mk||!M.months.includes(P.mk))P.mk=M.lastClosed||M.curMk;
-  if(!P.from||!M.months.includes(P.from))P.from=M.months[0];
-  if(!P.to||!M.months.includes(P.to))P.to=M.lastClosed||M.curMk;
-  const modes=[['month','Месяц'],['range','Период'],['ytd','С начала года'],['term','Весь срок вклада'],['all','Всё время']];
-  const opts=sel=>M.months.slice().reverse().map(mk=>'<option value="'+mk+'"'+(mk===sel?' selected':'')+'>'+mkLabel(mk)+(M.closed[mk]?'':mk===M.curMk?' (идёт)':' (не закрыт)')+'</option>').join('');
-  let ctl='<div class="ftabs" style="margin-bottom:10px">'+modes.map(m=>'<button class="ft'+(P.mode===m[0]?' on':'')+'" onclick="setInvPer(\'mode\',\''+m[0]+'\')">'+m[1]+'</button>').join('')+'</div>';
-  if(P.mode==='month')ctl+='<div class="inv-per"><select class="inp sel" onchange="setInvPer(\'mk\',this.value)">'+opts(P.mk)+'</select></div>';
-  if(P.mode==='range')ctl+='<div class="inv-per inv-per2"><label><span>с</span><select class="inp sel" onchange="setInvPer(\'from\',this.value)">'+opts(P.from)+'</select></label><label><span>по</span><select class="inp sel" onchange="setInvPer(\'to\',this.value)">'+opts(P.to)+'</select></label></div>';
-  const I=invIncome(M,i.id,P);
-  const multi=P.mode!=='month';
-  const rentCell=r=>{
-    const main=isF?'С долей компании':'Инвестору',sec=isF?'Со своих денег':'Вклада до деления';
-    const line=(lbl,p,avg,yr,muted)=>'<div'+(muted?' class="inv-muted"':'')+'><span class="inv-rl">'+lbl+':</span> <b class="'+(p<0?'cr':'')+'">'+invRentFmt(p)+'</b>'+(multi?' за период · '+invRentFmt(avg)+' в мес.':' за месяц')+' · ≈'+invRentFmt(yr)+' за год</div>';
-    if(r.mine===null&&r.dep===null)return'<span class="inv-muted">нет работающего капитала на конец периода</span>';
-    return line(main,r.mine,r.mineAvg,r.mineYear,false)+line(sec,r.dep,r.depAvg,r.depYear,true);
-  };
-  let rows='',cards='';
-  const rowFor=(label,a,sub)=>{
-    const net=invR(a.gross-a.exp);
-    rows+='<tr><td>'+label+'</td><td class="num">'+fmt(invR(a.gross))+'</td><td class="num cr">'+(a.exp?'−'+fmt(invR(a.exp)):'—')+'</td><td class="num">'+invMoney(net)+'</td>'+(isF?'<td class="num">'+invMoney(a.fromComp)+'</td>':'<td class="num">'+invMoney(a.toComp)+'</td>')+'<td class="num"><span class="amt '+(a.total<0?'cr':'cg')+'">'+invMoney(a.total)+'</span></td><td class="inv-rent">'+(a.rent?rentCell(a.rent):'—')+'</td></tr>';
-    cards+='<div class="mcard" style="cursor:default"><div class="mcard-top"><div class="mcard-name" style="font-size:14px">'+label+'</div><div class="amt '+(a.total<0?'cr':'cg')+'" style="font-weight:800">'+invMoney(a.total)+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Прибыль вклада</span><span class="mcard-val">'+fmt(invR(a.gross))+' ₽</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Расходы</span><span class="mcard-val cr">'+(a.exp?'−'+fmt(invR(a.exp))+' ₽':'—')+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Чистыми до деления</span><span class="mcard-val">'+invMoney(net)+'</span></div>'+
-      (isF?'<div class="mcard-row"><span class="mcard-label">От компании</span><span class="mcard-val">'+invMoney(a.fromComp)+'</span></div>':'<div class="mcard-row"><span class="mcard-label">Компании</span><span class="mcard-val">'+invMoney(a.toComp)+'</span></div>')+
-      (a.rent?'<div class="inv-rent-m">'+rentCell(a.rent)+'</div>':'')+'</div>';
-  };
-  I.deps.filter(a=>a.months).forEach(a=>{const t=a.tr;rowFor('<b>'+fmtD(t.date)+'</b> · '+fmt(t.amount)+' ₽'+(isF?'':' · '+t.pct+'%')+(a.months?'':' <span class="inv-muted">нет месяцев в периоде</span>'),a);});
-  if(I.legacy)rowFor('<span class="inv-muted">Без разбивки по вкладам (старые месяцы)</span>',I.legacy);
-  const totHtml=()=>{const a=I.tot,net=invR(a.gross-a.exp);return'<tr class="sum-row"><td style="font-weight:800">Весь капитал</td><td class="num">'+fmt(invR(a.gross))+'</td><td class="num cr">'+(a.exp?'−'+fmt(invR(a.exp)):'—')+'</td><td class="num">'+invMoney(net)+'</td>'+(isF?'<td class="num">'+invMoney(a.fromComp)+'</td>':'<td class="num">'+invMoney(a.toComp)+'</td>')+'<td class="num"><span class="amt '+(a.total<0?'cr':'cg')+'">'+invMoney(a.total)+'</span></td><td class="inv-rent">'+rentCell(a.rent)+'</td></tr>';};
-  const a=I.tot;
-  const totCard='<div class="mcard" style="cursor:default;border-color:rgba(149,193,31,.35)"><div class="mcard-top"><div class="mcard-name">Весь капитал</div><div class="amt '+(a.total<0?'cr':'cg')+'" style="font-weight:800">'+invMoney(a.total)+'</div></div><div class="inv-rent-m">'+rentCell(a.rent)+'</div></div>';
-  const note=(I.prelim?'<div class="inv-hint" style="margin:0 18px 10px">'+mkLabel(M.curMk)+' ещё идёт — его цифры предварительные и изменятся до закрытия месяца.</div>':'')+
-    (P.mode==='term'?'<div class="inv-muted" style="padding:0 18px 8px">У каждого вклада свой срок: от месяца внесения до месяца окончания (бессрочный — до сегодня).</div>':'');
-  return'<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px"><div class="ct" style="padding:16px 18px 10px">Доход по вкладам</div><div style="padding:0 18px">'+ctl+'</div>'+note+
-    '<div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Вклад</th><th class="plain num">Прибыль вклада</th><th class="plain num">Расходы</th><th class="plain num">Чистыми до деления</th>'+(isF?'<th class="plain num">От компании</th>':'<th class="plain num">Компании</th>')+'<th class="plain num">'+(isF?'Итого ему':'Инвестору')+'</th><th class="plain">Рентабельность</th></tr></thead><tbody>'+rows+totHtml()+'</tbody></table></div></div>'+
-    '<div class="inv-mob" style="padding:0 10px 10px">'+cards+totCard+'</div>'+
-    '<div class="inv-muted" style="padding:2px 18px 14px">Рентабельность = прибыль за период / капитал на конец периода. «≈ за год» — средний месяц × 12.</div></div>';
-}
-
 function invDepStatus(M,t){
   const cap=M.tcapNow[t.id]||0;
   if(cap<=0.004)return'<span class="badge brp">Выведен</span>';
   if(t.termEnd&&t.termEnd<=M.now)return'<span class="badge bo">Срок вышел</span>';
   return'<span class="badge ba">Работает</span>';
 }
-function invTermCell(M,t){
-  if(!t.term)return'<span class="inv-muted">бессрочно</span>';
-  const dl=invDaysLeft(M,t);
-  const left=dl===null?'':(dl<=0?'<span class="cr">срок вышел</span>':(dl<=30?'<span class="cy">осталось '+dl+' дн.</span>':'осталось '+dl+' дн.'));
-  return t.term+' мес. · до '+fmtD(t.termEnd)+'<div class="inv-muted">'+left+'</div>';
-}
-function invDepsHtml(M,i){
-  const isF=i.role==='founder';
-  const trs=Object.values(M.tranches).filter(t=>t.invId===i.id).sort((a,b)=>b.date-a.date);
-  if(!trs.length)return'<div class="card" style="margin-bottom:14px"><div class="ct">Вклады</div><div class="empty">Вкладов пока нет — нажмите «Пополнить»</div></div>';
-  let rows='',cards='';
-  trs.forEach(t=>{
-    const cap=M.tcapNow[t.id]||0,pay=M.tpay[t.id]||0;
-    const edit=isF?'':'<button class="ib ig" style="width:26px;height:26px" onclick="event.stopPropagation();openDepEdit(\''+t.id+'\')" title="Изменить условия и срок"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>';
-    const kind=t.kind==='reinvest'?' <span class="inv-muted">реинвест</span>':'';
-    rows+='<tr><td style="color:var(--t2)">'+fmtD(t.date)+kind+'</td><td class="num">'+fmt(t.amount)+' ₽</td><td class="num"><span class="amt">'+fmt(cap)+' ₽</span></td>'+(isF?'':'<td class="num">'+t.pct+'% <span class="inv-muted">/ '+invR(100-t.pct)+'%</span></td><td style="font-size:12px">'+invTermCell(M,t)+'</td>')+'<td class="num"><span class="amt cy">'+fmt(pay)+' ₽</span></td><td>'+invDepStatus(M,t)+'</td><td style="width:34px">'+edit+'</td></tr>';
-    cards+='<div class="mcard" style="cursor:default"><div class="mcard-top"><div class="mcard-name">'+fmt(t.amount)+' ₽'+kind+'</div><div style="display:flex;gap:6px;align-items:center">'+invDepStatus(M,t)+edit+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Внесён</span><span class="mcard-val">'+fmtD(t.date)+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Сейчас в пуле</span><span class="mcard-val">'+fmt(cap)+' ₽</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">К выплате</span><span class="mcard-val cy">'+fmt(pay)+' ₽</span></div>'+
-      (isF?'':'<div class="mcard-row"><span class="mcard-label">Доля инвестору</span><span class="mcard-val">'+t.pct+'% / компании '+invR(100-t.pct)+'%</span></div><div class="mcard-row"><span class="mcard-label">Срок</span><span class="mcard-val" style="text-align:right">'+invTermCell(M,t)+'</span></div>')+'</div>';
-  });
-  return'<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px"><div class="ct" style="padding:16px 18px 0">Вклады</div><div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Дата</th><th class="plain num">Внесено</th><th class="plain num">Сейчас в пуле</th>'+(isF?'':'<th class="plain num">Инвестору / комп.</th><th class="plain">Срок</th>')+'<th class="plain num">К выплате</th><th class="plain">Статус</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob" style="padding:0 10px 10px">'+cards+'</div>'+(isF?'':'<div class="inv-muted" style="padding:0 18px 14px">Вклад участвует в прибыли с даты внесения. Срок считается от даты вклада; после срока вклад продолжает работать, пока его не выведут.</div>')+'</div>';
-}
-function renderInvDetail(){
-  const el=document.getElementById('invPg');if(!el)return;
-  const i=S.inv.find(x=>x.id===S.curInv);
-  if(!i){el.innerHTML='<div class="card"><div class="empty">Участник не найден</div></div>';return;}
-  const M=invModel(),b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0;
-  const cur=invComputeMonth(M,M.curMk).rows.find(r=>r.invId===i.id);const mon=cur?cur.total:0;
-  const id=i.id;
-  let h='<div class="inv-hd"><div><div class="inv-name">'+invEsc(i.name)+invRoleBadge(i)+(i.archived?'<span class="badge by2">Архив</span>':'')+'</div><div class="inv-sub">'+invTermsText(i,M)+'</div></div>'+
-    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgh" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bgh" onclick="openInvOp(\'reinvest\',\''+id+'\')">Реинвест</button><button class="btn bgh" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
-  h+='<div class="sg4">'+
-    '<div class="sc"><div class="sl">Капитал</div><div class="sv">'+fmt(b.capital)+' ₽</div><div class="ss">доля пула '+invPctFmt(share)+'</div><div class="inv-bar"><i style="width:'+(share*100).toFixed(2)+'%"></i></div></div>'+
-    '<div class="sc"><div class="sl">К выплате</div><div class="sv cy">'+fmt(b.payable)+' ₽</div><div class="ss">выплачено '+fmt(b.paid)+' ₽, реинвест '+fmt(b.reinvested)+' ₽</div></div>'+
-    '<div class="sc"><div class="sl">'+mkLabel(M.curMk)+'</div><div class="sv '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</div><div class="ss">предварительно, до закрытия</div></div>'+
-    '<div class="sc"><div class="sl">Заработано всего</div><div class="sv '+(b.earned<0?'cr':'cg')+'">'+invMoney(b.earned)+'</div><div class="ss">вложено '+fmt(b.deposited)+' ₽, выведено '+fmt(b.withdrawn)+' ₽</div></div></div>';
-  h+=invDepsHtml(M,i);
-  h+=invIncomeHtml(M,i);
-  const isF=i.role==='founder';let mr='',mc='';
-  M.months.slice().reverse().forEach(mk=>{
-    const d=invMonthData(M,mk);const r=d.rows.find(x=>x.invId===id);if(!r)return;
-    const s=invMonthStatus(M,mk);const st=s.st==='closed'?'<span class="badge ba">Закрыт</span>':s.st==='current'?'<span class="badge bd">Идёт</span>':'<span class="badge by2">Не закрыт</span>';
-    const pctTxt=r.pct!==null&&r.pct!==undefined?r.pct+'%':'разные';
-    const rent=invRentFmt(invRowRent(r));
-    mr+='<tr class="crow" onclick="openInvMonth(\''+mk+'\')"><td style="font-weight:700">'+mkLabel(mk)+'</td><td class="num">'+invPctFmt(r.shareEnd||0)+'</td><td class="num">'+fmt(r.gross)+' ₽</td><td class="num cr">'+(r.exp?'−'+fmt(r.exp)+' ₽':'—')+'</td><td class="num">'+invMoney(r.net)+'</td>'+(isF?'<td class="num">'+invMoney(r.fromComp)+'</td>':'<td class="num inv-muted">'+pctTxt+'</td>')+'<td class="num"><span class="amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></td><td class="num">'+rent+'</td><td class="num">'+st+'</td></tr>';
-    mc+='<div class="mcard" onclick="openInvMonth(\''+mk+'\')"><div class="mcard-top"><div class="mcard-name">'+mkLabel(mk)+'</div><div>'+st+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Чистая прибыль его денег</span><span class="mcard-val">'+invMoney(r.net)+'</span></div>'+
-      (isF?'<div class="mcard-row"><span class="mcard-label">От компании</span><span class="mcard-val">'+invMoney(r.fromComp)+'</span></div>':'')+
-      '<div class="mcard-row"><span class="mcard-label">Итого '+(isF?'':'('+pctTxt+')')+'</span><span class="mcard-val '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Рентабельность</span><span class="mcard-val">'+rent+'</span></div></div>';
-  });
-  h+='<div class="card" style="padding:0;overflow:hidden"><div class="ct" style="padding:16px 18px 0">По месяцам</div>'+(mr?'<div class="inv-desk"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Месяц</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">'+(isF?'От компании':'Условия')+'</th><th class="plain num">Итого</th><th class="plain num">Рент.</th><th class="plain num">Статус</th></tr></thead><tbody>'+mr+'</tbody></table></div></div><div class="inv-mob" style="padding:0 10px 10px">'+mc+'</div>':'<div class="empty">Пока нет данных — появятся после пополнения капитала</div>')+'</div>';
-  h+='<div class="ct" style="margin-top:18px">Операции</div>'+invOpsHtml(M,id);
-  h+='<div class="card" style="margin-top:14px"><div class="ct">Анкета</div><div class="ig2" style="margin-bottom:0"><div class="ii"><div class="il">Телефон</div><div class="iv">'+(i.phone?invEsc(fmtPhone(i.phone)):'—')+'</div></div><div class="ii"><div class="il">Добавлен</div><div class="iv">'+(fmtD(invD(i.createdAt))||'—')+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Заметка</div><div class="iv" style="white-space:pre-wrap">'+(i.note?invEsc(i.note):'—')+'</div></div></div></div>';
-  el.innerHTML=h;
-}
-
 function renderInvestors(){
   const el=document.getElementById('invContent');if(!el)return;
   const M=invModel();
@@ -2556,7 +2449,7 @@ function openInvOp(type,invId){
   document.getElementById('ioAll').style.display=type==='deposit'?'none':'inline-flex';
   document.getElementById('ioTermsRow').style.display=meta.terms&&!isF?'block':'none';
   document.getElementById('ioPct').value=invLastPct(M,invId);
-  document.getElementById('ioTerm').value='';
+  document.getElementById('ioEnd').value='';invTermMode('io','none');
   invOpHint();openM('mInvOp');
 }
 function invDepLabel(M,t,isF,what){return'Вклад от '+fmtD(t.date)+(isF?'':' · '+t.pct+'%')+(what==='pay'?' · к выплате '+fmt(M.tpay[t.id]||0)+' ₽':' · в пуле '+fmt(M.tcapNow[t.id]||0)+' ₽');}
@@ -2584,9 +2477,11 @@ function invOpHint(){
   if(IO_META[t].terms&&!isF){
     const p=Math.min(100,Math.max(0,parseFloat(document.getElementById('ioPct').value)||0));
     const dv=document.getElementById('ioDate').value,dd=dv?safeDateFromInput(dv):new Date();
-    const term=parseInt(document.getElementById('ioTerm').value)||0;
-    let th='С каждых 100 000 ₽ прибыли этого вклада: <b>'+fmt(p*1000)+' ₽</b> инвестору, <b>'+fmt((100-p)*1000)+' ₽</b> компании.';
-    th+='<br>'+(term>0&&dd?'Срок: '+term+' мес., с '+fmtD(dd)+' по <b>'+fmtD(invAddMonths(dd,term))+'</b>.':'Без срока — вклад работает, пока его не выведут.');
+    const mode=document.getElementById('ioTermSw').dataset.mode;const ev=document.getElementById('ioEnd').value,e=ev?safeDateFromInput(ev):null;
+    let th='С каждых 100 000 ₽ прибыли этого вклада: <b>'+fmt(p*1000)+' ₽</b> инвестору, <b>'+fmt((100-p)*1000)+' ₽</b> компании.<br>';
+    if(mode!=='term')th+='Без срока — вклад работает с '+fmtD(dd)+', пока его не выведут.';
+    else if(!e||dayKey(e)<=dayKey(dd))th+='<span class="cr">Дата окончания должна быть позже даты вклада</span>';
+    else th+='Срок: с '+fmtD(dd)+' по <b>'+fmtD(e)+'</b> — '+invTermLen(dd,e);
     document.getElementById('ioTermsHint').innerHTML=th;
   }
 }
@@ -2609,9 +2504,12 @@ async function saveInvOp(){
   if(meta.terms&&!isF){
     const pct=parseFloat(String(document.getElementById('ioPct').value).replace(',','.'));
     if(isNaN(pct)||pct<0||pct>100){toast('Доля инвестору — от 0 до 100%','ter');return;}
-    const tv=String(document.getElementById('ioTerm').value).trim();const term=tv===''?0:parseInt(tv);
-    if(isNaN(term)||term<0||term>600){toast('Срок — целое число месяцев или пусто','ter');return;}
-    extra.pct=pct;extra.termMonths=term||null;
+    extra.pct=pct;extra.endDate=null;
+    if(document.getElementById('ioTermSw').dataset.mode==='term'){
+      const ev=document.getElementById('ioEnd').value;const e=ev?safeDateFromInput(ev):null;
+      if(!e||dayKey(e)<=dayKey(d)){toast('Дата окончания должна быть позже даты вклада','ter');return;}
+      e.setHours(12,0,0,0);extra.endDate=e;extra.endStr=fmtD(e);
+    }
   }
   if(meta.dep){if(!tr){toast('Выберите вклад','ter');return;}extra.depId=depId;}
   if(t==='withdraw'){
@@ -2637,7 +2535,7 @@ async function saveInvOp(){
       bt.set(opRef,{invId:i.id,invName:i.name,type:t,amount:amt,date:d,dateStr:fmtD(d),desc,wallet:w&&meta.wallet?w.id:'',walletName:w&&meta.wallet?w.name:'',kassaOpId:kId,auto:false,createdAt:new Date(),...extra});
       await bt.commit();
       let lg='';
-      if(extra.pct!==undefined)lg=' ('+extra.pct+'% инвестору'+(extra.termMonths?', срок '+extra.termMonths+' мес.':', без срока')+')';
+      if(extra.pct!==undefined)lg=' ('+extra.pct+'% инвестору'+(extra.endDate?', срок до '+extra.endStr:', без срока')+')';
       if(tr)lg=' (вклад от '+fmtD(tr.date)+')';
       await logA('Инвесторы: '+INV_OP[t].name.toLowerCase(),i.name+' — '+fmt(amt)+' ₽'+lg+(meta.wallet?' ('+w.name+')':''));
       closeM('mInvOp');toast({deposit:'Вклад внесён',withdraw:'Капитал выведен',reinvest:'Прибыль добавлена к вкладу',payout:'Выплата записана'}[t],'tok');
@@ -2672,27 +2570,128 @@ function delInvOp(id){
     }catch(e){toast('Ошибка: '+e.message,'ter');}
   });
 }
+
+function invTermLen(a,b){
+  if(!a||!b)return'';a=new Date(a.getFullYear(),a.getMonth(),a.getDate());b=new Date(b.getFullYear(),b.getMonth(),b.getDate());if(!(b>a))return'';
+  let m=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());let t=invAddMonths(a,m);
+  if(t>b){m--;t=invAddMonths(a,m);}
+  const d=Math.round((new Date(b.getFullYear(),b.getMonth(),b.getDate())-new Date(t.getFullYear(),t.getMonth(),t.getDate()))/86400000);
+  return(m?m+' мес.':'')+(d?(m?' ':'')+d+' дн.':'')||'0 дн.';
+}
+function invTermMode(pfx,k){
+  const sw=document.getElementById(pfx+'TermSw');if(!sw)return;sw.dataset.mode=k;
+  sw.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+  document.getElementById(pfx+'EndRow').style.display=k==='term'?'flex':'none';
+  if(k==='term'){const e=document.getElementById(pfx+'End');if(!e.value){let base=null;if(pfx==='io'){const v=document.getElementById('ioDate').value;base=v?safeDateFromInput(v):new Date();}else{const t=_dep?invModel().tranches[_dep]:null;base=t?t.date:new Date();}if(base)e.value=dayKey(invAddMonths(base,12));}}
+  if(pfx==='io')invOpHint();else depEditHint();
+}
+function invTermCell(M,t){
+  if(!t.termEnd)return'<span class="inv-muted">без срока</span>';
+  const dl=invDaysLeft(M,t);
+  const left=dl<=0?'<span class="cr">срок вышел</span>':(dl<=30?'<span class="cy">осталось '+dl+' дн.</span>':'осталось '+dl+' дн.');
+  return'до '+fmtD(t.termEnd)+' · '+left;
+}
+// ---------- КАРТОЧКА УЧАСТНИКА (сводка, график, вклады) ----------
+function invPersonStats(M,invId){
+  const months=[];
+  M.months.forEach(mk=>{
+    const d=invMonthData(M,mk);const r=d.rows.find(x=>x.invId===invId);if(!r)return;
+    const base=r.startedCap!==undefined?r.startedCap:r.capEnd;
+    months.push({mk,total:r.total,base,rent:base>0?r.total/base:null,closed:!!M.closed[mk],deps:r.deps||null});
+  });
+  const closed=months.filter(m=>m.closed&&m.rent!==null);
+  let avg=null,all=null,prelim=false;
+  if(closed.length){
+    avg=closed.reduce((s,m)=>s+m.rent,0)/closed.length;
+    const sum=months.filter(m=>m.closed).reduce((s,m)=>s+m.total,0);
+    const lastBase=closed[closed.length-1].base;all=lastBase>0?sum/lastBase:null;
+  }else{
+    const cur=months.find(m=>m.mk===M.curMk&&m.rent!==null);
+    if(cur){avg=cur.rent;all=cur.rent;prelim=true;}
+  }
+  return{months,avg,all,prelim,closedCount:closed.length};
+}
+function invChartHtml(M,st){
+  const ms=st.months.filter(m=>m.base>0||m.total);
+  if(!ms.length)return'<div class="card" style="margin-bottom:14px"><div class="ct">Рентабельность по месяцам</div><div class="empty">Появится после первого месяца работы вкладов</div></div>';
+  const max=Math.max(...ms.map(m=>Math.abs(m.rent||0)),0.0001);
+  const MN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  let prevY=null;
+  const cols=ms.map(m=>{
+    const [y,mo]=m.mk.split('-').map(Number);const h=m.rent===null?0:Math.max(3,Math.round(Math.abs(m.rent)/max*110));
+    const neg=(m.rent||0)<0;const cls='inv-bv'+(neg?' neg':'')+(m.closed?'':' pre');
+    const yr=y!==prevY?'<div class="inv-by">'+y+'</div>':'<div class="inv-by">&nbsp;</div>';prevY=y;
+    const tip=mkLabel(m.mk)+': '+invMoney(m.total,true)+', капитал '+fmt(m.base)+' ₽'+(m.closed?'':' (месяц идёт)');
+    return'<div class="inv-bc" onclick="openInvMonth(\''+m.mk+'\')" title="'+tip+'"><div class="inv-bl'+(neg?' cr':'')+'">'+invRentFmt(m.rent)+'</div><div class="'+cls+'" style="height:'+h+'px"></div><div class="inv-bm">'+MN[mo-1]+'</div>'+yr+'</div>';
+  }).join('');
+  return'<div class="card" style="margin-bottom:14px"><div class="inv-chart-hd"><div class="ct" style="margin:0">Рентабельность по месяцам</div><div class="inv-muted">нажми на месяц — подробности</div></div><div class="inv-chart"><div class="inv-bars">'+cols+'</div></div>'+(ms.some(m=>!m.closed)?'<div class="inv-muted" style="margin-top:6px">Светлый столбик — месяц ещё идёт, цифра предварительная.</div>':'')+'</div>';
+}
+function invDepsHtml(M,i){
+  const isF=i.role==='founder';
+  const trs=Object.values(M.tranches).filter(t=>t.invId===i.id).sort((a,b)=>((M.tcapNow[b.id]||0)>0.004)-((M.tcapNow[a.id]||0)>0.004)||b.date-a.date);
+  if(!trs.length)return'<div class="card" style="margin-bottom:14px"><div class="ct">Вклады</div><div class="empty">Вкладов пока нет — нажмите «Пополнить»</div></div>';
+  const earned={},rents={};
+  S.invMonths.forEach(m=>(m.rows||[]).forEach(r=>{if(r.invId!==i.id)return;(r.deps||[]).forEach(d=>{const tot=d.total!==undefined?d.total:(d.toInv||0);earned[d.depId]=(earned[d.depId]||0)+tot;if(d.capEnd>0)(rents[d.depId]=rents[d.depId]||[]).push(tot/d.capEnd);});}));
+  const rows=trs.map(t=>{
+    const cap=M.tcapNow[t.id]||0,pay=M.tpay[t.id]||0,gone=cap<=0.004;
+    const e=earned[t.id]||0,rs=rents[t.id]||[],avg=rs.length?rs.reduce((s,x)=>s+x,0)/rs.length:null;
+    const edit=isF?'':'<button class="ib ig inv-dep-edit" onclick="event.stopPropagation();openDepEdit(\''+t.id+'\')" title="Изменить вклад" aria-label="Изменить вклад"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>';
+    const status=gone?' <span class="badge brp">выведен</span>':(t.termEnd&&t.termEnd<=M.now?' <span class="badge bo">срок вышел</span>':'')+(t.kind==='reinvest'?' <span class="inv-muted">реинвест</span>':'');
+    const termTxt='с '+fmtD(t.date)+(t.termEnd?' '+invTermCell(M,t):' · без срока');
+    return'<div class="inv-dep'+(gone?' gone':'')+'"><div class="inv-dep-l"><div class="inv-dep-t">'+fmt(t.amount)+' ₽'+(isF?'':' · '+t.pct+'%')+status+'</div><div class="inv-dep-s">'+termTxt+'</div><div class="inv-dep-s">в пуле '+fmt(cap)+' ₽'+(pay>0.004?' · <span class="cy">к выплате '+fmt(pay)+' ₽</span>':'')+'</div></div>'+
+      '<div class="inv-dep-r"><div class="inv-dep-e '+(e<0?'cr':'cg')+'">'+invMoney(e,true)+'</div><div class="inv-dep-s">'+(avg!==null?invRentFmt(avg)+' в мес.':'нет закрытых мес.')+'</div></div>'+edit+'</div>';
+  }).join('');
+  return'<div class="card" style="margin-bottom:14px;padding-bottom:6px"><div class="ct">Вклады</div>'+rows+'</div>';
+}
+function renderInvDetail(){
+  const el=document.getElementById('invPg');if(!el)return;
+  const i=S.inv.find(x=>x.id===S.curInv);
+  if(!i){el.innerHTML='<div class="card"><div class="empty">Участник не найден</div></div>';return;}
+  const M=invModel(),b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0;
+  const st=invPersonStats(M,i.id);const id=i.id;
+  let h='<div class="inv-hd"><div><div class="inv-name">'+invEsc(i.name)+invRoleBadge(i)+(i.archived?'<span class="badge by2">Архив</span>':'')+'</div><div class="inv-sub">'+invTermsText(i,M)+'</div></div>'+
+    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgh" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bgh" onclick="openInvOp(\'reinvest\',\''+id+'\')">Реинвест</button><button class="btn bgh" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
+  const pre=st.prelim?' (предв.)':'';
+  h+='<div class="sg4">'+
+    '<div class="sc"><div class="sl">Капитал</div><div class="sv">'+fmt(b.capital)+' ₽</div><div class="ss">доля пула '+invPctFmt(share)+'</div></div>'+
+    '<div class="sc"><div class="sl">Заработано всего</div><div class="sv '+(b.earned<0?'cr':'cg')+'">'+invMoney(b.earned)+'</div><div class="ss">'+(b.payable>0.004?'<span class="cy">к выплате '+fmt(b.payable)+' ₽</span>':'к выплате 0 ₽')+'</div></div>'+
+    '<div class="sc"><div class="sl">В среднем в месяц</div><div class="sv">'+invRentFmt(st.avg)+'</div><div class="ss">'+(st.closedCount?'по '+st.closedCount+' '+invPlural(st.closedCount,'закрытому месяцу','закрытым месяцам','закрытым месяцам'):(st.prelim?'предварительно, месяц идёт':'пока нет данных'))+'</div></div>'+
+    '<div class="sc"><div class="sl">За всё время</div><div class="sv">'+invRentFmt(st.all)+'</div><div class="ss">прибыль / капитал'+pre+'</div></div></div>';
+  h+=invChartHtml(M,st);
+  h+=invDepsHtml(M,i);
+  h+='<div class="ct" style="margin-top:18px">Операции</div>'+invOpsHtml(M,id);
+  h+='<div class="card" style="margin-top:14px"><div class="ct">Анкета</div><div class="ig2" style="margin-bottom:0"><div class="ii"><div class="il">Телефон</div><div class="iv">'+(i.phone?invEsc(fmtPhone(i.phone)):'—')+'</div></div><div class="ii"><div class="il">Добавлен</div><div class="iv">'+(fmtD(invD(i.createdAt))||'—')+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Заметка</div><div class="iv" style="white-space:pre-wrap">'+(i.note?invEsc(i.note):'—')+'</div></div></div></div>';
+  el.innerHTML=h;
+}
 function openDepEdit(depId){
   const M=invModel(),t=M.tranches[depId];if(!t)return;
   _dep=depId;
   const locked=!!(M.lastClosed&&monthKey(t.date)<=M.lastClosed);
   document.getElementById('idInfo').innerHTML='Вклад от <b>'+fmtD(t.date)+'</b> на <b>'+fmt(t.amount)+' ₽</b>, сейчас в пуле '+fmt(M.tcapNow[depId]||0)+' ₽'+(locked?'<br><span class="cy">По вкладу уже есть закрытые месяцы — долю изменить нельзя, срок — можно.</span>':'');
   const pe=document.getElementById('idPct');pe.value=t.pct;pe.disabled=locked;
-  document.getElementById('idTerm').value=t.term||'';
-  depEditHint();openM('mInvDep');
+  document.getElementById('idEnd').value=t.termEnd?dayKey(t.termEnd):'';
+  invTermMode('id',t.termEnd?'term':'none');openM('mInvDep');
 }
 function depEditHint(){
   const t=_dep?invModel().tranches[_dep]:null;
   const p=Math.min(100,Math.max(0,parseFloat(document.getElementById('idPct').value)||0));
-  const term=parseInt(document.getElementById('idTerm').value)||0;
-  document.getElementById('idHint').innerHTML='С каждых 100 000 ₽ прибыли вклада: <b>'+fmt(p*1000)+' ₽</b> инвестору, <b>'+fmt((100-p)*1000)+' ₽</b> компании.<br>'+(term>0&&t?'Срок: '+term+' мес., до <b>'+fmtD(invAddMonths(t.date,term))+'</b>.':'Без срока.');
+  const mode=document.getElementById('idTermSw').dataset.mode;const ev=document.getElementById('idEnd').value,e=ev?safeDateFromInput(ev):null;
+  let th='С каждых 100 000 ₽ прибыли вклада: <b>'+fmt(p*1000)+' ₽</b> инвестору, <b>'+fmt((100-p)*1000)+' ₽</b> компании.<br>';
+  if(mode!=='term')th+='Без срока — вклад работает, пока его не выведут.';
+  else if(!t||!e||dayKey(e)<=dayKey(t.date))th+='<span class="cr">Дата окончания должна быть позже даты вклада ('+(t?fmtD(t.date):'')+')</span>';
+  else th+='Срок: с '+fmtD(t.date)+' по <b>'+fmtD(e)+'</b> — '+invTermLen(t.date,e);
+  document.getElementById('idHint').innerHTML=th;
 }
 async function saveDepEdit(){
   if(_saving)return;
   const M=invModel(),t=M.tranches[_dep];if(!t)return;
-  const tv=String(document.getElementById('idTerm').value).trim();const term=tv===''?0:parseInt(tv);
-  if(isNaN(term)||term<0||term>600){toast('Срок — целое число месяцев или пусто','ter');return;}
-  const upd={termMonths:term||null};
+  const upd={termMonths:null};
+  const mode=document.getElementById('idTermSw').dataset.mode;
+  if(mode==='term'){
+    const ev=document.getElementById('idEnd').value;const e=ev?safeDateFromInput(ev):null;
+    if(!e||dayKey(e)<=dayKey(t.date)){toast('Дата окончания должна быть позже даты вклада','ter');return;}
+    e.setHours(12,0,0,0);upd.endDate=e;upd.endStr=fmtD(e);
+  }else{upd.endDate=null;upd.endStr=null;}
   const pe=document.getElementById('idPct');
   if(!pe.disabled){
     const pct=parseFloat(String(pe.value).replace(',','.'));
@@ -2707,11 +2706,12 @@ async function saveDepEdit(){
     const{db,doc,updateDoc}=window.DB;
     await updateDoc(doc(db,'invOps',_dep),upd);
     const i=S.inv.find(x=>x.id===t.invId);
-    await logA('Инвесторы: условия вклада',(i?i.name:'')+' — вклад от '+fmtD(t.date)+(upd.pct!==undefined?': '+upd.pct+'% инвестору':'')+', срок '+(term?term+' мес.':'без срока'));
+    await logA('Инвесторы: условия вклада',(i?i.name:'')+' — вклад от '+fmtD(t.date)+(upd.pct!==undefined?': '+upd.pct+'% инвестору':'')+(upd.endDate?', срок до '+upd.endStr:', без срока'));
     closeM('mInvDep');toast('Вклад сохранён','tok');
   }catch(e){toast('Ошибка: '+e.message,'ter');}
   finally{_saving=false;}
 }
+
 </script>
 <script>
 // =====================================================================
