@@ -431,7 +431,10 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .inv-bv.neg{background:var(--red)}
 .inv-bv.pre{opacity:.4;background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(255,255,255,.25) 4px 8px)}
 .inv-bm{font-size:12px;color:var(--t2);margin-top:5px;font-weight:600}
-.inv-by{font-size:10px;color:var(--t3);line-height:1.2}
+.inv-year-sum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--brd2);font-size:13px;color:var(--t2)}
+.inv-year-sum b{color:var(--text)}
+.inv-year-tot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--brd2);font-size:12.5px;color:var(--t2)}
+.inv-year-tot b{font-size:14px}
 .inv-dep{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--brd2)}
 .inv-dep:first-of-type{border-top:none}
 .inv-dep.gone{opacity:.55}
@@ -459,8 +462,11 @@ td.inv-rent{font-size:11.5px;line-height:1.55;min-width:250px;white-space:normal
 .sidebar .nb,.ft,.btn{touch-action:manipulation}
 #mInvMonth .tbl td,#mInvMonth .tbl th.plain{padding-left:9px;padding-right:9px}
 @media(max-width:768px){
-.inv-bars{gap:6px;min-height:150px}
-.inv-bc{flex:1 0 40px}
+.inv-bars{gap:4px;min-height:150px}
+.inv-bc{flex:1 0 24px;padding:4px 0}
+.inv-bl{font-size:10px;margin-bottom:3px}
+.inv-bm{font-size:10px;margin-top:3px}
+.inv-year-sum{font-size:12px}
 .inv-dep{align-items:flex-start}
 .inv-terms-grid,#ioTermsRow .inv-terms-grid,#mInvDep .inv-terms-grid,.inv-per2{grid-template-columns:minmax(0,1fr)!important}
 .inv-per{max-width:none}
@@ -583,7 +589,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 </div>
 <button class="nb" id="nav-settings" onclick="goTo('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Настройки</button>
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span id="themeText">Светлая тема</span></button>
-</div><div class="sfoot"><span>Amana Finance &copy; 2025</span><button class="logout-btn" onclick="doLogout()">Выйти</button></div></aside>
+</div><div class="sfoot"><span>Amana Finance · <span id="crmVer"></span></span><button class="logout-btn" onclick="doLogout()">Выйти</button></div></aside>
 <div class="nb-sub-overlay" id="nbSubOverlay" onclick="closeAllSubMenus()"></div>
 <main class="main">
 <div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats" class="sg4"><div class="loading"><div class="spin"></div></div></div></div>
@@ -826,16 +832,17 @@ function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=
 function findDups(name,excludeId){const n=(name||'').trim().toLowerCase();if(n.length<2)return[];return S.clients.filter(c=>c.id!==excludeId&&(c.name||'').trim().toLowerCase()===n);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
+const CRM_VERSION='17.09.2026';
 // ---------- AUTH ----------
 let _authMode='firebase',_inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';window.SIGN_IN(window.AUTH,em,pw).then(()=>enterApp()).catch(e=>{if(e.code==='auth/configuration-not-found'||e.code==='auth/operation-not-allowed'){_authMode='local';if(pw==='amana2025'){enterApp();return;}}document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Неверный email или пароль';er.style.display='block';});}
+function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';if(!window.SIGN_IN){document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Нет подключения к базе. Проверь интернет';er.style.display='block';return;}window.SIGN_IN(window.AUTH,em,pw).then(()=>enterApp()).catch(e=>{document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';const c=e&&e.code;er.textContent=(c==='auth/configuration-not-found'||c==='auth/operation-not-allowed')?'В Firebase не включён вход по почте (Authentication → Email/Password)':(c==='auth/too-many-requests'?'Слишком много попыток, подожди немного':(c==='auth/network-request-failed'?'Нет интернета':'Неверный email или пароль'));er.style.display='block';});}
 function enterApp(){document.getElementById('loginWrap').style.display='none';document.getElementById('app').classList.add('on');initApp();}
-function doLogout(){if(_authMode==='firebase')window.SIGN_OUT(window.AUTH);location.reload();}
+function doLogout(){if(window.SIGN_OUT)window.SIGN_OUT(window.AUTH).finally(()=>location.reload());else location.reload();}
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
-function initApp(){if(_inited)return;_inited=true;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
+function initApp(){if(_inited)return;_inited=true;const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
 function startAll(){loadSettings();if(typeof startInv==='function')startInv();const{db,collection,query,orderBy,onSnapshot}=window.DB;let c0=false,p0=false;onSnapshot(collection(db,'clients'),s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));onSnapshot(query(collection(db,'payments'),orderBy('date','desc')),s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});onSnapshot(collection(db,'wallets'),s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0)renderKassa();renderSettings();});onSnapshot(query(collection(db,'kassaOps'),orderBy('date','desc')),s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0)renderKassa();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
 function refreshAll(){if(typeof renderInvIfVisible==='function')renderInvIfVisible();renderDash();renderClients();renderKassa();if(typeof renderReminders==='function')renderReminders();if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
 function goTo(p){
@@ -1481,28 +1488,6 @@ function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
 function opDate(op){if(!op||!op.date)return null;return op.date.toDate?op.date.toDate():new Date(op.date);}
 
 // ------------ НАПОМИНАНИЯ ------------
-const ZVONOK_KEY='0745106ced31e57c15ea0881400515e3';
-const ZVONOK_CAMPAIGN='1887670247';
-
-function waLink(phone,text){
-  let p=phone.replace(/\D/g,'');
-  if(p.startsWith('8')&&p.length===11)p='7'+p.slice(1);
-  return'https://wa.me/'+p+'?text='+encodeURIComponent(text);
-}
-function zvonokCall(phone,text,btnEl){
-  let p=phone.replace(/\D/g,'');
-  if(p.startsWith('8')&&p.length===11)p='7'+p.slice(1);
-  const url='https://zvonok.com/manager/cabapi_external/api/v1/phones/call/?public_key='+ZVONOK_KEY+'&phone='+encodeURIComponent(p)+'&campaign_id='+ZVONOK_CAMPAIGN+'&text='+encodeURIComponent(text)+'&speaker=Tatyana';
-  if(btnEl){btnEl.textContent='Звоним...';btnEl.style.opacity='0.6';btnEl.disabled=true;}
-  let fr=document.getElementById('zvonokFrame');
-  if(!fr){fr=document.createElement('iframe');fr.id='zvonokFrame';fr.style.cssText='display:none;width:0;height:0;border:0';document.body.appendChild(fr);}
-  fr.src=url;
-  setTimeout(()=>{
-    toast('Звонок отправлен на '+fmtPhone(phone),'tok');
-    if(btnEl){btnEl.textContent='✓ Отправлен';setTimeout(()=>{btnEl.textContent='Автозвонок';btnEl.style.opacity='1';btnEl.disabled=false;},3000);}
-  },2000);
-}
-
 let _remTab='all';
 function setRemTab(t,btn){_remTab=t;document.querySelectorAll('#remTabs .ft').forEach(x=>x.classList.remove('on'));btn.classList.add('on');renderReminders();}
 
@@ -2611,20 +2596,28 @@ function invPersonStats(M,invId){
   }
   return{months,avg,all,prelim,closedCount:closed.length};
 }
+function setInvYear(y){S.invYear=y;renderInvDetail();}
+function setInvYear(y){S.invYear=y;renderInvDetail();}
 function invChartHtml(M,st){
   const ms=st.months.filter(m=>m.base>0||m.total);
   if(!ms.length)return'<div class="card" style="margin-bottom:14px"><div class="ct">Рентабельность по месяцам</div><div class="empty">Появится после первого месяца работы вкладов</div></div>';
-  const max=Math.max(...ms.map(m=>Math.abs(m.rent||0)),0.0001);
+  const years=[...new Set(ms.map(m=>m.mk.slice(0,4)))].sort();
+  let y=S.invYear;if(!y||!years.includes(y))y=years[years.length-1];
+  const cur=ms.filter(m=>m.mk.slice(0,4)===y);
+  const tabs=years.length>1?'<div class="ftabs" style="margin-bottom:12px">'+years.slice().reverse().map(yy=>'<button class="ft'+(yy===y?' on':'')+'" onclick="setInvYear(\''+yy+'\')">'+yy+'</button>').join('')+'</div>':'';
+  const max=Math.max(...cur.map(m=>Math.abs(m.rent||0)),0.0001);
   const MN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-  let prevY=null;
-  const cols=ms.map(m=>{
-    const [y,mo]=m.mk.split('-').map(Number);const h=m.rent===null?0:Math.max(3,Math.round(Math.abs(m.rent)/max*110));
+  const cols=cur.map(m=>{
+    const mo=Number(m.mk.slice(5,7));const h=m.rent===null?0:Math.max(3,Math.round(Math.abs(m.rent)/max*110));
     const neg=(m.rent||0)<0;const cls='inv-bv'+(neg?' neg':'')+(m.closed?'':' pre');
-    const yr=y!==prevY?'<div class="inv-by">'+y+'</div>':'<div class="inv-by">&nbsp;</div>';prevY=y;
     const tip=mkLabel(m.mk)+': '+invMoney(m.total,true)+', капитал '+fmt(m.base)+' ₽'+(m.closed?'':' (месяц идёт)');
-    return'<div class="inv-bc" onclick="openInvMonth(\''+m.mk+'\')" title="'+tip+'"><div class="inv-bl'+(neg?' cr':'')+'">'+invRentFmt(m.rent)+'</div><div class="'+cls+'" style="height:'+h+'px"></div><div class="inv-bm">'+MN[mo-1]+'</div>'+yr+'</div>';
+    return'<div class="inv-bc" onclick="openInvMonth(\''+m.mk+'\')" title="'+tip+'"><div class="inv-bl'+(neg?' cr':'')+'">'+invRentFmt(m.rent)+'</div><div class="'+cls+'" style="height:'+h+'px"></div><div class="inv-bm">'+MN[mo-1]+'</div></div>';
   }).join('');
-  return'<div class="card" style="margin-bottom:14px"><div class="inv-chart-hd"><div class="ct" style="margin:0">Рентабельность по месяцам</div><div class="inv-muted">нажми на месяц — подробности</div></div><div class="inv-chart"><div class="inv-bars">'+cols+'</div></div>'+(ms.some(m=>!m.closed)?'<div class="inv-muted" style="margin-top:6px">Светлый столбик — месяц ещё идёт, цифра предварительная.</div>':'')+'</div>';
+  const closed=cur.filter(m=>m.closed&&m.rent!==null);
+  const sum=cur.filter(m=>m.closed).reduce((a,m)=>a+m.total,0);
+  const avg=closed.length?closed.reduce((a,m)=>a+m.rent,0)/closed.length:null;
+  const foot='<div class="inv-year-sum"><span>Итог '+y+'</span><span><b class="'+(sum<0?'cr':'cg')+'">'+invMoney(sum,true)+'</b> · в среднем <b>'+invRentFmt(avg)+'</b> в мес.'+(closed.length?' по '+closed.length+' '+invPlural(closed.length,'месяцу','месяцам','месяцам'):'')+'</span></div>';
+  return'<div class="card" style="margin-bottom:14px"><div class="inv-chart-hd"><div class="ct" style="margin:0">Рентабельность по месяцам</div><div class="inv-muted">нажми на месяц — подробности</div></div>'+tabs+'<div class="inv-chart"><div class="inv-bars">'+cols+'</div></div>'+foot+(cur.some(m=>!m.closed)?'<div class="inv-muted" style="margin-top:6px">Светлый столбик — месяц ещё идёт, цифра предварительная.</div>':'')+'</div>';
 }
 function invDepsHtml(M,i){
   const isF=i.role==='founder';
