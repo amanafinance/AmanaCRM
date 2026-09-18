@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <title>Amana CRM</title>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
@@ -28,8 +28,8 @@ button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 #loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.2),transparent 60%)}
 body.light #loginWrap{background:radial-gradient(ellipse at 30% 50%,rgba(149,193,31,0.15),transparent 60%)}
 .lbox{width:340px;padding:40px 32px;background:var(--card);border:1px solid var(--brd);border-radius:16px;box-shadow:var(--sh)}
-.llogo{font-family:'Unbounded',sans-serif;font-size:10px;color:var(--green);letter-spacing:3px;margin-bottom:4px}
-.ltitle{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:900;margin-bottom:24px}
+.llogo{font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;color:var(--green);letter-spacing:2.5px;margin-bottom:4px}
+.ltitle{font-family:'Manrope',sans-serif;font-size:25px;font-weight:700;letter-spacing:-0.02em;margin-bottom:24px}
 .ltitle span{color:var(--green)}
 .inp{width:100%;padding:11px 14px;background:var(--bg3);border:1.5px solid var(--brd);border-radius:var(--r2);font-family:'Manrope',sans-serif;font-size:13px;color:var(--text);outline:none;transition:.2s}
 .inp:focus{border-color:var(--green)}
@@ -38,8 +38,8 @@ body.light #loginWrap{background:radial-gradient(ellipse at 30% 50%,rgba(149,193
 #app{display:none;min-height:100vh}#app.on{display:flex}
 .sidebar{width:220px;background:var(--card);border-right:1px solid var(--brd2);padding:22px 14px;display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100}
 .main{margin-left:220px;flex:1;padding:26px 30px;min-height:100vh}
-.slogo{font-family:'Unbounded',sans-serif;font-size:10px;color:var(--green);letter-spacing:3px;margin-bottom:3px}
-.sname{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;margin-bottom:24px}
+.slogo{font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;color:var(--green);letter-spacing:2.5px;margin-bottom:3px}
+.sname{font-family:'Manrope',sans-serif;font-size:16px;font-weight:700;letter-spacing:-0.01em;margin-bottom:24px}
 .sg{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:2px;margin:14px 0 5px}
 .nb{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:var(--r2);cursor:pointer;color:var(--t2);font-size:13px;font-weight:600;margin-bottom:2px;transition:.2s;border:none;background:none;width:100%;text-align:left}
 @media (hover:hover){.nb:hover{background:var(--bg3);color:var(--text)}}
@@ -67,12 +67,12 @@ body.light .bg{color:#ffffff}body.light .bg:hover{background:#7ba71a}
 .ig{background:rgba(149,193,31,0.1);color:var(--green)}.ig:hover{background:rgba(149,193,31,0.2)}
 .ir{background:rgba(255,71,87,0.08);color:var(--red)}.ir:hover{background:rgba(255,71,87,0.18)}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
-.pt{font-family:'Unbounded',sans-serif;font-size:19px;font-weight:900}
+.pt{font-family:'Manrope',sans-serif;font-size:21px;font-weight:700;letter-spacing:-0.015em}
 .ps{font-size:12px;color:var(--t3);margin-top:3px}
 .pa{display:flex;gap:8px;align-items:center}
 .sg4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
 .report-block{margin-bottom:18px;padding:14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--r1)}
-.report-block-title{font-family:Unbounded,sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
+.report-block-title{font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;letter-spacing:-0.01em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
 .kcards{display:none}
 .sum-row td{background:var(--bg3);font-size:12px;padding:8px 14px!important;border-bottom:2px solid var(--green)}
 .sticky-sum-bar{position:fixed;bottom:0;left:220px;right:0;background:var(--card);border-top:2px solid var(--green);padding:8px 18px;display:flex;align-items:center;justify-content:flex-end;gap:6px;z-index:400;box-shadow:0 -2px 12px rgba(0,0,0,0.1);font-family:'Manrope',sans-serif}
@@ -99,7 +99,7 @@ body.light .ft.on{color:#ffffff}
 #fdOverlay{position:fixed;z-index:9999;display:none;background:var(--card);border:1px solid rgba(149,193,31,0.3);border-radius:var(--r2);box-shadow:0 8px 32px rgba(0,0,0,0.7);padding:14px;min-width:220px}
 body.light #fdOverlay{box-shadow:0 8px 32px rgba(0,0,0,0.15);border-color:rgba(109,148,22,0.3)}
 #fdOverlay.on{display:block}
-.fdo-title{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;color:var(--green);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase}
+.fdo-title{font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;color:var(--green);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase}
 .fdo-lbl{font-size:10px;color:var(--t3);font-weight:600;margin-bottom:4px;margin-top:8px;display:block}
 .fdo-inp{width:100%;padding:8px 11px;background:var(--bg3);border:1.5px solid var(--brd);border-radius:6px;font-family:'Manrope',sans-serif;font-size:12px;color:var(--text);outline:none;display:block}
 .fdo-inp:focus{border-color:var(--green)}
@@ -154,8 +154,8 @@ body.light .mp-sel{background-image:url("data:image/svg+xml;utf8,<svg xmlns='htt
 @media(max-width:768px){.mover{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(0,0,0,0.7)!important}}
 body.light .mover{background:rgba(30,40,35,0.5)}
 .mover.on{display:flex}
-.modal{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:28px;width:680px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:var(--sh)}.msm{width:420px}
-.mtitle{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;margin-bottom:20px}
+.modal{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:28px;width:680px;max-width:95vw;max-height:calc(var(--vvh,100vh) - 40px);overflow-y:auto;box-shadow:var(--sh)}.msm{width:420px}
+.mtitle{font-family:'Manrope',sans-serif;font-size:17px;font-weight:700;letter-spacing:-0.015em;margin-bottom:20px}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ff{grid-column:1/-1}.fgp{display:flex;flex-direction:column;gap:5px}
 .mft{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--brd2)}
 .sdiv{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--brd2);display:flex;align-items:center;gap:8px}
@@ -182,7 +182,7 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 .confirm-ov{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center}
 body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .confirm-box{background:var(--card);border:1px solid var(--brd);border-radius:var(--r);padding:24px;width:380px;max-width:90vw;box-shadow:var(--sh)}
-.confirm-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;margin-bottom:12px}
+.confirm-title{font-family:'Manrope',sans-serif;font-size:16px;font-weight:700;letter-spacing:-0.01em;margin-bottom:12px}
 .confirm-msg{font-size:13px;color:var(--t2);margin-bottom:18px;line-height:1.6}
 .confirm-actions{display:flex;gap:8px;justify-content:flex-end}
 .day-sep td{padding:8px 14px!important;font-size:11px!important;font-weight:700!important;color:var(--t3)!important;background:var(--bg)!important;border-bottom:2px solid var(--bg3)!important}
@@ -224,9 +224,9 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .pa .btn{flex:1;justify-content:center;min-width:0;font-size:12px;padding:10px 8px;min-height:44px}
 .ig2{grid-template-columns:1fr}
 /* Модалки выдвигаются снизу */
-.modal{padding:14px 12px 16px;border-radius:16px 16px 0 0;width:100%!important;max-width:100%!important;max-height:92vh;box-sizing:border-box}
+.modal{padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));border-radius:16px 16px 0 0;width:100%!important;max-width:100%!important;max-height:calc(var(--vvh,100vh) - 12px);box-sizing:border-box}
 .mover.on{align-items:flex-end}
-.mtitle{font-size:14px;margin-bottom:12px}
+.mtitle{font-size:15px;margin-bottom:12px}
 .fgp{margin-bottom:8px!important}
 .fg{grid-template-columns:1fr;gap:8px}.ff{grid-column:1}
 .sdiv{margin:10px 0 6px;flex-wrap:wrap;font-size:11px}
@@ -248,15 +248,15 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mobile-filter-btn{display:none}
 .mf-sec{margin-bottom:10px}
 .mf-sec .lbl{margin-bottom:4px;display:block}
-.mf-modal{max-width:480px;width:calc(100% - 16px)!important;max-height:85vh;display:flex!important;flex-direction:column;padding:16px 14px!important}
+.mf-modal{max-width:480px;width:calc(100% - 16px)!important;max-height:calc(var(--vvh,100vh) - 40px);display:flex!important;flex-direction:column;padding:16px 14px!important}
 .mf-body{flex:1;overflow-y:auto;padding-right:2px;margin-bottom:8px;-webkit-overflow-scrolling:touch}
 .mf-body .inp{width:100%;box-sizing:border-box;font-size:13px;padding:8px 10px;min-height:36px}
 @media(max-width:768px){
 .mobile-filter-btn{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--text);border:1px solid var(--brd2);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;min-height:40px;font-family:'Manrope',sans-serif}
 .mobile-filter-btn:active{background:var(--card)}
 .mf-badge{background:var(--green);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;display:none}
-.mf-modal{border-radius:16px 16px 0 0!important;margin-bottom:0!important;max-height:88vh}
-.mf-body{max-height:calc(88vh - 140px)}
+.mf-modal{border-radius:16px 16px 0 0!important;margin-bottom:0!important;max-height:calc(var(--vvh,100vh) - 12px);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))!important}
+.mf-body{max-height:calc(var(--vvh,100vh) - 180px)}
 }
 #cList .mobile-cards{display:flex!important;flex-direction:column;gap:10px}
 #cList > .tbl{display:none!important}
@@ -629,7 +629,8 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 <table class="stbl"><thead><tr><th>&#8470;</th><th>Сумма</th><th>Дата</th></tr></thead><tbody id="schedBody"></tbody></table>
 <div class="mft"><button class="btn bgh" onclick="closeM('mClient')">Отмена</button><button class="btn bg" id="mCBtn" onclick="saveClient()">Сохранить</button></div></div></div>
 
-<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Касса</label><select class="inp sel" id="mpPt"></select></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
+<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Касса</label><select class="inp sel" id="mpPt"></select></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Дата оплаты</label><input class="inp" type="date" id="mpDate" onchange="payDateHint()"/><div class="inv-muted" id="mpDateHint" style="margin-top:6px"></div></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
 
 <div class="mover" id="mDisc"><div class="modal msm"><div class="mtitle">Скидка</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mdName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mdAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Причина</label><input class="inp" type="text" id="mdReason"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mDisc')">Отмена</button><button class="btn by" onclick="confirmDisc()">Применить</button></div></div></div>
 
@@ -1373,9 +1374,24 @@ async function getNextContractId(){const{db,doc,runTransaction}=window.DB,ref=do
 async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseNum(document.getElementById('f_price').value),cost=parseNum(document.getElementById('f_cost').value);if(!name||!price){toast('Заполните ФИО и цену','ter');return;}if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getElementById('f_months').value);_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{const phones=[...document.querySelectorAll('#fPhones input')].map(i=>i.value.trim()).filter(Boolean),gphones=[...document.querySelectorAll('#fGphones input')].map(i=>i.value.trim()).filter(Boolean),dv=document.getElementById('f_date').value,pt=document.getElementById('f_prepayPt').value,payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',name,phones,gphones,gname:document.getElementById('f_gname').value,addr:document.getElementById('f_addr').value,gaddr:document.getElementById('f_gaddr').value,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,cost,price,prepay:parseNum(document.getElementById('f_prepay').value),months:mo,payDay,prepayPt:pt};for(let m=0;m<12;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseNum(rows[m].querySelector('.sz').value);const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(_cid){const old=S.clients.find(x=>x.id===_cid);if((parseFloat(old?.prepay)||0)!==data.prepay){const oldPrepay=parseFloat(old?.prepay)||0;const pr=S.payments.find(p=>p.clientId===_cid&&p.type==='prepay');const prKassa=S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===_cid);if(pr&&data.prepay>0)await updateDoc(doc(db,'payments',pr.id),{amount:data.prepay});else if(pr&&data.prepay===0)await window.DB.deleteDoc(doc(db,'payments',pr.id));else if(!pr&&data.prepay>0)await addDoc(collection(db,'payments'),{clientId:_cid,contractId:old.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const diff=data.prepay-oldPrepay;if(prKassa){const wOld=S.wallets.find(x=>x.id===prKassa.wallet);if(data.prepay>0){await updateDoc(doc(db,'kassaOps',prKassa.id),{amount:data.prepay});if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)+diff});}else{await window.DB.deleteDoc(doc(db,'kassaOps',prKassa.id));if(wOld)await updateDoc(doc(db,'wallets',prKassa.wallet),{balance:(parseFloat(wOld.balance)||0)-oldPrepay});}}else if(data.prepay>0){const wNew=S.wallets.find(x=>x.name===pt);if(wNew){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wNew.id,walletName:pt,desc:'Предоплата от '+name+' (№'+old.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:name,contractId:old.contractId});await updateDoc(doc(db,'wallets',wNew.id),{balance:(parseFloat(wNew.balance)||0)+data.prepay});}}}await updateDoc(doc(db,'clients',_cid),data);await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{data.contractId=await getNextContractId();data.createdAt=new Date();const ref=await addDoc(collection(db,'clients'),data);if(data.prepay>0){await addDoc(collection(db,'payments'),{clientId:ref.id,contractId:data.contractId,name,amount:data.prepay,type:'prepay',typeLabel:'Предоплата',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const wP=S.wallets.find(x=>x.name===pt);if(wP){await addDoc(collection(db,'kassaOps'),{type:'prepay_in',amount:data.prepay,wallet:wP.id,walletName:pt,desc:'Предоплата от '+name+' (№'+data.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:ref.id,clientName:name,contractId:data.contractId});await updateDoc(doc(db,'wallets',wP.id),{balance:(parseFloat(wP.balance)||0)+data.prepay});}}await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
 
 // ---------- PAY / DISCOUNT ----------
-function openPay(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mpName').innerHTML=(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mpAmt').value='';document.getElementById('mpAmt').max=s.balance;updPt('mpPt');openM('mPay');}
-function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const pt=document.getElementById('mpPt').value;closeM('mPay');showConfirm('Подтвердить?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽ · '+pt,()=>savePay(a,pt));}
-async function savePay(a,pt){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'payment',typeLabel:'Ежемес. платеж',payType:pt,date:new Date(),dateStr:fmtD(new Date())});const w=S.wallets.find(x=>x.name===pt);if(w){await addDoc(collection(db,'kassaOps'),{type:'payment_in',amount:a,wallet:w.id,walletName:pt,desc:'Оплата от '+c.name+' (№'+c.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:c.name,contractId:c.contractId});await window.DB.updateDoc(window.DB.doc(db,'wallets',w.id),{balance:(parseFloat(w.balance)||0)+a});}await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+pt+')');toast('Записано!','tok');}finally{_saving=false;}}
+function openPay(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mpName').innerHTML=(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mpAmt').value='';document.getElementById('mpAmt').max=s.balance;updPt('mpPt');document.getElementById('mpDate').value=dayKey(new Date());payDateHint();openM('mPay');}
+function payDate(){const v=document.getElementById('mpDate').value;if(!v)return new Date();const d=safeDateFromInput(v);if(!d)return new Date();if(dayKey(d)===dayKey(new Date()))return new Date();d.setHours(12,0,0,0);return d;}
+function payDateClosed(d){const mk=monthKey(d);return (S.invMonths||[]).some(m=>m.id===mk)?mk:null;}
+function payDateHint(){
+  const el=document.getElementById('mpDateHint');if(!el)return;const d=payDate();
+  if(d>new Date()){el.innerHTML='<span class="cr">Дата в будущем — так нельзя</span>';return;}
+  const cl=payDateClosed(d);
+  if(cl){el.innerHTML='<span class="cr">'+mkLabel(cl)+' уже закрыт в Инвесторах — выберите другую дату</span>';return;}
+  el.textContent=dayKey(d)===dayKey(new Date())?'Сегодня':'Запишется задним числом: '+fmtD(d);
+}
+function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}
+  const d=payDate();
+  if(d>new Date()){toast('Дата оплаты не может быть в будущем','ter');return;}
+  const cl=payDateClosed(d);
+  if(cl){toast(mkLabel(cl)+' уже закрыт в Инвесторах — выберите другую дату','ter');return;}
+  const pt=document.getElementById('mpPt').value;closeM('mPay');
+  showConfirm('Подтвердить?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽ · '+pt+'<br>'+fmtD(d)+(dayKey(d)===dayKey(new Date())?'':' (задним числом)'),()=>savePay(a,pt,d));}
+async function savePay(a,pt,pd){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;const d=pd||new Date();_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'payment',typeLabel:'Ежемес. платеж',payType:pt,date:d,dateStr:fmtD(d)});const w=S.wallets.find(x=>x.name===pt);if(w){await addDoc(collection(db,'kassaOps'),{type:'payment_in',amount:a,wallet:w.id,walletName:pt,desc:'Оплата от '+c.name+' (№'+c.contractId+')',date:d,dateStr:fmtD(d),auto:true,refType:'client',refId:_cid,clientName:c.name,contractId:c.contractId});await window.DB.updateDoc(window.DB.doc(db,'wallets',w.id),{balance:(parseFloat(w.balance)||0)+a});}await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+pt+')'+(dayKey(d)===dayKey(new Date())?'':' за '+fmtD(d)));toast('Записано!','tok');}finally{_saving=false;}}
 function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mdName').innerHTML=(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mdAmt').value='';document.getElementById('mdAmt').max=s.balance;document.getElementById('mdReason').value='';openM('mDisc');}
 function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+c?.name+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
 async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}finally{_saving=false;}}
@@ -1418,7 +1434,7 @@ async function loadSettings(){
   try{
     const s=await getDocs(collection(db,'settings'));
     let hasPart=false;
-    s.docs.forEach(d=>{if(d.id==='partners'){S.partners=d.data().list||[];hasPart=true;}if(d.id==='ui'&&typeof uiApplyRemote==='function')uiApplyRemote(d.data());});
+    s.docs.forEach(d=>{if(d.id==='partners'){S.partners=d.data().list||[];hasPart=true;}});
     // гарантируем "Сторонний"
     if(!S.partners.includes('Сторонний'))S.partners.unshift('Сторонний');
     if(!hasPart)await setDoc(doc(db,'settings','partners'),{list:S.partners});
@@ -1901,7 +1917,7 @@ async function delKassaOp(id){
 }
 
 function exportExcel(){const r=[['№','Дата','ФИО','Телефоны','Товар','Партнёр','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Касса']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
-function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);}
+function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);if(typeof setVVH==='function')setVVH();const b=el.querySelector('.modal');if(b)b.scrollTop=0;}
 function closeM(id){document.getElementById(id).classList.remove('on');}
 function toast(m,c){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
@@ -2825,8 +2841,8 @@ const TOT_F={
 };
 const TOT_DEF=['price','cost','prepay','bal','over'];
 const VW_META={
-  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Галочка — показывать, порядок — перетаскиванием.'},
-  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». ФИО, телефоны и № договора видны всегда.'},
+  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Порядок — перетаскиванием. Настройка только на этом устройстве.'},
+  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». Настройка действует только на этом устройстве.'},
   totals:{reg:TOT_F,def:TOT_DEF,hint:'Суммы в строке итогов внизу «Клиентов». Считаются по тому, что сейчас отфильтровано.'}
 };
 function uiNorm(saved,kind){
@@ -2905,12 +2921,18 @@ async function vwSave(){
   closeM('mView');
   if(typeof renderClients==='function'&&document.getElementById('cList'))renderClients();
   const pr=document.getElementById('page-reminders');if(pr&&pr.style.display!=='none')renderReminders();
-  try{await window.DB.setDoc(window.DB.doc(window.DB.db,'settings','ui'),{cols:S.ui.cols,card:S.ui.card,totals:S.ui.totals,updatedAt:new Date()});toast('Вид сохранён','tok');}
-  catch(e){toast('Сохранено только на этом устройстве: '+e.message,'ter');}
+  toast('Вид сохранён на этом устройстве','tok');
 }
 
 
 // ---------- iPhone (иконка «Домой»): касания не должны пропадать после окон и клавиатуры ----------
+function setVVH(){
+  const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
+  document.documentElement.style.setProperty('--vvh',Math.round(h)+'px');
+}
+setVVH();
+window.addEventListener('resize',setVVH);
+if(window.visualViewport){window.visualViewport.addEventListener('resize',setVVH);window.visualViewport.addEventListener('scroll',setVVH);}
 function iosTouchFix(){try{const x=window.scrollX||0,y=window.scrollY||0;window.scrollTo(x,y+1);window.scrollTo(x,y);}catch(e){}}
 function blurInside(el){const a=document.activeElement;if(a&&a!==document.body&&(!el||el.contains(a))&&typeof a.blur==='function')a.blur();}
 (function(){
