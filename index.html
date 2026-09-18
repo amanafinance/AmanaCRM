@@ -224,7 +224,16 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .pa .btn{flex:1;justify-content:center;min-width:0;font-size:12px;padding:10px 8px;min-height:44px}
 .ig2{grid-template-columns:1fr}
 /* Модалки выдвигаются снизу */
-.modal{padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));border-radius:16px 16px 0 0;width:100%!important;max-width:100%!important;max-height:calc(var(--vvh,100vh) - 12px);box-sizing:border-box}
+.modal{padding:0!important;border-radius:0!important;width:100%!important;max-width:100%!important;height:var(--vvh,100vh);max-height:var(--vvh,100vh)!important;box-sizing:border-box;display:flex!important;flex-direction:column;overflow:hidden!important;border:none!important}
+.mover.on{align-items:stretch!important}
+.m-head{display:flex!important;align-items:center;gap:8px;flex:0 0 auto;margin:0!important;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--brd2);background:var(--card)}
+.m-head .mtitle{flex:1;min-width:0;margin:0!important;font-size:15px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-close{display:grid!important;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:10px;border:1px solid var(--brd2);background:var(--bg3);color:var(--text);cursor:pointer}
+.m-primary{display:inline-flex!important;min-height:38px;padding:9px 16px;font-size:13px;white-space:nowrap}
+.m-body{flex:1;min-height:0;overflow-y:auto;padding:14px 12px 20px;max-height:none!important}
+.mft{flex:0 0 auto;margin-top:0!important;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))!important;border-top:1px solid var(--brd2);background:var(--card)}
+.mft .m-main,.mft .m-cancel{display:none!important}
+.mft.m-ft-empty{display:none!important}
 .mover.on{align-items:flex-end}
 .mtitle{font-size:15px;margin-bottom:12px}
 .fgp{margin-bottom:8px!important}
@@ -255,8 +264,8 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mobile-filter-btn{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--text);border:1px solid var(--brd2);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;min-height:40px;font-family:'Manrope',sans-serif}
 .mobile-filter-btn:active{background:var(--card)}
 .mf-badge{background:var(--green);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;display:none}
-.mf-modal{border-radius:16px 16px 0 0!important;margin-bottom:0!important;max-height:calc(var(--vvh,100vh) - 12px);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))!important}
-.mf-body{max-height:calc(var(--vvh,100vh) - 180px)}
+.mf-modal{border-radius:0!important;margin-bottom:0!important;height:var(--vvh,100vh);max-height:var(--vvh,100vh)!important;padding:0!important}
+.mf-body{max-height:none}
 }
 #cList .mobile-cards{display:flex!important;flex-direction:column;gap:10px}
 #cList > .tbl{display:none!important}
@@ -411,6 +420,9 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .inv-terms{display:flex;flex-direction:column;gap:5px;margin-top:4px}
 .inv-terms div{display:flex;justify-content:space-between;font-size:12px;padding:7px 10px;background:var(--bg3);border-radius:6px}
 #mInvMonth .modal{width:980px}
+.m-close,.m-primary{display:none}
+.m-head .mtitle{margin-bottom:0}
+.m-head{margin-bottom:20px}
 .inv-terms-box{border:1.5px solid rgba(149,193,31,0.25);border-radius:var(--r2);padding:12px 12px 10px;margin:2px 0 12px;background:rgba(149,193,31,0.04)}
 .inv-terms-title{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
 .inv-terms-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:6px;align-items:end}
@@ -697,7 +709,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 
 <div class="mover" id="mView"><div class="modal msm">
 <div class="mtitle">Настройка вида</div>
-<div class="ftabs" id="vwTabs"><button class="ft on" onclick="vwTab('cols')">Колонки на ПК</button><button class="ft" onclick="vwTab('card')">Карточка на телефоне</button><button class="ft" onclick="vwTab('totals')">Итоги внизу</button></div>
+<div class="ftabs" id="vwTabs"></div>
 <div class="inv-hint" id="vwHint"></div>
 <div id="vwList" class="vw-list"></div>
 <div class="mft"><button class="btn bgh bsm vw-reset" onclick="vwReset()">По умолчанию</button><button class="btn bgh" onclick="closeM('mView')">Отмена</button><button class="btn bg" onclick="vwSave()">Сохранить</button></div>
@@ -1016,7 +1028,7 @@ function openMobileFilter(pg){
     '<div class="mft"><button class="btn bgh" onclick="resetMobileFilter(\''+pg+'\')">Сбросить</button><button class="btn bg" onclick="applyMobileFilter(\''+pg+'\')">Применить</button></div>'+
   '</div>';
   const mov=document.createElement('div');mov.className='mover on';mov.id='mfOver';mov.onclick=e=>{if(e.target===mov)closeMobileFilter();};
-  mov.innerHTML=html;document.body.appendChild(mov);
+  mov.innerHTML=html;document.body.appendChild(mov);modalSetup(mov);modalSync(mov);if(typeof setVVH==='function')setVVH();
 }
 function closeMobileFilter(){const m=document.getElementById('mfOver');if(m)m.remove();}
 function applyMobileFilter(pg){
@@ -1434,7 +1446,7 @@ async function loadSettings(){
   try{
     const s=await getDocs(collection(db,'settings'));
     let hasPart=false;
-    s.docs.forEach(d=>{if(d.id==='partners'){S.partners=d.data().list||[];hasPart=true;}});
+    s.docs.forEach(d=>{if(d.id==='partners'){S.partners=d.data().list||[];hasPart=true;}if(d.id==='ui'&&typeof uiApplyRemote==='function')uiApplyRemote(d.data());});
     // гарантируем "Сторонний"
     if(!S.partners.includes('Сторонний'))S.partners.unshift('Сторонний');
     if(!hasPart)await setDoc(doc(db,'settings','partners'),{list:S.partners});
@@ -1917,7 +1929,49 @@ async function delKassaOp(id){
 }
 
 function exportExcel(){const r=[['№','Дата','ФИО','Телефоны','Товар','Партнёр','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Касса']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
-function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);if(typeof setVVH==='function')setVVH();const b=el.querySelector('.modal');if(b)b.scrollTop=0;}
+const M_CLOSE_SVG='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+function modalSetup(el){
+  const modal=el.querySelector('.modal');if(!modal)return null;
+  if(modal.dataset.mset)return modal;
+  const title=modal.querySelector('.mtitle'),ft=modal.querySelector('.mft');
+  const head=document.createElement('div');head.className='m-head';
+  const close=document.createElement('button');close.type='button';close.className='m-close';close.setAttribute('aria-label','Закрыть');close.innerHTML=M_CLOSE_SVG;
+  close.onclick=()=>{const ov=modal.closest('.mover');if(!ov)return;if(ov.id==='mfOver')closeMobileFilter();else closeM(ov.id);};
+  head.appendChild(close);
+  if(title)head.appendChild(title);else{const t=document.createElement('div');t.className='mtitle';head.appendChild(t);}
+  const prim=document.createElement('button');prim.type='button';prim.className='btn bg m-primary';head.appendChild(prim);
+  let body=modal.querySelector('.mf-body');
+  if(!body){body=document.createElement('div');body.className='m-body';[...modal.childNodes].forEach(n=>{if(n!==head&&n!==ft)body.appendChild(n);});}
+  else body.classList.add('m-body');
+  modal.insertBefore(head,modal.firstChild);
+  if(body.parentNode!==modal)modal.appendChild(body);else modal.insertBefore(body,ft||null);
+  if(ft){modal.appendChild(ft);[...ft.querySelectorAll('.btn')].forEach(b=>{const t=(b.textContent||'').trim().toLowerCase();if(t==='отмена'||t==='закрыть окно')b.classList.add('m-cancel');});}
+  modal.dataset.mset='1';
+  return modal;
+}
+function modalSync(el){
+  const modal=el.querySelector('.modal');if(!modal)return;
+  const ft=modal.querySelector('.mft'),prim=modal.querySelector('.m-primary');
+  if(!prim)return;
+  const btns=ft?[...ft.querySelectorAll('.btn')]:[];
+  btns.forEach(b=>{b.classList.remove('m-main');const t=(b.textContent||'').trim().toLowerCase();if(t==='отмена'||t==='закрыть окно')b.classList.add('m-cancel');});
+  const cand=btns.filter(b=>!b.classList.contains('m-cancel')&&!b.classList.contains('br'));
+  const main=cand.filter(b=>b.classList.contains('bg')||b.classList.contains('by')).pop()||cand.pop();
+  if(main&&(main.textContent||'').trim()){
+    main.classList.add('m-main');
+    prim.className='btn m-primary '+(main.classList.contains('by')?'by':'bg');
+    prim.textContent=(main.textContent||'').trim();
+    prim.onclick=()=>main.click();prim.style.display='';
+  }else prim.style.display='none';
+  if(ft){const rest=btns.filter(b=>!b.classList.contains('m-cancel')&&!b.classList.contains('m-main'));ft.classList.toggle('m-ft-empty',rest.length===0);}
+}
+function openM(id){const el=document.getElementById(id);modalSetup(el);el.classList.add('on');modalSync(el);applyFmtToInputs(el);if(typeof setVVH==='function')setVVH();const b=el.querySelector('.m-body')||el.querySelector('.modal');if(b)b.scrollTop=0;}
+document.addEventListener('focusin',e=>{
+  if(window.innerWidth>768)return;
+  const t=e.target;if(!t||!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;
+  if(!t.closest('.m-body'))return;
+  setTimeout(()=>{try{t.scrollIntoView({block:'center',behavior:'smooth'});}catch(_){}} ,320);
+});
 function closeM(id){document.getElementById(id).classList.remove('on');}
 function toast(m,c){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
@@ -2841,8 +2895,8 @@ const TOT_F={
 };
 const TOT_DEF=['price','cost','prepay','bal','over'];
 const VW_META={
-  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Порядок — перетаскиванием. Настройка только на этом устройстве.'},
-  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». Настройка действует только на этом устройстве.'},
+  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Порядок — перетаскиванием. Сохраняется в базе и действует на всех компьютерах.'},
+  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». Сохраняется в базе и действует на всех телефонах.'},
   totals:{reg:TOT_F,def:TOT_DEF,hint:'Суммы в строке итогов внизу «Клиентов». Считаются по тому, что сейчас отфильтровано.'}
 };
 function uiNorm(saved,kind){
@@ -2873,11 +2927,14 @@ function clTotalsHtml(list){
 }
 // ---------- Модалка ----------
 let _vw={kind:'cols',tmp:null};
-function openView(kind){_vw={kind:kind||'cols',tmp:JSON.parse(JSON.stringify(S.ui))};vwRender();openM('mView');}
-function vwTab(kind){_vw.kind=kind;vwRender();}
+const VW_LABEL={cols:'Колонки таблицы',card:'Карточка клиента',totals:'Итоги внизу'};
+function vwKinds(){return (window.innerWidth<=768?['card']:['cols']).concat(['totals']);}
+function openView(kind){const ks=vwKinds();_vw={kind:ks.includes(kind)?kind:ks[0],tmp:JSON.parse(JSON.stringify(S.ui))};vwRender();openM('mView');}
+function vwTab(kind){if(!vwKinds().includes(kind))return;_vw.kind=kind;vwRender();}
 function vwRender(){
+  const ks=vwKinds();if(!ks.includes(_vw.kind))_vw.kind=ks[0];
   const k=_vw.kind,meta=VW_META[k],list=_vw.tmp[k];
-  document.querySelectorAll('#vwTabs .ft').forEach((b,i)=>b.classList.toggle('on',['cols','card','totals'][i]===k));
+  document.getElementById('vwTabs').innerHTML=ks.map(x=>'<button class="ft'+(x===k?' on':'')+'" onclick="vwTab(\''+x+'\')">'+VW_LABEL[x]+'</button>').join('');
   document.getElementById('vwHint').textContent=meta.hint;
   const grip='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
   document.getElementById('vwList').innerHTML=list.map((x,i)=>'<div class="vw-row'+(x.on?' on':'')+'" data-k="'+x.k+'" onpointerdown="vwDragStart(event)"><span class="vw-grip" aria-hidden="true">'+grip+'</span><label class="vw-chk"><input type="checkbox"'+(x.on?' checked':'')+' onchange="vwToggle('+i+',this.checked)"><span>'+meta.reg[x.k].n+'</span></label></div>').join('');
@@ -2921,7 +2978,8 @@ async function vwSave(){
   closeM('mView');
   if(typeof renderClients==='function'&&document.getElementById('cList'))renderClients();
   const pr=document.getElementById('page-reminders');if(pr&&pr.style.display!=='none')renderReminders();
-  toast('Вид сохранён на этом устройстве','tok');
+  try{await window.DB.setDoc(window.DB.doc(window.DB.db,'settings','ui'),{cols:S.ui.cols,card:S.ui.card,totals:S.ui.totals,updatedAt:new Date()});toast('Вид сохранён','tok');}
+  catch(e){toast('Не удалось сохранить в базу, вид применён только здесь: '+e.message,'ter');}
 }
 
 
