@@ -1197,7 +1197,7 @@ function renderDetail(c){
   const clientCard='<div class="card"><div class="ct">Данные клиента</div><div class="ig2"><div class="ii"><div class="il">ФИО</div><div class="iv">'+(c.name||'—')+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+ph+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">'+esc(c.addr||'—')+'</div></div></div></div>';
   const guarantorCard='<div class="card"><div class="ct">Поручитель</div><div class="ig2"><div class="ii"><div class="il">ФИО</div><div class="iv">'+esc(c.gname||'—')+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+gph+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">'+(c.gaddr||'—')+'</div></div></div></div>';
   // Товар и финансы
-  const itemCard='<div class="card"><div class="ct">Товар</div><div class="ig2"><div class="ii"><div class="il">Товар</div><div class="iv">'+esc(c.product||'—')+'</div></div><div class="ii"><div class="il">Партнёр</div><div class="iv">'+esc(c.partner||'—')+'</div></div><div class="ii"><div class="il">Цена продажи</div><div class="iv">'+fmt(pr)+' ₽</div></div><div class="ii"><div class="il">Предоплата</div><div class="iv">'+fmt(c.prepay)+' ₽</div></div><div class="ii"><div class="il">Себестоимость</div><div class="iv">'+(co?fmt(co)+' ₽':'—')+'</div></div><div class="ii"><div class="il">Маржа (ожидаемая)</div><div class="iv '+(co?'cg':'')+'">'+(co?fmt(mg)+' ₽':'—')+'</div></div>'+(s.totalDiscount>0?'<div class="ii" style="grid-column:1/-1"><div class="il">Применена скидка</div><div class="iv cy">'+fmt(s.totalDiscount)+' ₽</div></div>':'')+'</div></div>';
+  const itemCard='<div class="card"><div class="ct">Товар</div><div class="ig2"><div class="ii"><div class="il">Товар</div><div class="iv">'+esc(c.product||'—')+'</div></div><div class="ii"><div class="il">Партнёр</div><div class="iv">'+esc(c.partner||'—')+'</div></div><div class="ii"><div class="il">Цена продажи</div><div class="iv">'+fmt(pr)+' ₽</div></div><div class="ii"><div class="il">Предоплата</div><div class="iv">'+fmt(c.prepay)+' ₽</div></div><div class="ii"><div class="il">Себестоимость</div><div class="iv">'+(co?fmt(co)+' ₽':'—')+'</div></div><div class="ii"><div class="il">Закупка товара</div><div class="iv" style="font-size:13px">'+purchaseInfo(c)+'</div></div><div class="ii"><div class="il">Маржа (ожидаемая)</div><div class="iv '+(co?'cg':'')+'">'+(co?fmt(mg)+' ₽':'—')+'</div></div>'+(s.totalDiscount>0?'<div class="ii" style="grid-column:1/-1"><div class="il">Применена скидка</div><div class="iv cy">'+fmt(s.totalDiscount)+' ₽</div></div>':'')+'</div></div>';
   // График платежей
   const schedBlock='<div class="cph"><div class="cphhdr" onclick="tog2(\'schedb_'+c.id+'\',\'sa_'+c.id+'\')"><div style="font-size:11px;font-weight:700;color:var(--t2)">График платежей · '+pc+' из '+(c.months||0)+'</div><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:80px;margin:0"><div class="pfill" style="width:'+Math.round(pc/Math.max(c.months||1,1)*100)+'%"></div></div><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="sa_'+c.id+'"><polyline points="'+(so?'18 15 12 9 6 15':'6 9 12 15 18 9')+'"/></svg></div></div><div class="cphbody'+(so?' on':'')+'" id="schedb_'+c.id+'">'+s.schedule.map(p=>payRow(p)).join('')+'</div></div>';
   // История платежей
@@ -1290,13 +1290,13 @@ async function saveComment(){const{db,doc,updateDoc}=window.DB;const t=document.
 async function deleteComment(){const{db,doc,updateDoc}=window.DB;await updateDoc(doc(db,'clients',_cid),{comment:'',commentDate:''});closeM('mComment');toast('Удалено','tok');}
 
 // ---------- NEW / EDIT CLIENT ----------
-function openNew(){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=new Date().toISOString().split('T')[0];['f_name','f_addr','f_gname','f_gaddr','f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';document.getElementById('fPhones').innerHTML='<div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh(\'fPhones\')">+</button></div>';document.getElementById('fGphones').innerHTML='<div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh(\'fGphones\')">+</button></div>';document.getElementById('dupWarn').classList.remove('on');_schedManual={size:false,dates:false};document.getElementById('schedBody').innerHTML='';updSels();calcSched();schedWarn();openM('mClient');}
+function openNew(){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=new Date().toISOString().split('T')[0];['f_name','f_addr','f_gname','f_gaddr','f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';document.getElementById('fPhones').innerHTML='<div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh(\'fPhones\')">+</button></div>';document.getElementById('fGphones').innerHTML='<div class="phr"><input class="inp" type="tel" placeholder="89001234567"/><button class="ib ig" onclick="addPh(\'fGphones\')">+</button></div>';document.getElementById('dupWarn').classList.remove('on');_schedManual={size:false,dates:false};_costOk=false;_schedOk=false;document.getElementById('schedBody').innerHTML='';updSels();calcSched();schedWarn();openM('mClient');}
 function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';document.getElementById('f_name').value=c.name||'';document.getElementById('f_addr').value=c.addr||'';document.getElementById('f_gname').value=c.gname||'';document.getElementById('f_gaddr').value=c.gaddr||'';document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';const ph=c.phones&&c.phones.length?c.phones:[''];document.getElementById('fPhones').innerHTML=ph.map((p,i)=>'<div class="phr"><input class="inp" type="tel" value="'+p+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'fPhones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');const gp=c.gphones&&c.gphones.length?c.gphones:[''];document.getElementById('fGphones').innerHTML=gp.map((p,i)=>'<div class="phr"><input class="inp" type="tel" value="'+p+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'fGphones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');document.getElementById('dupWarn').classList.remove('on');updSels();setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;if(c.prepayPt)document.getElementById('f_prepayPt').value=(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))?c.prepayWallet:((S.wallets.find(w=>w.name===c.prepayPt)||{}).id||'');},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
 function checkDup(){const n=document.getElementById('f_name').value,d=findDups(n,_cid),w=document.getElementById('dupWarn');if(d.length){w.classList.add('on');document.getElementById('dupList').innerHTML=d.map(c=>'· №'+(c.contractId||'—')+' '+c.name).join('<br>');}else w.classList.remove('on');}
 function addPh(id){const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" placeholder="89001234567"/><button class="ib ir" onclick="this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let _schedManual={size:false,dates:false};
+let _schedManual={size:false,dates:false};let _costOk=false;let _schedOk=false;
 const R2=n=>Math.round(((parseFloat(n)||0)+Number.EPSILON)*100)/100;
 const WINC=v=>({balance:window.DB.increment(R2(v))});
 function computePayDate(cd,m,payDay){
@@ -1401,10 +1401,28 @@ async function getNextContractId(){const{db,doc,runTransaction}=window.DB,ref=do
 async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseNum(document.getElementById('f_price').value),cost=parseNum(document.getElementById('f_cost').value);if(!name||!price){toast('Заполните ФИО и цену','ter');return;}
 if(!document.getElementById('f_product').value.trim()){toast('Укажите товар','ter');return;}
 if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}
+if(_cid){
+  const oldC=S.clients.find(x=>x.id===_cid);
+  if(oldC&&R2(oldC.cost)!==R2(cost)){
+    const blocked=contractClosedMonths(_cid);
+    if(blocked.length){toast('Месяц '+mkLabel(blocked[0])+' уже закрыт в Инвесторах — себестоимость по этому договору менять нельзя','ter');return;}
+    if(S.payments.some(p=>p.clientId===_cid&&p.type==='payment')&&!_costOk){
+      showConfirm('Изменить себестоимость?','<strong>№'+(oldC.contractId||'')+'</strong><br>Было '+fmt(oldC.cost)+' ₽, станет '+fmt(cost)+' ₽.<br>По договору уже есть оплаты, прибыль по ним пересчитается.',()=>{_costOk=true;saveClient();});
+      return;
+    }
+  }
+}
 const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getElementById('f_months').value);
 { const target=schedTarget(),sum=schedSum(),d=R2(sum-target);
   if(!(target>0)){toast('Цена должна быть больше первого взноса','ter');return;}
-  if(Math.abs(d)>=0.005){toast('Сумма графика '+fmt(sum)+' ₽, а должна быть '+fmt(target)+' ₽. Нажмите «Пересчитать» в графике','ter');schedWarn();return;}
+  if(Math.abs(d)>=0.005){
+    schedWarn();
+    if(!_cid){toast('Сумма графика '+fmt(sum)+' ₽, а должна быть '+fmt(target)+' ₽. Нажмите «Пересчитать» в графике','ter');return;}
+    if(!_schedOk){
+      showConfirm('График не сходится','Сумма графика <strong>'+fmt(sum)+' ₽</strong>, а долг клиента <strong>'+fmt(target)+' ₽</strong> (разница '+fmt(Math.abs(d))+' ₽).<br>Можно сохранить как есть — тогда в договоре останутся прежние суммы, — или закрыть окно и нажать «Пересчитать».',()=>{_schedOk=true;saveClient();});
+      return;
+    }
+  }
   let bad=0,badDate=0,prev='';
   [...rows].slice(0,mo).forEach(r=>{const v=parseNum(r.querySelector('.sz').value);if(!(v>0))bad++;const dv=r.querySelector('.dt').value;if(!dv)badDate++;else{if(prev&&dv<prev)badDate++;prev=dv;}});
   if(bad){toast('В графике есть платежи с нулевой суммой','ter');return;}
@@ -1473,6 +1491,34 @@ async function cdDelBtn(c){
   if(c.archived)return '<button class="btn bgh bsm cd-del" onclick="archiveClient(\''+id+'\',false)">Вернуть из архива</button>';
   if(clientHasMoney(id))return '<button class="btn bgh bsm cd-del" onclick="archiveClient(\''+id+'\',true)">В архив</button>';
   return '<button class="btn br bsm cd-del" onclick="delClient(\''+id+'\')">Удалить</button>';
+}
+function purchaseOf(id){return S.kassaOps.find(o=>o.type==='purchase'&&o.refType==='client'&&o.refId===id)||null;}
+function purchaseInfo(c){
+  const op=purchaseOf(c.id);
+  if(!op)return '<span class="cy">не проведена</span>';
+  const fact=R2(op.amount),co=R2(c.cost);
+  let h=fmt(fact)+' ₽ · '+(op.dateStr||'')+(op.walletName?' · '+esc(op.walletName):'');
+  if(Math.abs(fact-co)>0.004)h+='<div class="cy" style="font-size:11px;margin-top:4px">В договоре '+fmt(co)+' ₽ <button class="btn bgh bsm" style="margin-left:6px" onclick="applyFactCost(\''+c.id+'\')">Привести к факту</button></div>';
+  return h;
+}
+function contractClosedMonths(id){
+  const closed=new Set((S.invMonths||[]).map(m=>m.id));
+  if(!closed.size)return [];
+  return [...new Set(S.payments.filter(p=>p.clientId===id&&(p.type==='payment'||p.type==='discount')).map(p=>{const d=p.date&&p.date.toDate?p.date.toDate():new Date(p.date||0);return monthKey(d);}).filter(mk=>closed.has(mk)))];
+}
+function applyFactCost(id){
+  const c=S.clients.find(x=>x.id===id),op=purchaseOf(id);if(!c||!op)return;
+  const fact=R2(op.amount),old=R2(c.cost);
+  const blocked=contractClosedMonths(id);
+  if(blocked.length){toast('Месяц '+mkLabel(blocked[0])+' уже закрыт в Инвесторах — себестоимость менять нельзя','ter');return;}
+  showConfirm('Привести себестоимость к факту?','<strong>№'+(c.contractId||'')+'</strong><br>В договоре '+fmt(old)+' ₽, по факту закупки '+fmt(fact)+' ₽.<br>Прибыль по этому договору пересчитается.',async()=>{
+    try{
+      const{db,doc,updateDoc}=window.DB;
+      await updateDoc(doc(db,'clients',id),{cost:fact,costFactAt:new Date()});
+      await logA('Себестоимость изменена','№'+(c.contractId||'')+' — было '+fmt(old)+' ₽, стало '+fmt(fact)+' ₽ (по факту закупки)');
+      toast('Себестоимость обновлена','tok');
+    }catch(e){toast('Ошибка: '+e.message,'ter');}
+  });
 }
 function clientHasMoney(id){
   return S.payments.some(p=>p.clientId===id)||S.kassaOps.some(o=>o.refType==='client'&&o.refId===id);
@@ -1942,20 +1988,16 @@ async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w){
     const opRef=doc(collection(db,'kassaOps'));
     const op={type,amount:amt,wallet:wid,walletName:w.name||'',desc:desc||'',date:new Date(),dateStr:fmtD(new Date()),auto:false};
     if(wt){op.walletTo=wtid;op.walletToName=wt.name;}
-    let costFix=null;
     if(type==='purchase'&&clientId){
       const c=S.clients.find(x=>x.id===clientId);
       op.refType='client';op.refId=clientId;
-      if(c){op.clientName=c.name;op.contractId=c.contractId;
-        if(R2(c.cost)!==amt){bt.update(doc(db,'clients',clientId),{cost:amt});costFix=c;}
-      }
+      if(c){op.clientName=c.name;op.contractId=c.contractId;op.expectedCost=R2(c.cost);}
     }
     bt.set(opRef,op);
     if(meta.dir==='in')bt.update(doc(db,'wallets',wid),WINC(amt));
     else if(meta.dir==='out')bt.update(doc(db,'wallets',wid),WINC(-amt));
     else if(type==='transfer'){bt.update(doc(db,'wallets',wid),WINC(-amt));bt.update(doc(db,'wallets',wtid),WINC(amt));}
     await bt.commit();
-    if(costFix)await logA('Корректировка себестоимости','№'+costFix.contractId+' — стало '+fmt(amt)+' ₽ (по факту закупки)');
     await logA('Касса: '+meta.name,fmt(amt)+' ₽ — '+(w.name||'')+(desc?' ('+desc+')':''));
     closeM('mKassa');
     toast('Операция записана','tok');
