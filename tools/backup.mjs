@@ -3,10 +3,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { db } from './lib.mjs';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+if (!raw) throw new Error('Нет переменной FIREBASE_SERVICE_ACCOUNT (JSON сервисного аккаунта)');
+initializeApp({ credential: cert(JSON.parse(raw)) });
+const firestore = getFirestore();
 
 const out = process.argv[2] || 'backup';
-const firestore = db();
 const cols = await firestore.listCollections();
 const data = {};
 let total = 0;

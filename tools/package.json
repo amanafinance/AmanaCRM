@@ -2,7 +2,7 @@
   "name": "amana-crm-tools",
   "private": true,
   "type": "module",
-  "description": "Бэкап Firestore и утренняя сводка в Telegram (запускаются из GitHub Actions)",
+  "description": "Ежедневный бэкап Firestore (запускается из GitHub Actions)",
   "dependencies": {
     "firebase-admin": "^13.0.0"
   }
