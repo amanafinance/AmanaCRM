@@ -1,0 +1,63 @@
+rules_version = '2';
+// Правила доступа Amana CRM.
+// Роль каждого сотрудника хранится в документе users/{UID}: { role: "owner" } или { role: "manager" }.
+//   owner   — полный доступ.
+//   manager — клиенты, платежи, касса; без удаления, без инвесторов, без истории действий и корзины.
+// Кого нет в users — не видит ничего.
+// ВАЖНО: до публикации создайте users/{ваш UID} с role = "owner", иначе вы сами потеряете доступ (см. SETUP.md).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function role() { return get(userPath()).data.role; }
+    function isOwner() { return signedIn() && exists(userPath()) && role() == 'owner'; }
+    function isStaff() { return signedIn() && exists(userPath()) && role() in ['owner', 'manager']; }
+    // Менеджер может менять у счёта только остаток (приход/расход через кассу)
+    function onlyBalance() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance']); }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isOwner());
+      allow write: if isOwner();
+    }
+
+    match /clients/{id} {
+      allow read, create, update: if isStaff();
+      allow delete: if isOwner();
+    }
+    match /payments/{id} {
+      allow read, create: if isStaff();
+      allow update, delete: if isOwner();
+    }
+    match /kassaOps/{id} {
+      allow read, create: if isStaff();
+      allow update, delete: if isOwner();
+    }
+    match /wallets/{id} {
+      allow read: if isStaff();
+      allow update: if isOwner() || (isStaff() && onlyBalance());
+      allow create, delete: if isOwner();
+    }
+    match /settings/{id} {
+      allow read: if isStaff();
+      // counter — номер следующего договора, его увеличивает любой сотрудник
+      allow write: if isOwner() || (isStaff() && id == 'counter');
+    }
+
+    // История действий и корзина: дописывать может любой сотрудник, читать — только владелец,
+    // исправить или стереть задним числом — никто
+    match /journal/{id} {
+      allow create: if isStaff();
+      allow read: if isOwner();
+      allow update, delete: if false;
+    }
+    match /trash/{id} {
+      allow create: if isStaff();
+      allow read: if isOwner();
+      allow update, delete: if false;
+    }
+
+    match /investors/{id} { allow read, write: if isOwner(); }
+    match /invOps/{id}    { allow read, write: if isOwner(); }
+    match /invMonths/{id} { allow read, write: if isOwner(); }
+  }
+}
