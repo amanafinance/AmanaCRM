@@ -1287,6 +1287,8 @@ function renderFinance(){
     (S.inv.length?dKv('Капитал инвесторов',dMoney(ctx.M.poolCap||0))+dKv('К выплате инвесторам','<span class="cy">'+dMoney(payable)+'</span>')+dKv('Свободно','<span class="'+(cash-payable<0?'cr':'cg')+'">'+dMoney(cash-payable)+'</span>'):'')+'</div>';
   h+='</div>';
   el.innerHTML=h;
+  // На узком экране сразу показываем текущий месяц
+  const tw=el.querySelector('.fin-tw'),cc=el.querySelector('.fin-t th.fin-cur');if(tw&&cc)tw.scrollLeft=Math.max(0,cc.offsetLeft-230);
 }
 
 // ---------- CLIENTS LIST ----------
