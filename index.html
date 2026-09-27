@@ -338,10 +338,8 @@ body.light .bwa{color:#128c4a}
 .ptbl tbody tr{cursor:pointer}
 .ptbl tbody tr:hover td{background:var(--bg3)}
 .ppl-mob{display:none;padding:8px}
-.pcols-box{display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--card);border:1px solid var(--brd);border-radius:var(--r);box-shadow:var(--sh);padding:12px 14px;z-index:60;min-width:220px}
-.pcols-box.on{display:block}
-.pcol{display:flex;gap:8px;align-items:center;font-size:12px;padding:4px 0;cursor:pointer}
 @media(max-width:768px){.ppl-desk{display:none}.ppl-mob{display:block}}
+.ko-hint{font-size:11px;line-height:1.5;color:var(--yellow);background:rgba(255,165,2,0.08);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:8px 10px;margin-top:8px}
 .rc-row{display:grid;grid-template-columns:1.3fr 1fr 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd2);font-size:12px}
 .rc-row:last-child{border-bottom:none}
 .tr-row{padding:7px 0;border-bottom:1px solid var(--brd2);font-size:11px}
@@ -809,7 +807,7 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 
 
 <div id="page-people" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div>
-<div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="pplCount"></div></div><div class="pa" style="position:relative"><button class="btn bgh" onclick="togglePplCols(event)">Колонки</button><button class="btn bg" onclick="openPersonForm(null,'',()=>renderPeople())">+ Клиент</button><div class="pcols-box" id="pplColsBox"></div></div></div>
+<div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="pplCount"></div></div><div class="pa" style="position:relative"><button class="btn bgh" onclick="openView('pcols')">Колонки</button><button class="btn bg" onclick="openPersonForm(null,'',()=>renderPeople())">+ Клиент</button></div></div>
 <div class="ppl-bar">
 <input class="inp" type="search" id="pplQ" placeholder="Поиск по ФИО или телефону" oninput="renderPeople()" aria-label="Поиск клиента"/>
 </div>
@@ -871,9 +869,9 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 <option value="purchase">Закупка товара</option>
 <option value="opex">Операционный расход</option>
 <option value="salary">Зарплата сотруднику</option>
-<option value="withdraw">Вывод себе</option>
+<option value="other_exp">Прочий расход (за счёт учредителей)</option>
 <option value="transfer">Перевод между кошельками</option>
-</select></div>
+</select><div id="koHint" class="ko-hint" style="display:none"></div></div>
 <div class="fgp" style="margin-bottom:10px;display:none;position:relative" id="koClientRow"><label class="lbl">Договор клиента *</label><input class="inp" type="text" id="koClientSearch" placeholder="Поиск по №, ФИО или товару..." autocomplete="off" oninput="koClientSearchInput()" onfocus="koClientSearchInput()"/><input type="hidden" id="koClientId"/><div id="koClientDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);max-height:220px;overflow-y:auto;z-index:10;margin-top:2px;box-shadow:var(--sh)"></div><div style="font-size:10px;color:var(--t3);margin-top:3px" id="koClientHint"></div></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="koAmt" autocomplete="off"/></div>
 <div class="fgp" style="margin-bottom:10px" id="koWalletRow"><label class="lbl" id="koWalletLbl">Кошелёк</label><select class="inp sel" id="koWallet"></select></div>
@@ -1189,7 +1187,7 @@ function finFact(mk,ctx){
   if(ctx.cache[mk])return ctx.cache[mk];
   const[y,m]=mk.split('-').map(Number),st=new Date(y,m-1,1),en=new Date(y,m,1);
   const inM=d=>d&&d>=st&&d<en;
-  const o={deals:0,sales:0,cost:0,plan:0,planGross:0,pay:0,payCnt:0,prepay:0,refund:0,gross:0,disc:0,refProfit:0,salary:0,opex:0,invShare:0,purchase:0,invIn:0,invOut:0,invPay:0,withdraw:0,kIn:0,kOut:0,expLeft:0,expGross:0,planDue:0,planPaid:0};
+  const o={deals:0,sales:0,cost:0,plan:0,planGross:0,pay:0,payCnt:0,prepay:0,refund:0,gross:0,disc:0,refProfit:0,salary:0,opex:0,otherExp:0,invShare:0,purchase:0,invIn:0,invOut:0,invPay:0,withdraw:0,kIn:0,kOut:0,expLeft:0,expGross:0,planDue:0,planPaid:0};
   S.payments.forEach(p=>{const d=dTs(p.date);if(!inM(d))return;const a=parseFloat(p.amount)||0;
     if(p.type==='payment'){o.pay+=a;o.payCnt++;}else if(p.type==='prepay')o.prepay+=a;else if(p.type==='refund')o.refund+=a;});
   const lim=new Date(today().getTime()+86400000);
@@ -1200,7 +1198,7 @@ function finFact(mk,ctx){
   });
   ctx.M.events.forEach(e=>{if(!inM(e.d))return;
     if(e.kind==='profit'){if(e.src==='discount')o.disc-=e.amount;else if(e.src==='refund')o.refProfit-=e.amount;else o.gross+=e.amount;}
-    else if(e.etype==='salary')o.salary-=e.amount;else o.opex-=e.amount;});
+    else if(e.kind==='fexpense')o.otherExp-=e.amount;else if(e.etype==='salary')o.salary-=e.amount;else o.opex-=e.amount;});
   S.kassaOps.forEach(k=>{const d=opDate(k);if(!inM(d)||k.type==='transfer')return;const a=parseFloat(k.amount)||0,mt=kMeta(k.type);
     if(mt.dir==='in')o.kIn+=a;else if(mt.dir==='out')o.kOut+=a;
     if(k.type==='purchase')o.purchase+=a;else if(k.type==='inv_in')o.invIn+=a;else if(k.type==='inv_out')o.invOut+=a;else if(k.type==='inv_pay')o.invPay+=a;else if(k.type==='withdraw')o.withdraw+=a;});
@@ -1213,7 +1211,7 @@ function finFact(mk,ctx){
 function finDerive(o){
   const x={...o};
   x.margin=o.sales-o.cost;x.received=o.pay+o.prepay-o.refund;
-  x.grossNet=o.gross-o.disc-o.refProfit;x.exp=o.salary+o.opex;x.net=x.grossNet-x.exp;x.company=x.net-o.invShare;x.flow=o.kIn-o.kOut;
+  x.grossNet=o.gross-o.disc-o.refProfit;x.exp=o.salary+o.opex+o.otherExp;x.net=x.grossNet-x.exp;x.company=x.net-o.invShare;x.flow=o.kIn-o.kOut;
   x.planPct=o.plan>0?o.pay/o.plan:null;x.netPct=x.received>0?x.net/x.received:null;x.rate=o.planDue>0?o.planPaid/o.planDue:null;
   return x;
 }
@@ -1279,7 +1277,7 @@ function renderFinance(){
   h+=dCard('Продажи',dMoney(fact.sales),fact.deals+' '+invPlural(fact.deals,'договор','договора','договоров')+' · наценка '+dMoney(fact.margin));
   h+=dCard('Поступило от клиентов',dMoney(fact.received),'план по графику выполнен на '+dPct(fact.planPct),'cg');
   h+=dCard('Чистая прибыль',dMoney(fact.net),'рентабельность '+dPct(fact.netPct)+' от поступлений',fact.net<0?'cr':'cg');
-  h+=dCard(S.inv.length?'Прибыль компании':'Расходы',S.inv.length?dMoney(fact.company):dMoney(fact.exp),S.inv.length?'после доли инвесторов '+dMoney(fact.invShare):'зарплата '+dMoney(fact.salary)+' · прочие '+dMoney(fact.opex),S.inv.length?(fact.company<0?'cr':'cg'):'cr');
+  h+=dCard(S.inv.length?'Прибыль компании':'Расходы',S.inv.length?dMoney(fact.company):dMoney(fact.exp),S.inv.length?'после доли инвесторов '+dMoney(fact.invShare):'зарплата '+dMoney(fact.salary)+' · прочие '+dMoney(fact.opex+fact.otherExp),S.inv.length?(fact.company<0?'cr':'cg'):'cr');
   h+='</div>';
   if(hasFut){
     h+='<div class="dsh-h"><div class="dsh-ht">Прогноз на весь '+Y+'</div></div><div class="dsh-g4">';
@@ -1312,6 +1310,7 @@ function renderFinance(){
     {l:'Валовая прибыль',k:'grossNet',b:1},
     {l:'Зарплата',k:'salary',neg:1},
     {l:'Операционные расходы',k:'opex',neg:1},
+    {l:'Прочие расходы (учредителей)',k:'otherExp',neg:1},
     {l:'Чистая прибыль',k:'net',b:2},
     {l:'Рентабельность (от поступлений)',k:'netPct',pct:1},
     ...(S.inv.length?[{l:'Доля инвесторов',k:'invShare',neg:1},{l:'Прибыль компании',k:'company',b:2}]:[]),
@@ -2288,24 +2287,13 @@ const PCOLS={
   note:{n:'Заметка',v:g=>esc(g.note||''),s:g=>g.note||''},
 };
 const PCOLS_DEF=['phone','addr','deals','active','done','debt','over','state'];
-function pplCols(){try{const v=JSON.parse(localStorage.getItem('amana_pcols')||'null');if(Array.isArray(v))return v.filter(k=>PCOLS[k]);}catch(e){}return PCOLS_DEF.slice();}
-function pplColsSet(v){try{localStorage.setItem('amana_pcols',JSON.stringify(v));}catch(e){}}
+function pplCols(){return (S.ui&&S.ui.pcols?S.ui.pcols:[]).filter(x=>x.on&&PCOLS[x.k]).map(x=>x.k);}
 let _pplSort={k:'name',dir:1};
 function pplSortBy(k){_pplSort=_pplSort.k===k?{k,dir:-_pplSort.dir}:{k,dir:(k==='name'||k==='phone'||k==='addr'||k==='note')?1:-1};renderPeople();}
 function pplBadge(g){
   if(!g.deals.length)return g.guar.length?'<span class="badge brp">поручитель</span>':'<span class="badge bd">без сделок</span>';
   return g.over>0.004?'<span class="badge bo">просрочка</span>':(g.debt>0.004?'<span class="badge ba">платит</span>':'<span class="badge bd">без долга</span>');
 }
-function togglePplCols(ev){
-  if(ev)ev.stopPropagation();
-  const box=document.getElementById('pplColsBox');
-  if(box.classList.contains('on')){box.classList.remove('on');return;}
-  const cur=pplCols();
-  box.innerHTML='<div class="ct" style="margin-bottom:8px">Колонки</div>'+Object.keys(PCOLS).map(k=>'<label class="pcol"><input type="checkbox" '+(cur.includes(k)?'checked':'')+' onchange="pplColToggle(\''+k+'\',this.checked)"/> '+PCOLS[k].n+'</label>').join('')+'<button class="btn bgh bsm" style="margin-top:8px;width:100%;justify-content:center" onclick="pplColsSet(PCOLS_DEF.slice());togglePplCols();togglePplCols();renderPeople()">По умолчанию</button>';
-  box.classList.add('on');
-}
-function pplColToggle(k,on){let cur=pplCols().filter(x=>x!==k);if(on){const order=Object.keys(PCOLS);cur.push(k);cur.sort((a,b)=>order.indexOf(a)-order.indexOf(b));}pplColsSet(cur);renderPeople();}
-document.addEventListener('click',e=>{const b=document.getElementById('pplColsBox');if(b&&b.classList.contains('on')&&!b.contains(e.target))b.classList.remove('on');});
 
 function renderPeople(){
   const el=document.getElementById('pplList');if(!el)return;
@@ -2601,7 +2589,8 @@ const kTypeMeta={
   purchase:{name:'Закупка товара',dir:'out',group:'purchase',color:'by2',auto:false},
   opex:{name:'Опер. расход',dir:'out',group:'opex',color:'bo',auto:false},
   salary:{name:'Зарплата',dir:'out',group:'salary',color:'bo',auto:false},
-  withdraw:{name:'Вывод себе',dir:'out',group:'withdraw',color:'by2',auto:false},
+  withdraw:{name:'Вывод себе',dir:'out',group:'withdraw',color:'by2',auto:false}, // старые записи; новые выводы — через «Инвесторы»
+  other_exp:{name:'Прочий расход',dir:'out',group:'opex',color:'bo',auto:false},
   transfer:{name:'Перевод',dir:'neutral',group:'transfer',color:'brp',auto:false},
   refund_out:{name:'Возврат клиенту',dir:'out',group:'refund',color:'bo',auto:true},
   supplier_refund:{name:'Возврат от поставщика',dir:'in',group:'refund',color:'ba',auto:true},
@@ -2704,6 +2693,8 @@ function kassaTypeChanged(){
   const desc=document.getElementById('koDesc');
   // Поле договора клиента — только для закупки
   rClient.style.display=(t==='purchase')?'block':'none';
+  const hint=document.getElementById('koHint');
+  if(hint){hint.style.display=t==='other_exp'?'block':'none';hint.innerHTML='Этот расход ложится <b>только на учредителей</b> — пропорционально их долям капитала. Прибыль инвесторов он не уменьшает.';}
   // Второй кошелёк — только для перевода
   r2.style.display=(t==='transfer')?'block':'none';
   lbl.textContent=(t==='transfer')?'Откуда':'Кошелёк';
@@ -2925,6 +2916,8 @@ kTypeMeta.inv_out={name:'Возврат капитала',dir:'out',group:'inves
 kTypeMeta.inv_pay={name:'Выплата прибыли',dir:'out',group:'invest',color:'by2',auto:true};
 
 const INV_EXP_TYPES=['salary','opex','expense'];
+// «Прочий расход» — только за счёт учредителей, пропорционально их капиталу
+const INV_FEXP_TYPES=['other_exp'];
 const INV_MN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const INV_OP={
   deposit:{name:'Пополнение',sign:1,cap:1,pay:0,cls:'cg',badge:'ba'},
@@ -3189,7 +3182,7 @@ function invModel(){
     });
     if(!c.returned&&!c.archived){inDeals+=Math.max(0,bodyRem);profLeft+=Math.max(0,profRem);}
   });
-  S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:'expense',etype:o.type,ref:o.desc||kMeta(o.type).name});});
+  S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type)&&!INV_FEXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:INV_FEXP_TYPES.includes(o.type)?'fexpense':'expense',etype:o.type,ref:o.desc||kMeta(o.type).name});});
   events.sort((a,b)=>a.d-b.d);
   // балансы участников
   const bal={};
@@ -3224,7 +3217,8 @@ function invComputeMonth(M,mk){
   evs.forEach(e=>{
     apply(e.d);
     const amt=e.amount;if(e.kind==='profit')gross+=amt;else exp-=amt;
-    const act=Object.keys(tcap).filter(id=>tcap[id]>0.004&&rows[M.tranches[id].invId]);
+    let act=Object.keys(tcap).filter(id=>tcap[id]>0.004&&rows[M.tranches[id].invId]);
+    if(e.kind==='fexpense')act=act.filter(id=>rows[M.tranches[id].invId].role==='founder');
     const tot=act.reduce((s,id)=>s+tcap[id],0);
     if(tot<=0){unalloc+=amt;return;}
     const fT=act.filter(id=>rows[M.tranches[id].invId].role==='founder');
@@ -3835,7 +3829,8 @@ const TOT_DEF=['price','cost','prepay','bal','over'];
 const VW_META={
   cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Галочка — показывать, стрелки — порядок.'},
   card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». ФИО, телефоны и № договора видны всегда.'},
-  totals:{reg:TOT_F,def:TOT_DEF,hint:'Суммы в строке итогов внизу «Клиентов». Считаются по тому, что сейчас отфильтровано.'}
+  totals:{reg:TOT_F,def:TOT_DEF,hint:'Суммы в строке итогов внизу «Клиентов». Считаются по тому, что сейчас отфильтровано.'},
+  pcols:{reg:PCOLS,def:PCOLS_DEF,hint:'Колонки таблицы клиентов (на телефоне — строки карточки клиента). ФИО видно всегда. Галочка — показывать, стрелки — порядок.'}
 };
 function uiNorm(saved,kind){
   const {reg,def}=VW_META[kind],all=Object.keys(reg);
@@ -3845,12 +3840,13 @@ function uiNorm(saved,kind){
   if(!out.some(o=>o.on))out.forEach(o=>{if(def.includes(o.k))o.on=true;});
   return out;
 }
-function uiFrom(u){return{cols:uiNorm(u&&u.cols,'cols'),card:uiNorm(u&&u.card,'card'),totals:uiNorm(u&&u.totals,'totals')};}
+function uiFrom(u){return{cols:uiNorm(u&&u.cols,'cols'),card:uiNorm(u&&u.card,'card'),totals:uiNorm(u&&u.totals,'totals'),pcols:uiNorm(u&&u.pcols,'pcols')};}
 (function(){let u=null;try{u=JSON.parse(localStorage.getItem('amana_ui_v1')||'null');}catch(e){}S.ui=uiFrom(u);})();
 function uiApplyRemote(d){
   S.ui=uiFrom(d);try{localStorage.setItem('amana_ui_v1',JSON.stringify(S.ui));}catch(e){}
   const pc=document.getElementById('page-clients');if(pc&&pc.style.display!=='none'&&typeof renderClients==='function')renderClients();
   const pr=document.getElementById('page-reminders');if(pr&&pr.style.display!=='none'&&typeof renderReminders==='function')renderReminders();
+  const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();
 }
 function clTableHtml(visible){
   const cols=S.ui.cols.filter(x=>x.on&&CL_COLS[x.k]).map(x=>CL_COLS[x.k]);
@@ -3865,9 +3861,9 @@ function clTotalsHtml(list){
 }
 // ---------- Модалка ----------
 let _vw={kind:'cols',tmp:null};
-const VW_LABEL={cols:'Колонки таблицы',card:'Карточка клиента',totals:'Итоги внизу'};
-function vwKinds(){return window.innerWidth<=768?['card']:['cols'];}
-function openView(kind){const ks=vwKinds();_vw={kind:ks.includes(kind)?kind:ks[0],tmp:JSON.parse(JSON.stringify(S.ui))};vwRender();openM('mView');}
+const VW_LABEL={cols:'Колонки таблицы',card:'Карточка клиента',totals:'Итоги внизу',pcols:'Колонки клиентов'};
+function vwKinds(){if(_vw&&_vw.only)return[_vw.only];return window.innerWidth<=768?['card']:['cols'];}
+function openView(kind){_vw={only:kind==='pcols'?'pcols':null,kind:'cols',tmp:JSON.parse(JSON.stringify(S.ui))};const ks=vwKinds();_vw.kind=ks.includes(kind)?kind:ks[0];vwRender();openM('mView');}
 function vwTab(kind){if(!vwKinds().includes(kind))return;_vw.kind=kind;vwRender();}
 function vwRender(){
   const k=_vw.kind,meta=VW_META[k],list=_vw.tmp[k];
@@ -3885,7 +3881,8 @@ async function vwSave(){
   closeM('mView');
   if(typeof renderClients==='function'&&document.getElementById('cList'))renderClients();
   const pr=document.getElementById('page-reminders');if(pr&&pr.style.display!=='none')renderReminders();
-  try{await window.DB.setDoc(window.DB.doc(window.DB.db,'settings','ui'),{cols:S.ui.cols,card:S.ui.card,totals:S.ui.totals,updatedAt:new Date()});toast('Вид сохранён','tok');}
+  const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();
+  try{await window.DB.setDoc(window.DB.doc(window.DB.db,'settings','ui'),{cols:S.ui.cols,card:S.ui.card,totals:S.ui.totals,pcols:S.ui.pcols,updatedAt:new Date()});toast('Вид сохранён','tok');}
   catch(e){toast('Сохранено только на этом устройстве: '+e.message,'ter');}
 }
 
