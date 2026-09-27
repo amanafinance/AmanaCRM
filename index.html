@@ -1194,7 +1194,8 @@ function finFact(mk,ctx){
   ctx.rows.forEach(x=>{
     const d=dealDate(x.c);if(inM(d)){o.deals++;o.sales+=parseFloat(x.c.price)||0;o.cost+=parseFloat(x.c.cost)||0;}
     if(x.c.returned)return;
-    x.s.schedule.forEach(it=>{const dd=parseD(it.date);if(!inM(dd)||!(it.size>0))return;o.plan+=it.size;o.planGross+=it.size*x.rp;if(dd<lim){o.planDue+=it.size;o.planPaid+=Math.min(it.size,it.paid);}});
+    // отсроченный платёж считается по новой дате, а не по дате из договора
+    x.s.schedule.forEach(it=>{const df=deferOf(x.c,it.month),dd=df?safeDateFromInput(df.date):parseD(it.date);if(!inM(dd)||!(it.size>0))return;o.plan+=it.size;o.planGross+=it.size*x.rp;if(dd<lim){o.planDue+=it.size;o.planPaid+=Math.min(it.size,it.paid);}});
   });
   ctx.M.events.forEach(e=>{if(!inM(e.d))return;
     if(e.kind==='profit'){if(e.src==='discount')o.disc-=e.amount;else if(e.src==='refund')o.refProfit-=e.amount;else o.gross+=e.amount;}
@@ -3764,7 +3765,7 @@ function clOverHtml(c){
   const cm=hc?' <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')">'+_cmtIcon+'</span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+esc(c.comment)+'</div>':'';
   return(c._over>0?'<span class="amt cr">'+fmt(c._over)+' ₽</span>':_dash)+cm;
 }
-function clNextHtml(c){const p=clNextPay(c);if(!p)return _dash;const late=p.st==='overdue'||p.st==='partial';return'<div style="font-weight:700;font-size:12px" class="'+(late?'cr':'')+'">'+fmt(p.size-p.paid)+' ₽</div><div style="font-size:10px;color:var(--t2)">'+p.date+'</div>';}
+function clNextHtml(c){const p=clNextPay(c);if(!p)return _dash;const df=deferOf(c,p.month),late=!df&&(p.st==='overdue'||p.st==='partial');return'<div style="font-weight:700;font-size:12px" class="'+(late?'cr':'')+'">'+fmt(p.size-p.paid)+' ₽</div><div style="font-size:10px;color:var(--t2)">'+(df?fmtD(safeDateFromInput(df.date))+' <span style="color:var(--yellow)">отсрочка</span>':p.date)+'</div>';}
 function clMargin(c){const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0;return co?pr-co:null;}
 // Колонки таблицы (ПК)
 const CL_COLS={
