@@ -1663,9 +1663,9 @@ function trashPut(bt,coll,id,data){if(!data)return;const{db,doc,collection}=wind
 // ---------- WHATSAPP ----------
 // Шаблоны по умолчанию: платёж скоро, платёж сегодня, просрочка
 const WA_DEF={
-  soon:'Здравствуйте, {имя}! Напоминаем о платеже по договору №{договор}: {сумма} ₽ до {дата}. Спасибо!',
-  today:'Здравствуйте, {имя}! Сегодня, {дата}, срок платежа по договору №{договор}: {сумма} ₽. Спасибо!',
-  overdue:'Здравствуйте, {имя}! По договору №{договор} просрочена оплата {просрочено} ₽ (платёж со сроком {дата}, просрочка {дней} дн.). Пожалуйста, внесите оплату или свяжитесь с нами. Остаток долга по договору: {остаток} ₽.'
+  soon:'Здравствуйте, {имя}. Напоминаем о приближении даты платежа по рассрочке — {сумма} ₽ за {товар} до {дата}. Просим внести оплату вовремя. Amana Finance',
+  today:'Здравствуйте, {имя}. Сегодня день оплаты по рассрочке — {сумма} ₽ за {товар}, просим внести оплату до конца дня. Amana Finance',
+  overdue:'Здравствуйте, {имя}. У вас просрочка — {просрочено} ₽ за {товар}. Просим погасить задолженность как можно скорее. Amana Finance'
 };
 const WA_KEYS=['soon','today','overdue'],WA_IDS={soon:'waSoon',today:'waToday',overdue:'waOverdue'};
 S.wa={...WA_DEF};
@@ -1685,7 +1685,7 @@ function waItem(c,month){
 }
 function waText(c,x){
   const tpl=x.days>0?S.wa.overdue:(x.days===0?S.wa.today:S.wa.soon);
-  const v={'имя':waFirstName(c.name),'фио':c.name||'','договор':c.contractId||'','сумма':fmt(x.left),'дата':x.due?fmtD(x.due):x.it.date,'дней':String(Math.max(0,x.days)),'остаток':fmt(x.s.balance),'просрочено':fmt(x.s.overdue>0.004?x.s.overdue:x.left),'товар':c.product||''};
+  const v={'имя':waFirstName(c.name),'фио':c.name||'','договор':c.contractId||'','сумма':fmt(x.left),'дата':x.due?fmtD(x.due):x.it.date,'дней':String(Math.max(0,x.days)),'остаток':fmt(x.s.balance),'просрочено':fmt(x.s.overdue>0.004?x.s.overdue:x.left),'товар':c.product||'товар'};
   return String(tpl||'').replace(/\{([а-яё]+)\}/gi,(m,k)=>v[k.toLowerCase()]!==undefined?v[k.toLowerCase()]:m);
 }
 function openWA(cid,month){
