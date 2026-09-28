@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script type="module">
 import{initializeApp}from"./vendor/firebase-11.0.0/firebase-app.js";
-import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,CACHE_SIZE_UNLIMITED,connectFirestoreEmulator,collection,doc,addDoc,updateDoc,getDocs,getDocsFromCache,getDocsFromServer,getDoc,getDocFromServer,terminate,clearIndexedDbPersistence,query,orderBy,limit,startAfter,where,onSnapshot,setDoc,writeBatch,runTransaction,increment,serverTimestamp,Timestamp}from"./vendor/firebase-11.0.0/firebase-firestore.js";
+import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,CACHE_SIZE_UNLIMITED,connectFirestoreEmulator,collection,doc,addDoc,updateDoc,getDocs,getDocsFromCache,getDocsFromServer,getDoc,getDocFromServer,terminate,clearIndexedDbPersistence,query,orderBy,limit,startAfter,where,onSnapshot,setDoc,writeBatch,runTransaction,increment,arrayUnion,arrayRemove,deleteField,serverTimestamp,Timestamp}from"./vendor/firebase-11.0.0/firebase-firestore.js";
 import{getAuth,connectAuthEmulator,signInWithEmailAndPassword,onAuthStateChanged,signOut}from"./vendor/firebase-11.0.0/firebase-auth.js";
 const app=initializeApp({apiKey:"AIzaSyCZZCJiPUfZ2OqAa2CaQXKeHGh5MGR9uuo",authDomain:"amana-crm-16033.firebaseapp.com",projectId:"amana-crm-16033",storageBucket:"amana-crm-16033.firebasestorage.app",messagingSenderId:"21151729250",appId:"1:21151729250:web:06fe4021102a8ac8c9333b"});
 // База хранится и на устройстве (кэш без ограничения размера), поэтому при открытии
@@ -26,15 +26,27 @@ if(window.__AMANA_EMU){connectFirestoreEmulator(db,'127.0.0.1',window.__AMANA_EM
 const U='_u',TOMB='deleted';
 const stamp=d=>Object.assign({},d,{[U]:serverTimestamp()});
 const tomb=(bt,ref)=>bt.set(doc(collection(db,TOMB)),{c:ref.parent.id,id:ref.id,[U]:serverTimestamp()});
-const setDocU=(ref,d,o)=>o?setDoc(ref,stamp(d),o):setDoc(ref,stamp(d));
-const updateDocU=(ref,d)=>updateDoc(ref,stamp(d));
-const addDocU=(c,d)=>addDoc(c,stamp(d));
-const deleteDocU=ref=>{const b=writeBatch(db);b.delete(ref);tomb(b,ref);return b.commit();};
+// ---- Запись без интернета ----
+// Firebase сохраняет запись на устройстве сразу и отправит её, когда появится сеть. Если сети нет,
+// не ждём ответа сервера (иначе кнопки «висят»): считаем записанным и показываем значок «ждут отправки».
+let pendingN=0;
+const netBadge=()=>{let el=document.getElementById('netBadge');if(!el){el=document.createElement('div');el.id='netBadge';document.body.appendChild(el);}
+  el.textContent=navigator.onLine?(pendingN?'Отправляю изменения на сервер…':''):('Нет интернета'+(pendingN?' · изменений ждут отправки: '+pendingN:' · изменения сохранятся на устройстве'));
+  el.classList.toggle('on',!navigator.onLine||pendingN>0);};
+window.addEventListener('online',netBadge);window.addEventListener('offline',netBadge);netBadge();
+const soft=pr=>new Promise((ok,no)=>{let done=false,queued=false;
+  pr.then(v=>{if(queued){pendingN=Math.max(0,pendingN-1);netBadge();}if(!done){done=true;ok(v);}},
+    e=>{if(queued){pendingN=Math.max(0,pendingN-1);netBadge();console.error(e);if(window.toast)toast('Изменение не принято сервером: '+(e&&e.message||''),'ter');}if(!done){done=true;no(e);}});
+  const wait=()=>{if(done)return;if(!navigator.onLine){done=queued=true;pendingN++;netBadge();ok();}else setTimeout(wait,1000);};setTimeout(wait,600);});
+const setDocU=(ref,d,o)=>soft(o?setDoc(ref,stamp(d),o):setDoc(ref,stamp(d)));
+const updateDocU=(ref,d)=>soft(updateDoc(ref,stamp(d)));
+const addDocU=(c,d)=>{const r=doc(c);return soft(setDoc(r,stamp(d))).then(()=>r);};
+const deleteDocU=ref=>{const b=writeBatch(db);b.delete(ref);tomb(b,ref);return soft(b.commit());};
 const writeBatchU=()=>{const b=writeBatch(db),w={
   set:(r,d,o)=>{o?b.set(r,stamp(d),o):b.set(r,stamp(d));return w;},
   update:(r,d)=>{b.update(r,stamp(d));return w;},
   delete:r=>{b.delete(r);tomb(b,r);return w;},
-  commit:()=>b.commit()};return w;};
+  commit:()=>soft(b.commit())};return w;};
 // Следующие номера (договоров — settings/counter, клиентов — settings/pcounter).
 // Транзакция: два человека не получат один номер. n — сколько номеров занять сразу; возвращается первый.
 const nextCounter=(id,n)=>{id=id||'counter';n=n||1;const ref=doc(db,'settings',id);return runTransaction(db,async tx=>{const s=await tx.get(ref),first=(s.exists()?(s.data().lastId||0):0)+1;tx.set(ref,{lastId:first+n-1,[U]:serverTimestamp()},{merge:true});return first;});};
@@ -74,6 +86,13 @@ async function live(name,opts,cb,onErr){
     emit();
     liveEmit[name]=emit; // перерисовка по надгробиям — только когда данные уже загружены
   }catch(e){console.error(name,e);if(onErr)onErr(e);}
+  // Свои изменения, ещё не отправленные на сервер (нет интернета или он медленный), показываем сразу:
+  // они уже лежат в памяти устройства, а запрос «только изменения с сервера» их не видит, пока нет метки времени сервера.
+  onSnapshot(collection(db,name),{source:'cache'},s=>{
+    let changed=false;
+    s.docChanges().forEach(ch=>{if(ch.type!=='removed'&&ch.doc.metadata.hasPendingWrites){map.set(ch.doc.id,ch.doc.data());changed=true;}});
+    if(changed&&liveEmit[name])emit();
+  },e=>console.warn(name,e));
   const since=Timestamp.fromMillis(Math.max(0,last-OVERLAP));
   return onSnapshot(query(collection(db,name),where(U,'>',since)),s=>{
     let changed=false;
@@ -117,7 +136,7 @@ async function checkEpoch(){
 // Полностью перечитать базу с сервера (кнопка в настройках)
 async function resyncAll(){try{localStorage.removeItem(SYNC_KEY);}catch(e){}try{await terminate(db);await clearIndexedDbPersistence(db);}catch(e){}location.reload();}
 
-window.DB={db,collection,doc,addDoc:addDocU,updateDoc:updateDocU,deleteDoc:deleteDocU,getDocs,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc:setDocU,writeBatch:writeBatchU,increment,nextCounter,createOnce,live,liveTombs,resyncAll,checkEpoch};
+window.DB={db,collection,doc,addDoc:addDocU,updateDoc:updateDocU,deleteDoc:deleteDocU,getDocs,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc:setDocU,writeBatch:writeBatchU,increment,arrayUnion,arrayRemove,deleteField,nextCounter,createOnce,live,liveTombs,resyncAll,checkEpoch};
 window.AUTH=auth;window.SIGN_IN=signInWithEmailAndPassword;window.SIGN_OUT=signOut;window.ON_AUTH=onAuthStateChanged;
 window.dispatchEvent(new Event('dbReady'));
 </script>
@@ -347,6 +366,8 @@ body.light .bwa{color:#128c4a}
 .rc-row:last-child{border-bottom:none}
 .toast{position:fixed;bottom:18px;right:18px;padding:11px 16px;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);font-size:12px;font-weight:600;box-shadow:var(--sh);z-index:9999;transform:translateY(60px);opacity:0;transition:.3s}.toast.on{transform:translateY(0);opacity:1}
 .toast{pointer-events:none;visibility:hidden}
+#netBadge{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top,0px));z-index:9998;display:none;padding:7px 14px;border-radius:999px;background:var(--yellow);color:#1a1a1a;font-size:12px;font-weight:700;box-shadow:var(--sh);max-width:calc(100% - 24px);text-align:center}
+#netBadge.on{display:block}
 .toast.on{pointer-events:auto;visibility:visible}.tok{border-color:var(--green)!important;color:var(--green)}.ter{border-color:var(--red)!important;color:var(--red)}
 .bback{display:inline-flex;align-items:center;gap:5px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;border:none;background:none;transition:.2s}.bback:hover{color:var(--green)}
 .slist{display:flex;flex-direction:column;gap:7px}.sit{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--bg3);border-radius:var(--r2)}
@@ -832,7 +853,7 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 <div class="mft"><button class="btn br bsm" id="dfDel" style="margin-right:auto;display:none" onclick="removeDefer()">Снять отсрочку</button><button class="btn bgh" onclick="closeM('mDefer')">Отмена</button><button class="btn bg" onclick="saveDefer()">Сохранить</button></div>
 </div></div>
 <div class="mover" id="mKassa"><div class="modal msm">
-<div class="mtitle">Операция в кассе</div>
+<div class="mtitle" id="koTitle">Операция в кассе</div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Тип операции *</label><select class="inp sel" id="koType" onchange="kassaTypeChanged()">
 <option value="purchase">Закупка товара</option>
 <option value="opex">Операционный расход</option>
@@ -842,6 +863,7 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 </select><div id="koHint" class="ko-hint" style="display:none"></div></div>
 <div class="fgp" style="margin-bottom:10px;display:none;position:relative" id="koClientRow"><label class="lbl">Договор клиента *</label><input class="inp" type="text" id="koClientSearch" placeholder="Поиск по №, ФИО или товару..." autocomplete="off" oninput="koClientSearchInput()" onfocus="koClientSearchInput()"/><input type="hidden" id="koClientId"/><div id="koClientDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);max-height:220px;overflow-y:auto;z-index:10;margin-top:2px;box-shadow:var(--sh)"></div><div style="font-size:10px;color:var(--t3);margin-top:3px" id="koClientHint"></div></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="koAmt" autocomplete="off"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl" for="koDate">Дата операции</label><input class="inp" type="date" id="koDate"/></div>
 <div class="fgp" style="margin-bottom:10px" id="koWalletRow"><label class="lbl" id="koWalletLbl">Кошелёк</label><select class="inp sel" id="koWallet"></select></div>
 <div class="fgp" style="margin-bottom:10px;display:none" id="koWalletToRow"><label class="lbl">Куда</label><select class="inp sel" id="koWalletTo"></select></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl" id="koDescLbl">Описание</label><input class="inp" type="text" id="koDesc" placeholder="Назначение, комментарий..." autocomplete="off"/></div>
@@ -1041,7 +1063,7 @@ function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=
 
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='29.09.2026 · 3';
+const CRM_VERSION='29.09.2026 · 4';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1763,7 +1785,7 @@ async function saveComment(){const{db,doc,updateDoc}=window.DB;const t=document.
 async function deleteComment(){const{db,doc,updateDoc}=window.DB;await updateDoc(doc(db,'clients',_cid),{comment:'',commentDate:''});closeM('mComment');toast('Удалено','tok');}
 
 // ---------- NEW / EDIT CLIENT ----------
-function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=new Date().toISOString().split('T')[0];['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;_schedOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();openM('mClient');}
+function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;_schedOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();openM('mClient');}
 function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value=c.partner==='Сторонний'?(c.partnerPhone||''):'';_ppManual=i.value;}setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;partPhoneSync();if(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))document.getElementById('f_prepayPt').value=c.prepayWallet;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
 function addPh(id){const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" placeholder="89001234567"/><button class="ib ir" onclick="this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
@@ -1990,7 +2012,7 @@ function recalcDates(){
 }
 function updSels(){const p=document.getElementById('f_partner');if(p)p.innerHTML=S.partners.map(x=>'<option>'+esc(x)+'</option>').join('');updPt('f_prepayPt');updPt('mpPt');}
 function updPt(id){const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML=S.wallets.map(w=>'<option value="'+w.id+'">'+esc(w.name)+'</option>').join('');const keep=S.wallets.find(w=>w.id===cur);if(keep)e.value=cur;else{const d=S.wallets.find(w=>w.isDefault)||S.wallets[0];if(d)e.value=d.id;}}
-async function getNextContractId(){try{return String(await window.DB.nextCounter()).padStart(5,'0');}catch(e){console.error(e);throw new Error('Не удалось получить номер договора. Проверьте интернет и попробуйте снова');}}
+async function getNextContractId(){try{return String(await window.DB.nextCounter()).padStart(5,'0');}catch(e){console.warn(e);throw new Error(navigator.onLine?'Не удалось получить номер договора. Попробуйте снова':'Новый договор можно создать только при интернете: ему нужен номер');}}
 async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseNum(document.getElementById('f_price').value),cost=parseNum(document.getElementById('f_cost').value);if(!name||!price){toast('Заполните ФИО и цену','ter');return;}
 const _pp=await dealPeopleData();if(_pp.err){toast(_pp.err,'ter');return;}
 if(!document.getElementById('f_product').value.trim()){toast('Укажите товар','ter');return;}
@@ -2153,16 +2175,23 @@ function delClient(id){
   });
 }
 // ---------- SETTINGS ----------
-async function loadSettings(){
-  const{db,collection,getDocs,doc,setDoc}=window.DB;
-  try{
-    const s=await getDocs(collection(db,'settings'));
-    let hasPart=false;
-    s.docs.forEach(d=>{if(d.id==='partners'){S.partners=d.data().list||[];S.partnerPhones=d.data().phones||{};hasPart=true;}if(d.id==='ui'&&typeof uiApplyRemote==='function')uiApplyRemote(d.data());if(d.id==='wa'){const w=d.data();S.wa={soon:w.soon||WA_DEF.soon,today:w.today||WA_DEF.today,overdue:w.overdue||WA_DEF.overdue};}});renderWaTpl();
-    // гарантируем "Сторонний"
+// Настройки (поставщики, шаблоны WhatsApp, вид таблиц) живые: изменение на одном устройстве сразу видно на других
+let _setJ={};
+function loadSettings(){
+  const{db,doc,setDoc,live}=window.DB;let first=true;
+  live('settings',{},s=>{
+    let hasPart=false;const was=_setJ;_setJ={};
+    s.docs.forEach(d=>{const x=d.data(),j=JSON.stringify(x,(k,v)=>k==='_u'?undefined:v);_setJ[d.id]=j;if(was[d.id]===j)return;
+      if(d.id==='partners'){S.partners=(x.list||[]).slice();S.partnerPhones={...(x.phones||{})};}
+      if(d.id==='ui'&&typeof uiApplyRemote==='function')uiApplyRemote(x);
+      if(d.id==='wa')S.wa={soon:x.soon||WA_DEF.soon,today:x.today||WA_DEF.today,overdue:x.overdue||WA_DEF.overdue};});
+    hasPart=!!_setJ.partners;
+    // гарантируем «Сторонний»
     if(!S.partners.includes('Сторонний'))S.partners.unshift('Сторонний');
-    if(!hasPart)await setDoc(doc(db,'settings','partners'),{list:S.partners,phones:S.partnerPhones});
-  }catch(e){}
+    renderWaTpl();
+    const ae=document.activeElement;if(pageOn('settings')&&!(ae&&ae.closest&&ae.closest('#partList'))&&(was.partners!==_setJ.partners))renderSettings();
+    if(first){first=false;if(!hasPart)setDoc(doc(db,'settings','partners'),{list:S.partners,phones:S.partnerPhones}).catch(()=>{});}
+  });
 }
 let _ensuringCash=false;
 async function ensureCashWallet(){
@@ -2187,24 +2216,27 @@ function renderSettings(){
   }).join('');
 }
 // Поставщики и их телефоны: settings/partners {list:[названия], phones:{название:телефон}}
-const savePartners=()=>window.DB.setDoc(window.DB.doc(window.DB.db,'settings','partners'),{list:S.partners,phones:S.partnerPhones});
+// Меняем по одному поставщику (добавить / удалить / телефон), а не весь список — так правки с двух устройств не затирают друг друга
+const partRef=()=>window.DB.doc(window.DB.db,'settings','partners');
 async function addPart(){
   const inp=document.getElementById('newPart'),ph=document.getElementById('newPartPh');
   const v=inp.value.trim(),tel=ph.value.trim();
   if(!v){toast('Введите название','ter');return;}
   if(S.partners.some(p=>p.toLowerCase()===v.toLowerCase())){toast('Уже есть','ter');return;}
-  S.partners.push(v);if(tel)S.partnerPhones[v]=tel;
   try{
-    await savePartners();
+    const{setDoc,arrayUnion}=window.DB;
+    await setDoc(partRef(),{list:arrayUnion(v),...(tel?{phones:{[v]:tel}}:{})},{merge:true});
+    S.partners.push(v);if(tel)S.partnerPhones[v]=tel;
     inp.value='';ph.value='';renderSettings();toast('Добавлен','tok');
-  }catch(e){
-    S.partners.pop();delete S.partnerPhones[v];
-    toast('Ошибка: '+e.message,'ter');
-  }
+  }catch(e){toast('Ошибка: '+e.message,'ter');}
 }
-async function setPartPhone(i,v){const p=S.partners[i];if(!p||p==='Сторонний')return;v=v.trim();if(v)S.partnerPhones[p]=v;else delete S.partnerPhones[p];
-  try{await savePartners();toast('Телефон сохранён','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}}
-async function removePart(i){if(S.partners[i]==='Сторонний'){toast('Нельзя удалить стандартный','ter');return;}delete S.partnerPhones[S.partners[i]];S.partners.splice(i,1);await savePartners();renderSettings();}
+async function setPartPhone(i,v){const p=S.partners[i];if(!p||p==='Сторонний')return;v=v.trim();
+  try{const{setDoc,deleteField}=window.DB;await setDoc(partRef(),{phones:{[p]:v||deleteField()}},{merge:true});if(v)S.partnerPhones[p]=v;else delete S.partnerPhones[p];toast('Телефон сохранён','tok');}
+  catch(e){toast('Ошибка: '+e.message,'ter');}}
+async function removePart(i){const p=S.partners[i];if(p==='Сторонний'){toast('Нельзя удалить стандартный','ter');return;}
+  try{const{setDoc,arrayRemove,deleteField}=window.DB;await setDoc(partRef(),{list:arrayRemove(p),phones:{[p]:deleteField()}},{merge:true});
+    S.partners=S.partners.filter(x=>x!==p);delete S.partnerPhones[p];renderSettings();}
+  catch(e){toast('Ошибка: '+e.message,'ter');}}
 // Телефон поставщика в форме договора: у «Стороннего» вводится вручную, у остальных берётся из настроек
 let _ppManual='';
 function partPhoneSync(){
@@ -2467,7 +2499,7 @@ async function savePerson(){
     if(old&&S.curPerson===old.key)S.curPerson='p:'+pid;
     const cb=_pf.cb;_pf={key:null,cb:null,dupOk:false};
     if(cb)cb({key:'p:'+pid,id:pid,no,name,phones,addr});
-  }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
+  }catch(e){toast(!navigator.onLine&&!_pf.key?'Нового клиента можно создать только при интернете: ему нужен номер':'Ошибка: '+e.message,'ter');console.error(e);}
   finally{_saving=false;}
 }
 
@@ -2746,11 +2778,12 @@ function renderKassa(){
     const walletCell=o.walletToName?esc(o.walletName||'')+' → '+esc(o.walletToName):esc(o.walletName||'');
     const bal=balanceAfter[o.id];
     const balCell=bal?'<span class="amt" style="font-size:11px">'+fmt(bal.wallet)+' ₽</span><div style="font-size:9px;color:var(--t3)">общий: '+fmt(bal.total)+' ₽</div>':'';
-    const delBtn=(!m.auto&&!o.auto)?'<td><button class="ib ir" style="width:22px;height:22px" onclick="delKassaOp(\''+o.id+'\')" title="Удалить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>':'<td></td>';
+    const editIco='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+    const delBtn=(!m.auto&&!o.auto)?'<td style="white-space:nowrap"><button class="ib ig" style="width:22px;height:22px;margin-right:4px" onclick="openKassaEdit(\''+o.id+'\')" title="Изменить">'+editIco+'</button><button class="ib ir" style="width:22px;height:22px" onclick="delKassaOp(\''+o.id+'\')" title="Удалить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>':'<td></td>';
     rows+='<tr><td style="color:var(--t2)">'+esc(d)+'</td><td><span class="badge '+m.color+'">'+m.name+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:11px;color:var(--t2)">'+walletCell+'</td><td>'+balCell+'</td><td style="font-size:11px">'+esc(o.desc||'')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</td>'+delBtn+'</tr>';
     // Мобильная карточка
     if(d!==ldM){mobileCards+='<div class="kcard-day">'+d+'</div>';ldM=d;}
-    const delBtnM=(!m.auto&&!o.auto)?'<button class="ib ir" style="width:24px;height:24px" onclick="delKassaOp(\''+o.id+'\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>':'';
+    const delBtnM=(!m.auto&&!o.auto)?'<button class="ib ig" style="width:32px;height:32px;margin-right:6px" onclick="openKassaEdit(\''+o.id+'\')" title="Изменить">'+editIco+'</button><button class="ib ir" style="width:32px;height:32px" onclick="delKassaOp(\''+o.id+'\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>':'';
     const balLine=bal?'<span class="kcard-bal">'+fmt(bal.wallet)+' ₽</span> · общий '+fmt(bal.total)+' ₽':'';
     mobileCards+='<div class="kcard"><div class="kcard-top"><span class="badge '+m.color+'">'+m.name+'</span><span class="kcard-amount '+cl+'">'+sign+fmt(o.amount)+' ₽</span></div><div class="kcard-desc">'+esc(o.desc||'—')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</div><div class="kcard-bot"><span>'+walletCell+'</span><span>'+balLine+'</span>'+delBtnM+'</div></div>';
   });
@@ -2860,8 +2893,11 @@ document.addEventListener('click',e=>{
   }
 });
 
+let _koEdit=null; // id операции, которую правим (null — новая)
 function openKassaOp(){
   if(!S.wallets.length){toast('Сначала добавьте кошельки в настройках','ter');return;}
+  _koEdit=null;document.getElementById('koType').disabled=false;document.getElementById('koTitle').textContent='Операция в кассе';
+  document.getElementById('koDate').value=dayKey(new Date());
   document.getElementById('koType').value='purchase';
   document.getElementById('koAmt').value='';
   document.getElementById('koDesc').value='';
@@ -2873,43 +2909,72 @@ function openKassaOp(){
   openM('mKassa');
 }
 
+// Правка ручной операции: тип не меняется, остальное — да
+function openKassaEdit(id){
+  const o=S.kassaOps.find(x=>x.id===id);if(!o)return;const m=kMeta(o.type);
+  if(m.auto||o.auto){toast('Автоматические операции меняются через сделку или инвестора','ter');return;}
+  openKassaOp();_koEdit=id;
+  document.getElementById('koTitle').textContent='Изменить операцию';
+  const t=document.getElementById('koType');t.value=o.type;kassaTypeChanged();t.disabled=true;
+  document.getElementById('koAmt').value=fmt(o.amount);document.getElementById('koDesc').value=o.desc||'';
+  document.getElementById('koWallet').value=o.wallet||'';if(o.walletTo)document.getElementById('koWalletTo').value=o.walletTo;
+  const d=opDate(o);if(d)document.getElementById('koDate').value=dayKey(d);
+  if(o.type==='purchase'&&o.refId){const c=S.clients.find(x=>x.id===o.refId);document.getElementById('koClientId').value=o.refId;document.getElementById('koClientSearch').value=c?'№'+(c.contractId||'')+' · '+c.name:(o.clientName||'');}
+}
+// Расход в месяце, уже закрытом у инвесторов, менять нельзя — начисления зафиксированы
+function kassaClosedMonth(type,d){
+  if(!INV_EXP_TYPES.includes(type)&&!INV_FEXP_TYPES.includes(type))return null;
+  if(!S.invMonths.length)return null;
+  const M=invModel(),mk=monthKey(d);
+  return M.closed[mk]||(M.lastClosed&&mk<=M.lastClosed)?mk:null;
+}
 async function saveKassaOp(){
   if(_saving)return;
-  const{db,collection,addDoc,doc,updateDoc}=window.DB;
   const type=document.getElementById('koType').value;
   const amt=parseNum(document.getElementById('koAmt').value);
   const wid=document.getElementById('koWallet').value;
   const wtid=document.getElementById('koWalletTo').value;
   const desc=document.getElementById('koDesc').value.trim();
   const clientId=document.getElementById('koClientId').value;
+  const dv=document.getElementById('koDate').value;
   if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
   if(!wid){toast('Выберите кошелёк','ter');return;}
   const w=S.wallets.find(x=>x.id===wid);
   if(!w){toast('Кошелёк не найден','ter');return;}
+  // дата: сегодня — текущее время, другой день — полдень этого дня
+  let d=new Date();if(dv&&dv!==dayKey(d)){d=safeDateFromInput(dv);d.setHours(12,0,0,0);}
+  if(dayKey(d)>dayKey(new Date())){toast('Дата не может быть в будущем','ter');return;}
+  const old=_koEdit?S.kassaOps.find(x=>x.id===_koEdit):null;
+  const cm=kassaClosedMonth(type,d)||(old&&kassaClosedMonth(old.type,opDate(old)));
+  if(cm){toast(mkLabel(cm)+' уже закрыт у инвесторов — расход этого месяца менять нельзя','ter');return;}
   const meta=kMeta(type);
   // Проверки
   if(type==='purchase'){
     if(!clientId||clientId==='__blocked__'){toast('Выберите договор клиента без повторной закупки','ter');return;}
-    const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===clientId);
+    const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===clientId&&o.id!==_koEdit);
     if(existing.length){toast('По этому договору уже есть закупка. Удалите её чтобы создать новую.','ter');return;}
   }
   if(type==='transfer'){
     if(!wtid){toast('Выберите кошелёк назначения','ter');return;}
     if(wid===wtid){toast('Нельзя перевести на тот же кошелёк','ter');return;}
   }
-  // Проверка баланса для расходов/переводов
-  const wb=parseFloat(w.balance)||0;
+  // Проверка баланса для расходов/переводов (при правке — с учётом старой суммы)
+  const back=old&&old.wallet===wid&&(kMeta(old.type).dir==='out'||old.type==='transfer')?(parseFloat(old.amount)||0):0;
+  const wb=(parseFloat(w.balance)||0)+back;
   if(meta.dir==='out'||type==='transfer'){
     if(wb<amt){
-      showConfirm('Недостаточно средств','<strong>На кошельке «'+esc(w.name)+'» всего '+fmt(wb)+' ₽</strong><br>Баланс уйдёт в минус на '+fmt(amt-wb)+' ₽. Продолжить?',async()=>{await doSaveKassa(type,amt,wid,wtid,desc,clientId,w);});
+      showConfirm('Недостаточно средств','<strong>На кошельке «'+esc(w.name)+'» всего '+fmt(wb)+' ₽</strong><br>Баланс уйдёт в минус на '+fmt(amt-wb)+' ₽. Продолжить?',async()=>{await doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old);});
       return;
     }
   }
-  await doSaveKassa(type,amt,wid,wtid,desc,clientId,w);
+  await doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old);
 }
 
-async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w){
-  _saving=true;
+// Влияние операции на остатки счетов: {id счёта: сумма}
+function kassaEffect(type,amt,wid,wtid){const e={},m=kMeta(type);
+  if(type==='transfer'){e[wid]=-amt;if(wtid)e[wtid]=(e[wtid]||0)+amt;}else if(m.dir==='in')e[wid]=amt;else if(m.dir==='out')e[wid]=-amt;return e;}
+async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old){
+  _saving=true;d=d||new Date();
   try{
     const{db,collection,doc,writeBatch}=window.DB;
     const meta=kMeta(type);
@@ -2917,8 +2982,8 @@ async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w){
     const wt=(type==='transfer')?S.wallets.find(x=>x.id===wtid):null;
     if(type==='transfer'&&!wt){toast('Счёт назначения не найден','ter');return;}
     const bt=writeBatch(db);
-    const opRef=doc(collection(db,'kassaOps'));
-    const op={type,amount:amt,wallet:wid,walletName:w.name||'',desc:desc||'',date:new Date(),dateStr:fmtD(new Date()),auto:false};
+    const opRef=old?doc(db,'kassaOps',old.id):doc(collection(db,'kassaOps'));
+    const op={type,amount:amt,wallet:wid,walletName:w.name||'',desc:desc||'',date:d,dateStr:fmtD(d),auto:false};
     if(wt){op.walletTo=wtid;op.walletToName=wt.name;}
     if(type==='purchase'&&clientId){
       const c=S.clients.find(x=>x.id===clientId);
@@ -2926,13 +2991,14 @@ async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w){
       if(c){op.clientName=c.name;op.contractId=c.contractId;op.expectedCost=R2(c.cost);}
     }
     bt.set(opRef,op);
-    if(meta.dir==='in')bt.update(doc(db,'wallets',wid),WINC(amt));
-    else if(meta.dir==='out')bt.update(doc(db,'wallets',wid),WINC(-amt));
-    else if(type==='transfer'){bt.update(doc(db,'wallets',wid),WINC(-amt));bt.update(doc(db,'wallets',wtid),WINC(amt));}
+    // остатки: отменяем старую операцию (при правке) и проводим новую — одной пачкой
+    const eff=kassaEffect(type,amt,wid,wt?wtid:null);
+    if(old){const oe=kassaEffect(old.type,R2(old.amount),old.wallet,old.walletTo);Object.keys(oe).forEach(k=>eff[k]=(eff[k]||0)-oe[k]);}
+    Object.keys(eff).forEach(k=>{if(Math.abs(eff[k])>0.004&&S.wallets.some(x=>x.id===k))bt.update(doc(db,'wallets',k),WINC(eff[k]));});
     await bt.commit();
-    await logA('Касса: '+meta.name,fmt(amt)+' ₽ — '+(w.name||'')+(desc?' ('+desc+')':''));
-    closeM('mKassa');
-    toast('Операция записана','tok');
+    await logA(old?'Касса: изменение':'Касса: '+meta.name,(old?meta.name+': было '+fmt(old.amount)+' ₽ от '+(old.dateStr||'')+', стало ':'')+fmt(amt)+' ₽ от '+fmtD(d)+' — '+(w.name||'')+(desc?' ('+desc+')':''));
+    closeM('mKassa');_koEdit=null;
+    toast(old?'Операция изменена':'Операция записана','tok');
   }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
   finally{_saving=false;}
 }
