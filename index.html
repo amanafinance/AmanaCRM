@@ -1021,7 +1021,7 @@ function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=
 
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='28.09.2026 · 2';
+const CRM_VERSION='28.09.2026 · 3';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1127,6 +1127,28 @@ function dealDate(c){return parseD(c.date)||dTs(c.createdAt);}
 const mkShift=(mk,n)=>{const[y,m]=mk.split('-').map(Number);return monthKey(new Date(y,m-1+n,1));};
 // Доля наценки в каждом плановом платеже: (цена − себестоимость) / (цена − предоплата)
 function planRatio(c){const p=parseFloat(c.price)||0,co=parseFloat(c.cost)||0,pp=parseFloat(c.prepay)||0;return co>0&&p-pp>0?Math.max(0,(p-co)/(p-pp)):0;}
+
+// Как платежи договора делятся на возврат себестоимости и наценку (кассовый метод, как у инвесторов).
+// list — [{p,d}] платежи и скидки договора. Скидка уменьшает сначала непогашенную себестоимость, потом наценку.
+function dealProfitSplit(c,list){
+  const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0,prepay=parseFloat(c.prepay)||0;
+  let bodyRem=Math.max(0,cost-prepay),profRem=Math.max(0,price-cost),got=0;const items=[];
+  list.slice().sort((a,b)=>a.d-b.d).forEach(({p,d})=>{
+    const a=parseFloat(p.amount)||0;if(a<=0)return;
+    if(p.type==='discount'){const fromBody=Math.min(a,bodyRem);bodyRem-=fromBody;profRem=Math.max(0,profRem-(a-fromBody));got-=a;items.push({d,disc:a});return;}
+    const R=bodyRem+profRem;let prof,body;
+    if(R<=0){prof=a;body=0;}
+    else{const x=Math.min(a,R);prof=x*profRem/R;body=x-prof;profRem-=prof;bodyRem-=body;prof+=a-x;}
+    got+=prof;items.push({d,prof,body});
+  });
+  return{items,bodyRem,profRem,got};
+}
+// Фактическая маржа договора: наценка в полученных платежах минус скидки
+function dealMarginGot(c){
+  if(!(parseFloat(c.cost)>0)||!(parseFloat(c.price)>0))return null;
+  const list=S.payments.filter(p=>p.clientId===c.id&&(p.type==='payment'||p.type==='discount')).map(p=>({p,d:invD(p.date)})).filter(x=>x.d);
+  return dealProfitSplit(c,list).got;
+}
 
 // Общие данные для дашборда и показателей (считаются один раз за отрисовку)
 function finCtx(){
@@ -1609,7 +1631,7 @@ function renderDetail(c){
   const _gs=dealGuarantorRefs(c);
   const guarantorCard='<div class="card"><div class="ct">'+(_gs.length>1?'Поручители':'Поручитель')+'</div>'+(_gs.length?_gs.map((g,i)=>{const n=g.name,p=_pi.get(refKey(g.name,g.pid))||{phones:[],addr:''};return'<div class="ig2"'+(i?' style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd2)"':'')+'><div class="ii"><div class="il">ФИО</div><div class="iv">'+_pl(n,refKey(g.name,g.pid))+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+(p.phones.map(fmtPhone).filter(Boolean).join(', ')||'—')+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">'+esc(p.addr||'—')+'</div></div></div>';}).join(''):'<div class="inv-muted">Нет</div>')+'</div>';
   // Товар и финансы
-  const itemCard='<div class="card"><div class="ct">Товар</div><div class="ig2"><div class="ii"><div class="il">Товар</div><div class="iv">'+esc(c.product||'—')+'</div></div><div class="ii"><div class="il">Поставщик</div><div class="iv">'+esc(c.partner||'—')+(dealPartnerPhone(c)?'<div style="font-size:12px;color:var(--t2);font-weight:500">'+esc(fmtPhone(dealPartnerPhone(c))||dealPartnerPhone(c))+'</div>':'')+'</div></div><div class="ii"><div class="il">Цена продажи</div><div class="iv">'+fmt(pr)+' ₽</div></div><div class="ii"><div class="il">Предоплата</div><div class="iv">'+fmt(c.prepay)+' ₽</div></div><div class="ii"><div class="il">Себестоимость</div><div class="iv">'+(co?fmt(co)+' ₽':'—')+'</div></div><div class="ii"><div class="il">Закупка товара</div><div class="iv" style="font-size:13px">'+purchaseInfo(c)+'</div></div><div class="ii"><div class="il">Маржа (ожидаемая)</div><div class="iv '+(co?'cg':'')+'">'+(co?fmt(mg)+' ₽':'—')+'</div></div>'+(s.totalDiscount>0?'<div class="ii" style="grid-column:1/-1"><div class="il">Применена скидка</div><div class="iv cy">'+fmt(s.totalDiscount)+' ₽</div></div>':'')+'</div></div>';
+  const itemCard='<div class="card"><div class="ct">Товар</div><div class="ig2"><div class="ii"><div class="il">Товар</div><div class="iv">'+esc(c.product||'—')+'</div></div><div class="ii"><div class="il">Поставщик</div><div class="iv">'+esc(c.partner||'—')+(dealPartnerPhone(c)?'<div style="font-size:12px;color:var(--t2);font-weight:500">'+esc(fmtPhone(dealPartnerPhone(c))||dealPartnerPhone(c))+'</div>':'')+'</div></div><div class="ii"><div class="il">Цена продажи</div><div class="iv">'+fmt(pr)+' ₽</div></div><div class="ii"><div class="il">Предоплата</div><div class="iv">'+fmt(c.prepay)+' ₽</div></div><div class="ii"><div class="il">Себестоимость</div><div class="iv">'+(co?fmt(co)+' ₽':'—')+'</div></div><div class="ii"><div class="il">Закупка товара</div><div class="iv" style="font-size:13px">'+purchaseInfo(c)+'</div></div><div class="ii"><div class="il">Маржа (ожидаемая)</div><div class="iv '+(co?'cg':'')+'">'+(co?fmt(mg)+' ₽':'—')+'</div></div>'+(()=>{const g=dealMarginGot(c);return'<div class="ii" style="grid-column:1"><div class="il">Маржа (фактическая)</div><div class="iv '+(g===null?'':(g<-0.004?'cr':'cg'))+'">'+(g===null?'—':fmt(R2(g))+' ₽'+(mg>0?'<span style="font-size:11px;color:var(--t2);font-weight:500"> · '+Math.round(g/mg*100)+'% от ожидаемой</span>':''))+'</div></div>';})()+(s.totalDiscount>0?'<div class="ii" style="grid-column:1/-1"><div class="il">Применена скидка</div><div class="iv cy">'+fmt(s.totalDiscount)+' ₽</div></div>':'')+'</div></div>';
   // График платежей
   const schedBlock='<div class="cph"><div class="cphhdr" onclick="tog2(\'schedb_'+c.id+'\',\'sa_'+c.id+'\')"><div style="font-size:11px;font-weight:700;color:var(--t2)">График платежей · '+pc+' из '+(c.months||0)+'</div><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:80px;margin:0"><div class="pfill" style="width:'+Math.round(pc/Math.max(c.months||1,1)*100)+'%"></div></div><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="sa_'+c.id+'"><polyline points="'+(so?'18 15 12 9 6 15':'6 9 12 15 18 9')+'"/></svg></div></div><div class="cphbody'+(so?' on':'')+'" id="schedb_'+c.id+'">'+s.schedule.map(p=>payRow(p,c)).join('')+'</div></div>';
   // История платежей
@@ -3127,24 +3149,12 @@ function invModel(){
   S.payments.forEach(p=>{if(p.type!=='payment'&&p.type!=='discount')return;const d=invD(p.date);if(!d)return;(byClient[p.clientId]=byClient[p.clientId]||[]).push({p,d});});
   const events=[];let inDeals=0,noCost=0,profLeft=0;
   S.clients.forEach(c=>{
-    const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0,prepay=parseFloat(c.prepay)||0;
+    const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0;
     if(price<=0)return;
     if(cost<=0){if(byClient[c.id])noCost++;return;}
-    let bodyRem=Math.max(0,cost-prepay),profRem=Math.max(0,price-cost),profGot=0;
-    (byClient[c.id]||[]).sort((a,b)=>a.d-b.d).forEach(({p,d})=>{
-      const a=parseFloat(p.amount)||0;if(a<=0)return;
-      if(p.type==='discount'){
-        const fromBody=Math.min(a,bodyRem);bodyRem-=fromBody;profRem=Math.max(0,profRem-(a-fromBody));
-        events.push({d,amount:-a,body:0,kind:'profit',src:'discount',ref:'Скидка №'+(c.contractId||'—')+' '+(c.name||'')});
-        return;
-      }
-      const R=bodyRem+profRem;let prof,body;
-      if(R<=0){prof=a;body=0;}
-      else{const x=Math.min(a,R);prof=x*profRem/R;body=x-prof;profRem-=prof;bodyRem-=body;prof+=a-x;}
-      profGot+=prof;
-      events.push({d,amount:prof,body,kind:'profit',src:'payment',ref:'№'+(c.contractId||'—')+' '+(c.name||'')});
-    });
-    if(!c.archived){inDeals+=Math.max(0,bodyRem);profLeft+=Math.max(0,profRem);}
+    const sp=dealProfitSplit(c,byClient[c.id]||[]);
+    sp.items.forEach(x=>events.push(x.disc?{d:x.d,amount:-x.disc,body:0,kind:'profit',src:'discount',ref:'Скидка №'+(c.contractId||'—')+' '+(c.name||'')}:{d:x.d,amount:x.prof,body:x.body,kind:'profit',src:'payment',ref:'№'+(c.contractId||'—')+' '+(c.name||'')}));
+    if(!c.archived){inDeals+=Math.max(0,sp.bodyRem);profLeft+=Math.max(0,sp.profRem);}
   });
   S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type)&&!INV_FEXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:INV_FEXP_TYPES.includes(o.type)?'fexpense':'expense',etype:o.type,ref:o.desc||kMeta(o.type).name});});
   events.sort((a,b)=>a.d-b.d);
