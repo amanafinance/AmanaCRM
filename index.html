@@ -269,6 +269,9 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 .mover.on{display:flex}
 .modal{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:28px;width:680px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:var(--sh)}.msm{width:420px}
 .mtitle{font-family:'Manrope',sans-serif;font-size:17px;font-weight:700;letter-spacing:-0.015em;margin-bottom:20px}
+.m-bar{position:sticky;top:0;z-index:6;height:0;display:flex;justify-content:flex-end}
+.m-x{margin-top:-6px;margin-right:-8px;width:34px;height:34px;border-radius:50%;border:1px solid var(--brd);background:var(--bg3);color:var(--t2);font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.m-x:hover{color:var(--red);border-color:var(--red)}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ff{grid-column:1/-1}.fgp{display:flex;flex-direction:column;gap:5px}
 .mft{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--brd2)}
 .sdiv{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--brd2);display:flex;align-items:center;gap:8px}
@@ -321,7 +324,17 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 .fin-t th{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;vertical-align:bottom}
 .fin-t .n{text-align:right}
 .fin-t .fin-l{position:sticky;left:0;background:var(--card);z-index:1;text-align:left;min-width:190px}
-.fin-t tr.fin-h td{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;padding-top:14px;background:var(--card)}
+.fin-t tr.fin-h td{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;padding-top:14px;background:var(--card);text-align:left}
+.fin-hs{position:sticky;left:12px;display:inline-block}
+.rem-call{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 6px;font-size:13px;color:var(--t2)}
+.rem-call .btn{min-height:36px;text-decoration:none}
+/* общий поиск */
+.gs-res{display:flex;flex-direction:column;gap:4px;margin-top:10px;max-height:60vh;overflow-y:auto}
+.gs-it{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:var(--r2);background:var(--bg3);cursor:pointer;border:1px solid transparent;text-align:left;color:var(--text);font:inherit;width:100%}
+.gs-it:hover,.gs-it:focus-visible{border-color:var(--green)}
+.gs-it b{font-size:13px}.gs-it span{font-size:11px;color:var(--t2);text-align:right}
+.gs-h{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin:6px 0 2px}
+@media(max-width:768px){.gs-nb{order:9}#nav-more{order:10}} /* на телефоне «Поиск» — в нижнем меню перед «Ещё» */ /* заголовок раздела не уезжает при прокрутке таблицы вбок */
 .fin-t tr.fin-b td{font-weight:700}
 .fin-t tr.fin-b2 td{font-weight:700;font-size:12.5px;background:var(--bg3)}
 .fin-t tr.fin-b2 td.fin-l{background:var(--bg3)}
@@ -370,6 +383,10 @@ body.light .bwa{color:#128c4a}
 #netBadge.on{display:block}
 .toast.on{pointer-events:auto;visibility:visible}.tok{border-color:var(--green)!important;color:var(--green)}.ter{border-color:var(--red)!important;color:var(--red)}
 .bback{display:inline-flex;align-items:center;gap:5px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;border:none;background:none;transition:.2s}.bback:hover{color:var(--green)}
+/* карточка сделки: слева данные, справа остаток; на телефоне — одна колонка, остаток сверху */
+.cd-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}.cd-main,.cd-side{min-width:0}
+.plink{color:var(--green);text-decoration:none;font-weight:700}.plink:hover{text-decoration:underline}
+@media(max-width:768px){.cd-grid{grid-template-columns:1fr}.cd-side{order:-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.cd-side>.sc{margin:0!important;padding:10px}.cd-side .sv{font-size:15px!important}.cd-side>.cd-cmt{grid-column:1/-1}.plink{display:inline-block;padding:6px 0}}
 .slist{display:flex;flex-direction:column;gap:7px}.sit{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--bg3);border-radius:var(--r2)}
 .sadd{display:flex;gap:8px;margin-top:10px}.sadd .inp{flex:1}
 .inp-ro{opacity:.65;cursor:default}
@@ -422,7 +439,8 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 /* Модалки выдвигаются снизу */
 .modal{padding:14px 12px 16px;border-radius:16px 16px 0 0;width:100%!important;max-width:100%!important;max-height:92vh;box-sizing:border-box}
 .mover.on{align-items:flex-end}
-.mtitle{font-size:14px;margin-bottom:12px}
+.mtitle{font-size:14px;margin-bottom:12px;padding-right:40px}
+.m-x{margin-top:-2px;margin-right:-2px;width:38px;height:38px;box-shadow:var(--sh)}
 .fgp{margin-bottom:8px!important}
 .fg{grid-template-columns:1fr;gap:8px}.ff{grid-column:1}
 .sdiv{margin:10px 0 6px;flex-wrap:wrap;font-size:11px}
@@ -764,6 +782,7 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 <div id="app">
 <aside class="sidebar"><div>
 <div class="slogo">AMANA FINANCE</div><div class="sname">CRM</div>
+<button class="nb gs-nb" onclick="openSearch()" title="Поиск (клавиша /)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>Поиск</button>
 <div class="sg">Главная</div>
 <button class="nb on" id="nav-dashboard" onclick="goTo('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Дашборд</button>
 <button class="nb" id="nav-finance" onclick="goTo('finance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="20"/><rect x="5" y="11" width="3" height="6"/><rect x="10.5" y="7" width="3" height="10"/><rect x="16" y="4" width="3" height="13"/></svg>Показатели бизнеса</button>
@@ -790,7 +809,7 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 <main class="main">
 <div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats"><div class="loading"><div class="spin"></div></div></div></div>
 <div id="page-finance" class="page" style="display:none"><div class="ph"><div><div class="pt">Показатели бизнеса</div><div class="ps">ОПИУ, план и факт, прогноз</div></div></div><div id="finBody"><div class="loading"><div class="spin"></div></div></div></div>
-<div id="page-clients" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div class="ph"><div><div class="pt">Сделки</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh vw-btn-pc" onclick="openView('cols')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>Колонки</button><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button><button class="ft" onclick="setTab('archive',this)">Архив</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('clients')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgeClients" class="mf-badge"></span></button><button class="mobile-filter-btn" onclick="openView('card')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>Вид карточки</button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
+<div id="page-clients" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div class="ph"><div><div class="pt">Сделки</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh vw-btn-pc" onclick="openView('cols')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>Колонки</button><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ppl-bar"><input class="inp" type="search" id="clQ" placeholder="Поиск: № договора, ФИО, телефон, товар" oninput="renderClients()" aria-label="Поиск сделки"/></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button><button class="ft" onclick="setTab('archive',this)">Архив</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('clients')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgeClients" class="mf-badge"></span></button><button class="mobile-filter-btn" onclick="openView('card')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>Вид карточки</button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
 <div id="page-client" class="page" style="display:none"><button class="bback" onclick="goTo(S.prevPage||'clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
 
 
@@ -918,6 +937,11 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 <div class="inv-hint" id="vwHint"></div>
 <div id="vwList" class="vw-list"></div>
 <div class="mft"><button class="btn bgh bsm vw-reset" onclick="vwReset()">По умолчанию</button><button class="btn bgh" onclick="closeM('mView')">Отмена</button><button class="btn bg" onclick="vwSave()">Сохранить</button></div>
+</div></div>
+<div class="mover" id="mSearch"><div class="modal msm">
+<div class="mtitle">Поиск</div>
+<input class="inp" type="search" id="gsQ" placeholder="№ договора, ФИО, телефон, № клиента, товар" oninput="gsRender()" autocomplete="off" aria-label="Поиск по CRM"/>
+<div id="gsRes" class="gs-res"></div>
 </div></div>
 <div class="toast" id="toast"></div>
 <div id="fdOverlay"><div class="fdo-title" id="fdo_title"></div><div id="fdo_body"></div><div class="fdo-btns"><button class="fdo-reset" id="fdo_reset">Сбросить</button><button class="fdo-apply" id="fdo_apply">Применить</button></div></div>
@@ -1061,9 +1085,14 @@ function calcStats(c,cp){
 }
 function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=cs||getStats(c);if(s.balance<=0)return'завершён';}return'активный';}
 
+// Окно с одним полем ввода (например, новое название). ok(значение) вызывается, только если значение не пустое.
+function askText(t,label,val,ok){const l=document.getElementById('confirmLayer');
+  l.innerHTML='<div class="confirm-ov"><div class="confirm-box"><div class="confirm-title">'+esc(t)+'</div><label class="lbl" for="askIn">'+esc(label)+'</label><input class="inp" id="askIn" type="text" value="'+esc(val||'')+'"/><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="askOk">Сохранить</button></div></div></div>';
+  const i=document.getElementById('askIn'),go=()=>{const v=i.value.trim();if(!v){toast('Введите значение','ter');return;}l.innerHTML='';ok(v);};
+  document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='29.09.2026 · 4';
+const CRM_VERSION='29.09.2026 · 5';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1164,7 +1193,7 @@ function renderDashIfVisible(){
 }
 const dTs=x=>x?(x.toDate?x.toDate():(x instanceof Date?x:new Date(x))):null;
 const dPct=x=>x===null||x===undefined||!isFinite(x)?'—':String(Math.round(x*1000)/10).replace('.',',')+'%';
-const dMoney=n=>fmt(R2(n))+' ₽';
+const dMoney=n=>fmt(Math.round(parseFloat(n)||0))+' ₽'; // в плитках — до рубля; копейки — в таблице ОПИУ
 function dDelta(cur,prev,inverse){if(!prev||Math.abs(prev)<0.01)return'';const d=(cur-prev)/Math.abs(prev);if(!isFinite(d)||Math.abs(d)<0.0005)return'';const good=inverse?d<0:d>0;return'<span class="dsh-d '+(good?'up':'dn')+'" title="к прошлому месяцу">'+(d>0?'▲':'▼')+' '+dPct(Math.abs(d))+'</span>';}
 function dCard(label,value,sub,cls,onclick){return'<div class="sc'+(onclick?' dsh-click':'')+'"'+(onclick?' onclick="'+onclick+'"':'')+'><div class="sl">'+label+'</div><div class="sv'+(cls?' '+cls:'')+'">'+value+'</div>'+(sub?'<div class="ss">'+sub+'</div>':'')+'</div>';}
 function dBar(x,cls){return'<div class="dsh-bar'+(cls?' '+cls:'')+'"><i style="width:'+Math.round(Math.max(0,Math.min(1,x||0))*100)+'%"></i></div>';}
@@ -1368,7 +1397,7 @@ function renderFinance(){
     cols.map(c=>'<th class="n'+(c.kind==='cur'?' fin-cur':'')+(c.kind==='fut'?' fin-fut':'')+'">'+MN[Number(c.mk.slice(5))-1]+(c.kind==='cur'?'<div class="fin-tag">сейчас</div>':(c.kind==='fut'?'<div class="fin-tag">прогноз</div>':''))+'</th>').join('')+
     '<th class="n fin-tot">Факт '+(Y===curY?'с начала года':'за год')+'</th>'+(hasFut?'<th class="n fin-tot">Прогноз года</th>':'')+'</tr></thead><tbody>';
   R.forEach(r=>{
-    if(r.h){t+='<tr class="fin-h"><td class="fin-l" colspan="'+(cols.length+(hasFut?3:2))+'">'+r.h+'</td></tr>';return;}
+    if(r.h){t+='<tr class="fin-h"><td colspan="'+(cols.length+(hasFut?3:2))+'"><span class="fin-hs">'+r.h+'</span></td></tr>';return;}
     t+='<tr class="'+(r.b===2?'fin-b2':(r.b?'fin-b':''))+(r.plan?' fin-plan':'')+'"><td class="fin-l">'+r.l+'</td>';
     cols.forEach((c,i)=>{
       const cc=(c.kind==='cur'?' fin-cur':'')+(c.kind==='fut'?' fin-fut':'');
@@ -1463,6 +1492,9 @@ function renderClientsPaged(){
   else if(S.tab==='overdue')list=list.filter(c=>c._over>0&&c._st==='активный');
   else list=list.filter(c=>c._st===S.tab);
   list=filterClientList(list,cf);
+  // быстрый поиск: № договора, ФИО, телефон клиента или поручителя, товар
+  const q=((document.getElementById('clQ')||{}).value||'').trim().toLowerCase();
+  if(q)list=list.filter(c=>dealMatch(c,q));
   const total=list.length;
   const visible=list.slice(0,_clientsShown);
   const hasMore=_clientsShown<total;
@@ -1647,13 +1679,13 @@ function applyF(){
     if(_fdCol==='date'){j.date_q=g('fdi_dq');j.date_from=g('fdi_df');j.date_to=g('fdi_dt');}
     else if(_fdCol==='type')j.type=g('fdi_v');
     else if(_fdCol==='desc')j.desc=g('fdi_v');
-    closeDrops();renderJournal();
+    const byDate=_fdCol==='date';closeDrops();if(byDate)loadJournal();else renderJournal();
   }
 }
 function resetF(){
   if(_fdPage==='clients'){const c=S.CF;Object.keys(c).forEach(k=>c[k]='');closeDrops();renderClients();}
   else if(_fdPage==='payments'){S.PF={date_q:'',date_from:'',date_to:'',contract:'',name:'',amount_q:'',amount_from:'',amount_to:'',type:'',payType:''};closeDrops();}
-  else{S.JF={date_q:'',date_from:'',date_to:'',type:'',desc:''};closeDrops();renderJournal();}
+  else{S.JF={date_q:'',date_from:'',date_to:'',type:'',desc:''};closeDrops();loadJournal();}
 }
 document.addEventListener('click',e=>{if(!e.target.closest('#fdOverlay')&&!e.target.closest('.th-cell'))closeDrops();});
 // Закрытие мобильного меню "Ещё"/"Деньги" при клике вне него
@@ -1671,7 +1703,8 @@ function renderDetail(c){
   const pc=s.schedule.filter(p=>p.st==='paid').length;
   const ph=(c.phones||[]).map(fmtPhone).filter(Boolean).join(', ')||'—';
   const dups=findDups(c.name,c.id);
-  const so=document.getElementById('schedb_'+c.id)?.classList.contains('on');
+  // график по умолчанию развёрнут; если его свернули — остаётся свёрнутым при перерисовке
+  const sb=document.getElementById('schedb_'+c.id),so=sb?sb.classList.contains('on'):true;
   const ho=document.getElementById('cphb_'+c.id)?.classList.contains('on');
   const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0,mg=pr-co;
   const hc=c.comment&&c.comment.trim();
@@ -1679,7 +1712,7 @@ function renderDetail(c){
   const header='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap"><div><div style="font-family:Manrope,sans-serif;font-size:21px;font-weight:700;letter-spacing:-0.015em;margin-bottom:6px;display:flex;align-items:center;gap:8px">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:11px;color:var(--t2)">'+ph+' · №'+esc(c.contractId||'—')+' · '+esc(c.date||'—')+' '+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts" style="display:flex;gap:7px;flex-wrap:wrap">'+(st!=='завершён'?waBtn(c.id):'')+(st!=='завершён'?'<button class="btn bg bsm cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button><button class="btn by bsm" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bsm" style="background:rgba(91,143,249,0.1);color:var(--blue);border:1px solid rgba(91,143,249,0.2)" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh bsm" onclick="openEdit(\''+c.id+'\')">Изменить</button>'+cdDelBtn(c)+'</div></div>';
   const dupsBlock=dups.length?'<div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:10px 14px;margin-bottom:14px;font-size:12px"><div style="color:var(--yellow);font-weight:700;margin-bottom:6px">Другие договора:</div>'+dups.map(d=>'<div style="color:var(--t2);margin-bottom:3px;cursor:pointer" onclick="openC(\''+d.id+'\')">· №'+esc(d.contractId||'—')+' — '+esc(d.product||'—')+' ('+effStatus(d)+')</div>').join('')+'</div>':'';
   // Данные клиента и поручителя
-  const _pi=personIndex(),_pl=(n,k)=>'<a href="#" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
+  const _pi=personIndex(),_pl=(n,k)=>'<a href="#" class="plink" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
   const clientCard='<div class="card"><div class="ct">Данные клиента</div><div class="ig2"><div class="ii"><div class="il">ФИО</div><div class="iv">'+_pl(c.name||'—',dealClientKey(c))+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+ph+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">'+esc(c.addr||'—')+'</div></div></div></div>';
   const _gs=dealGuarantorRefs(c);
   const guarantorCard='<div class="card"><div class="ct">'+(_gs.length>1?'Поручители':'Поручитель')+'</div>'+(_gs.length?_gs.map((g,i)=>{const n=g.name,p=_pi.get(refKey(g.name,g.pid))||{phones:[],addr:''};return'<div class="ig2"'+(i?' style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd2)"':'')+'><div class="ii"><div class="il">ФИО</div><div class="iv">'+_pl(n,refKey(g.name,g.pid))+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+(p.phones.map(fmtPhone).filter(Boolean).join(', ')||'—')+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">'+esc(p.addr||'—')+'</div></div></div>';}).join(''):'<div class="inv-muted">Нет</div>')+'</div>';
@@ -1691,14 +1724,16 @@ function renderDetail(c){
   const histRows=s.cPays.map(p=>{
     const cancelCell=(p.type==='prepay'?'<td></td>':'<td><button class="ib ir" style="width:22px;height:22px" onclick="cancelPay(\''+p.id+'\',\''+c.id+'\','+p.amount+',\''+p.type+'\')" title="Отменить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>');
     const amtColor=p.type==='discount'?'cy':'cg';
-    return'<tr><td style="color:var(--t2);font-size:11px">'+esc(p.dateStr||'')+'</td><td><span class="amt '+amtColor+'" style="font-size:11px">'+fmt(p.amount)+' ₽</span></td><td style="font-size:11px">'+esc(p.typeLabel||'')+'</td><td><span class="badge brp" style="font-size:9px">'+esc(p.payType||'')+'</span></td>'+cancelCell+'</tr>';
+    return'<tr><td style="color:var(--t2);font-size:11px">'+esc(p.dateStr||'')+'</td><td><span class="amt '+amtColor+'" style="font-size:11px">'+fmt(p.amount)+' ₽</span></td><td style="font-size:11px">'+esc(p.typeLabel||'')+'</td><td><span class="badge brp" style="font-size:9px">'+esc(p.type==='discount'?'—':wName(p.wallet,p.payType))+'</span></td>'+cancelCell+'</tr>';
   }).join('');
   const histBlock='<div class="cph" style="margin-top:8px"><div class="cphhdr" onclick="tog2(\'cphb_'+c.id+'\',\'ca_'+c.id+'\')"><div style="font-size:11px;font-weight:700;color:var(--t2)">История платежей ('+s.cPays.length+')</div><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="ca_'+c.id+'"><polyline points="'+(ho?'18 15 12 9 6 15':'6 9 12 15 18 9')+'"/></svg></div><div class="cphbody'+(ho?' on':'')+'" id="cphb_'+c.id+'">'+(s.cPays.length?'<table class="tbl" style="margin-top:5px"><thead><tr><th class="plain">Дата</th><th class="plain">Сумма</th><th class="plain">Тип</th><th class="plain">Способ</th><th style="width:36px"></th></tr></thead><tbody>'+histRows+'</tbody></table>':'<div style="color:var(--t3);font-size:11px;padding:8px">Нет</div>')+'</div></div>';
   // Правая колонка
-  const commentCard=hc?'<div class="sc" style="margin-bottom:10px;border-color:rgba(91,143,249,0.2)"><div class="sl">Комментарий <span style="font-weight:400;text-transform:none;letter-spacing:0">'+esc(c.commentDate||'')+'</span></div><div style="font-size:12px;color:var(--t2);line-height:1.5">'+esc(c.comment)+'</div></div>':'';
+  const commentCard=hc?'<div class="sc cd-cmt" style="margin-bottom:10px;border-color:rgba(91,143,249,0.2)"><div class="sl">Комментарий <span style="font-weight:400;text-transform:none;letter-spacing:0">'+esc(c.commentDate||'')+'</span></div><div style="font-size:12px;color:var(--t2);line-height:1.5">'+esc(c.comment)+'</div></div>':'';
   const rightCol='<div>'+commentCard+'<div class="sc" style="margin-bottom:10px"><div class="sl">Остаток долга</div><div class="sv cg" style="font-size:17px">'+fmt(s.balance)+' ₽</div><div class="ss">из '+fmt(pr)+' ₽</div>'+(s.overpaid>0.004?'<div class="ss cr" style="font-weight:700;margin-top:4px">Переплата '+fmt(s.overpaid)+' ₽ — проверьте историю платежей</div>':'')+'</div><div class="sc" style="margin-bottom:10px"><div class="sl">Просрочка</div><div class="sv cr" style="font-size:17px">'+fmt(s.overdue)+' ₽</div></div><div class="sc"><div class="sl">Срок</div><div class="sv" style="font-size:17px">'+(c.months||0)+' мес.</div></div></div>';
-  const leftCol='<div>'+clientCard+guarantorCard+itemCard+schedBlock+histBlock+'</div>';
-  document.getElementById('cDetail').innerHTML=header+dupsBlock+'<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">'+leftCol+rightCol+'</div>';
+  // на телефоне — одна колонка: остаток и просрочка, затем график и история, потом данные клиента и товара
+  const mob=window.innerWidth<=768;
+  const leftCol='<div class="cd-main">'+(mob?schedBlock+histBlock+clientCard+guarantorCard+itemCard:clientCard+guarantorCard+itemCard+schedBlock+histBlock)+'</div>';
+  document.getElementById('cDetail').innerHTML=header+dupsBlock+'<div class="cd-grid">'+leftCol+rightCol.replace('<div>','<div class="cd-side">')+'</div>';
 }
 function tog2(bid,aid){const b=document.getElementById(bid),a=document.getElementById(aid);if(!b)return;if(b.classList.contains('on')){b.classList.remove('on');a.innerHTML='<polyline points="6 9 12 15 18 9"/>';}else{b.classList.add('on');a.innerHTML='<polyline points="18 15 12 9 6 15"/>';}}
 
@@ -1721,7 +1756,7 @@ async function cancelPay(pid,cid,amt,pt){
   const p=S.payments.find(x=>x.id===pid);
   if(!p){toast('Платёж не найден','ter');return;}
   const kOp=p.kassaOpId&&S.kassaOps.find(o=>o.id===p.kassaOpId)||null;
-  const warn=kOp?'Касса «'+esc(kOp.walletName||'')+'» уменьшится на '+fmt(amt)+' ₽':'<span style="color:var(--yellow)">Связанная операция в кассе не найдена — касса не изменится</span>';
+  const warn=pt==='discount'?'Скидка будет отменена, долг клиента вырастет на эту сумму. Касса не меняется.':(kOp?'Касса «'+esc(kOp.walletName||'')+'» уменьшится на '+fmt(amt)+' ₽':'<span style="color:var(--yellow)">Связанная операция в кассе не найдена — касса не изменится</span>');
   showConfirm('Отменить платёж?','<strong>'+fmt(amt)+' ₽</strong><br>'+warn,async()=>{
     const{db,doc,writeBatch}=window.DB;
     try{
@@ -1742,10 +1777,13 @@ let _jd=[];
 // История грузится порциями по 100 записей: вся она нужна редко, а каждая запись — это чтение из Firebase
 const JOURNAL_PAGE=100;let _jLast=null,_jEnd=false;
 async function loadJournal(more){
-  const{db,collection,query,orderBy,limit,startAfter,getDocs}=window.DB;
+  const{db,collection,query,orderBy,limit,startAfter,getDocs,where}=window.DB;
   if(!more){_jd=[];_jLast=null;_jEnd=false;_journalShown=50;document.getElementById('jList').innerHTML='<div class="loading"><div class="spin"></div></div>';}
   try{
-    const q=_jLast?query(collection(db,'journal'),orderBy('date','desc'),startAfter(_jLast),limit(JOURNAL_PAGE)):query(collection(db,'journal'),orderBy('date','desc'),limit(JOURNAL_PAGE));
+    // при фильтре по датам запрашиваем с сервера именно этот период
+    const f=[];if(S.JF.date_from)f.push(where('date','>=',safeDateFromInput(S.JF.date_from)));
+    if(S.JF.date_to){const e=safeDateFromInput(S.JF.date_to);e.setDate(e.getDate()+1);f.push(where('date','<',e));}
+    const q=query(collection(db,'journal'),...f,orderBy('date','desc'),...(_jLast?[startAfter(_jLast)]:[]),limit(JOURNAL_PAGE));
     const s=await getDocs(q);
     if(s.docs.length)_jLast=s.docs[s.docs.length-1];
     if(s.docs.length<JOURNAL_PAGE)_jEnd=true;
@@ -1781,8 +1819,12 @@ async function logA(t,d){const{db,collection,addDoc}=window.DB;try{await addDoc(
 
 // ---------- COMMENT ----------
 function openComment(id){_cid=id;const c=S.clients.find(x=>x.id===id);document.getElementById('mcText').value=c?.comment||'';document.getElementById('mcDel').style.display=c?.comment?'inline-flex':'none';openM('mComment');}
-async function saveComment(){const{db,doc,updateDoc}=window.DB;const t=document.getElementById('mcText').value.trim(),c=S.clients.find(x=>x.id===_cid);if(!c)return;await updateDoc(doc(db,'clients',_cid),{comment:t,commentDate:fmtD(new Date())});await logA('Комментарий','№'+(c.contractId||'')+' — '+t.substring(0,50));closeM('mComment');toast('Сохранено','tok');}
-async function deleteComment(){const{db,doc,updateDoc}=window.DB;await updateDoc(doc(db,'clients',_cid),{comment:'',commentDate:''});closeM('mComment');toast('Удалено','tok');}
+async function saveComment(){const{db,doc,updateDoc}=window.DB;const t=document.getElementById('mcText').value.trim(),c=S.clients.find(x=>x.id===_cid);if(!c)return;
+  try{await updateDoc(doc(db,'clients',_cid),{comment:t,commentDate:fmtD(new Date())});await logA('Комментарий','№'+(c.contractId||'')+' — '+t.substring(0,50));closeM('mComment');toast('Сохранено','tok');}
+  catch(e){toast('Ошибка: '+e.message,'ter');}}
+async function deleteComment(){const{db,doc,updateDoc}=window.DB;const c=S.clients.find(x=>x.id===_cid);
+  try{await updateDoc(doc(db,'clients',_cid),{comment:'',commentDate:''});await logA('Комментарий удалён','№'+(c&&c.contractId||'')+' — '+(c&&c.comment||'').substring(0,50));closeM('mComment');toast('Удалено','tok');}
+  catch(e){toast('Ошибка: '+e.message,'ter');}}
 
 // ---------- NEW / EDIT CLIENT ----------
 function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;_schedOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();openM('mClient');}
@@ -1846,6 +1888,35 @@ async function saveWaTpl(){
   catch(e){toast('Ошибка: '+e.message,'ter');}
 }
 function resetWaTpl(){S.wa={...WA_DEF};renderWaTpl();toast('Нажмите «Сохранить», чтобы применить','tok');}
+
+// ---------- ОБЩИЙ ПОИСК ----------
+// По клиентам (ФИО, телефон, номер К-0001) и сделкам (№ договора, ФИО, товар, телефон). Клавиша «/» на компьютере.
+// Правило поиска: до 5 цифр — № договора, от 6 цифр — телефон (клиента или поручителя), «К-7» — № клиента, иначе — ФИО или товар
+function searchKind(q){const s=q.replace(/[\s()+-]/g,'');const mNo=q.match(/^к-?\s*(\d+)$/i);
+  if(mNo)return{no:pNo(parseInt(mNo[1],10)).toLowerCase()};if(/^\d+$/.test(s))return s.length<=5?{contract:s}:{phone:s};return{text:q};}
+function dealMatch(c,q){const k=searchKind(q);
+  if(k.no){const p=pMaps().byId.get(c.clientPid);return!!p&&(p.no||'').toLowerCase()===k.no;}
+  if(k.contract)return(c.contractId||'').includes(k.contract);
+  if(k.phone)return[...(c.phones||[]),...dealGuarantorRefs(c).flatMap(g=>(pMaps().byId.get(g.pid)||{}).phones||[])].some(p=>String(p).replace(/\D/g,'').includes(k.phone));
+  return(c.name||'').toLowerCase().includes(k.text)||(c.product||'').toLowerCase().includes(k.text);}
+function personMatch(p,q){const k=searchKind(q);
+  if(k.no)return(p.no||'').toLowerCase()===k.no;if(k.contract)return false;
+  if(k.phone)return p.phones.some(x=>String(x).replace(/\D/g,'').includes(k.phone));
+  return personKey(p.name).includes(k.text);}
+function openSearch(){const i=document.getElementById('gsQ');i.value='';gsRender();openM('mSearch');setTimeout(()=>i.focus(),50);}
+function gsRender(){
+  const el=document.getElementById('gsRes'),q=document.getElementById('gsQ').value.trim().toLowerCase();
+  if(q.length<2){el.innerHTML='<div class="inv-muted">Введите хотя бы 2 символа</div>';return;}
+  const pp=[...personIndex().values()].filter(p=>personMatch(p,q)).slice(0,8);
+  const dd=S.clients.filter(c=>dealMatch(c,q)).slice(0,8);
+  const it=(on,a,b)=>'<button type="button" class="gs-it" onclick="closeM(\'mSearch\');'+on+'"><b>'+a+'</b><span>'+b+'</span></button>';
+  let h='';
+  if(pp.length)h+='<div class="gs-h">Клиенты</div>'+pp.map(p=>it('openPerson(\''+encodeURIComponent(p.key)+'\')',esc(p.name)+(p.no?' <span class="inv-muted">'+esc(p.no)+'</span>':''),esc(fmtPhone(p.phones[0]||'')))).join('');
+  if(dd.length)h+='<div class="gs-h">Сделки</div>'+dd.map(c=>{const s=getStats(c);return it('openC(\''+c.id+'\')','№'+esc(c.contractId||'—')+' · '+esc(c.name),esc(c.product||'')+(c.archived?' · архив':(s.balance>0.004?' · долг '+fmt(s.balance)+' ₽':' · закрыта')));}).join('');
+  el.innerHTML=h||'<div class="inv-muted">Ничего не найдено</div>';
+}
+document.addEventListener('keydown',e=>{if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'')&&document.getElementById('app').classList.contains('on')){e.preventDefault();openSearch();}
+  if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='gsQ'){const f=document.querySelector('#gsRes .gs-it');if(f)f.click();}});
 
 // ---------- СВЕРКА КАСС ----------
 // Остаток по операциям: приходы +, расходы −, переводы − с одного счёта и + на другой
@@ -1914,6 +1985,8 @@ function fixWallet(id){
   });
 }
 
+// Текущее название счёта по его id (после переименования везде новое); для удалённого счёта — сохранённое
+function wName(id,fallback){const w=id&&S.wallets.find(x=>x.id===id);return w?w.name:(fallback||'');}
 function walletByVal(v){if(!v)return null;return S.wallets.find(w=>w.id===v)||S.wallets.find(w=>w.name===v)||null;}
 function computePayDate(cd,m,payDay){
   const b=safeDateFromInput(cd);if(!b)return'';
@@ -2108,13 +2181,13 @@ async function savePay(a,pt){
 }
 function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mdName').innerHTML=esc(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mdAmt').value='';document.getElementById('mdAmt').max=s.balance;document.getElementById('mdReason').value='';openM('mDisc');}
 function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
-async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}finally{_saving=false;}}
+async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;}}
 function purchaseOf(id){return S.kassaOps.find(o=>o.type==='purchase'&&o.refType==='client'&&o.refId===id)||null;}
 function purchaseInfo(c){
   const op=purchaseOf(c.id);
   if(!op)return '<span class="cy">не проведена</span>';
   const fact=R2(op.amount),co=R2(c.cost);
-  let h=fmt(fact)+' ₽ · '+(op.dateStr||'')+(op.walletName?' · '+esc(op.walletName):'');
+  let h=fmt(fact)+' ₽ · '+esc(op.dateStr||'')+' · '+esc(wName(op.wallet,op.walletName));
   if(Math.abs(fact-co)>0.004)h+='<div class="cy" style="font-size:11px;margin-top:4px">В договоре '+fmt(co)+' ₽ <button class="btn bgh bsm" style="margin-left:6px" onclick="applyFactCost(\''+c.id+'\')">Привести к факту</button></div>';
   return h;
 }
@@ -2208,11 +2281,11 @@ function renderSettings(){
   renderRecon();renderWaTpl();
   document.getElementById('partList').innerHTML=S.partners.map((p,i)=>{
     const locked=p==='Сторонний';
-    return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:13px;font-weight:600">'+esc(p)+(locked?' <span style="font-size:9px;color:var(--t3);font-weight:500;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(S.partnerPhones[p]||'')+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
+    return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:13px;font-weight:600">'+esc(p)+(locked?' <span style="font-size:9px;color:var(--t3);font-weight:500;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(S.partnerPhones[p]||'')+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
   }).join('');
   document.getElementById('walletList').innerHTML=S.wallets.map(w=>{
     const locked=w.isDefault||(w.name==='Наличные'&&w.type==='cash');
-    return'<div class="sit'+(locked?' locked':'')+'"><div><div style="font-size:13px;font-weight:600">'+esc(w.name)+(locked?' <span style="font-size:9px;color:var(--t3);font-weight:500;margin-left:4px">(стандартный)</span>':'')+'</div><div style="font-size:10px;color:var(--t3)">'+(w.type==='cash'?'Наличные':'Карта / Счёт')+' · '+fmt(w.balance||0)+' ₽</div></div>'+(locked?'':'<button class="btn br bsm" onclick="removeWallet(\''+w.id+'\','+((w.balance||0))+')">Удалить</button>')+'</div>';
+    return'<div class="sit'+(locked?' locked':'')+'"><div><div style="font-size:13px;font-weight:600">'+esc(w.name)+(locked?' <span style="font-size:9px;color:var(--t3);font-weight:500;margin-left:4px">(стандартный)</span>':'')+'</div><div style="font-size:10px;color:var(--t3)">'+(w.type==='cash'?'Наличные':'Карта / Счёт')+' · '+fmt(w.balance||0)+' ₽</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="renameWallet(\''+w.id+'\')">Переименовать</button>'+(locked?'':'<button class="btn br bsm" onclick="removeWallet(\''+w.id+'\','+((w.balance||0))+')">Удалить</button>')+'</div></div>';
   }).join('');
 }
 // Поставщики и их телефоны: settings/partners {list:[названия], phones:{название:телефон}}
@@ -2233,6 +2306,24 @@ async function addPart(){
 async function setPartPhone(i,v){const p=S.partners[i];if(!p||p==='Сторонний')return;v=v.trim();
   try{const{setDoc,deleteField}=window.DB;await setDoc(partRef(),{phones:{[p]:v||deleteField()}},{merge:true});if(v)S.partnerPhones[p]=v;else delete S.partnerPhones[p];toast('Телефон сохранён','tok');}
   catch(e){toast('Ошибка: '+e.message,'ter');}}
+// Переименовать поставщика: в списке, у телефона и во всех договорах с ним
+function renamePart(i){const old=S.partners[i];if(!old||old==='Сторонний')return;
+  askText('Переименовать поставщика','Новое название',old,async v=>{
+    if(v===old)return;if(S.partners.some(p=>p.toLowerCase()===v.toLowerCase()&&p!==old)){toast('Такой поставщик уже есть','ter');return;}
+    try{const{db,doc,writeBatch,setDoc,arrayUnion,arrayRemove,deleteField}=window.DB,tel=S.partnerPhones[old];
+      await setDoc(partRef(),{list:arrayRemove(old)},{merge:true});
+      await setDoc(partRef(),{list:arrayUnion(v),phones:{[old]:deleteField(),...(tel?{[v]:tel}:{})}},{merge:true});
+      const deals=S.clients.filter(c=>c.partner===old);
+      for(let k=0;k<deals.length;k+=400){const b=writeBatch(db);deals.slice(k,k+400).forEach(c=>b.update(doc(db,'clients',c.id),{partner:v}));await b.commit();}
+      S.partners=S.partners.map(p=>p===old?v:p);if(tel){S.partnerPhones[v]=tel;}delete S.partnerPhones[old];renderSettings();
+      await logA('Поставщик переименован','«'+old+'» → «'+v+'», договоров: '+deals.length);toast('Переименован','tok');}
+    catch(e){toast('Ошибка: '+e.message,'ter');}});}
+// Переименовать счёт. В старых операциях название показывается по счёту, поэтому везде будет новое
+function renameWallet(id){const w=S.wallets.find(x=>x.id===id);if(!w)return;
+  askText('Переименовать счёт','Новое название',w.name,async v=>{
+    if(v===w.name)return;if(S.wallets.some(x=>x.id!==id&&x.name.toLowerCase()===v.toLowerCase())){toast('Такое название уже есть','ter');return;}
+    try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets',id),{name:v});await logA('Счёт переименован','«'+w.name+'» → «'+v+'»');toast('Переименован','tok');}
+    catch(e){toast('Ошибка: '+e.message,'ter');}});}
 async function removePart(i){const p=S.partners[i];if(p==='Сторонний'){toast('Нельзя удалить стандартный','ter');return;}
   try{const{setDoc,arrayRemove,deleteField}=window.DB;await setDoc(partRef(),{list:arrayRemove(p),phones:{[p]:deleteField()}},{merge:true});
     S.partners=S.partners.filter(x=>x!==p);delete S.partnerPhones[p];renderSettings();}
@@ -2408,6 +2499,13 @@ function renderPeople(more){
   el.innerHTML=list.length?'<div class="ppl-desk"><table class="ptbl"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><div class="ppl-mob">'+cards+'</div>'+(view.length<list.length?'<div class="scroll-sentinel" data-target="people"></div>':''):'<div class="empty">Никого не найдено</div>';
   setupInfiniteScroll();
 }
+// Удалить карточку клиента можно, только если у него нет сделок и он нигде не поручитель
+function delPerson(id){const p=(S.persons||[]).find(x=>x.id===id);if(!p)return;
+  if(S.clients.some(c=>c.clientPid===id||dealGuarantorRefs(c).some(g=>g.pid===id))){toast('У клиента есть сделки — удалить нельзя','ter');return;}
+  showConfirm('Удалить клиента?','<strong>'+esc((p.no?p.no+' · ':'')+p.name)+'</strong><br>Сделок у клиента нет. Карточка будет удалена.',async()=>{
+    try{const{db,doc,writeBatch}=window.DB;const bt=writeBatch(db);trashPut(bt,'persons',id,p);bt.delete(doc(db,'persons',id));await bt.commit();
+      await logA('Клиент удалён',(p.no||'')+' '+p.name);toast('Удалён','tok');goBase('people');}
+    catch(e){toast('Ошибка: '+e.message,'ter');}});}
 function openPerson(key){S.curPerson=decodeURIComponent(key);goBase('person');}
 function renderPerson(){
   const el=document.getElementById('personBody');if(!el)return;
@@ -2417,7 +2515,7 @@ function renderPerson(){
   const K=encodeURIComponent(g.key);
   let h='<button class="btn bgh bsm" style="margin-bottom:12px" onclick="goBase(\'people\')">← Все клиенты</button>'+
     '<div class="ph"><div><div class="pt">'+esc(g.name)+(g.no?' <span class="badge bd" style="vertical-align:middle">'+g.no+'</span>':'')+'</div><div class="ps">'+phones+(g.addr?' · '+esc(g.addr):'')+(g.id?'':' · <span class="cy">карточка ещё не сохранена</span>')+'</div>'+(g.note?'<div class="ps" style="color:var(--t2)">'+esc(g.note)+'</div>':'')+'</div>'+
-    '<div class="pa"><button class="btn bgh" onclick="openPersonForm(decodeURIComponent(\''+K+'\'))">Изменить</button><button class="btn bg" onclick="openNew(decodeURIComponent(\''+K+'\'))">+ Сделка</button></div></div>'+
+    '<div class="pa">'+(!g.deals.length&&!g.guar.length&&g.id?'<button class="btn br" onclick="delPerson(\''+g.id+'\')">Удалить</button>':'')+'<button class="btn bgh" onclick="openPersonForm(decodeURIComponent(\''+K+'\'))">Изменить</button><button class="btn bg" onclick="openNew(decodeURIComponent(\''+K+'\'))">+ Сделка</button></div></div>'+
     '<div class="sg4">'+
       '<div class="sc"><div class="sl">Сделок</div><div class="sv">'+g.deals.length+'</div><div class="ss">активных '+g.active+' · завершённых '+g.done+'</div></div>'+
       '<div class="sc"><div class="sl">Остаток долга</div><div class="sv">'+fmt(g.debt)+' ₽</div></div>'+
@@ -2667,6 +2765,7 @@ function renderReminders(more){
     '<td style="font-size:11px;color:var(--t2);white-space:normal;max-width:200px">'+(r.c.comment?esc(r.c.comment):'<span style="color:var(--t3)">—</span>')+'</td>'+
     '<td style="text-align:right;white-space:nowrap">'+btns(r)+'</td></tr>').join('');
   const cards=view.map(r=>'<div class="mcard'+(r.partial?' rem-partial':'')+'" style="cursor:default"><div class="mcard-top" onclick="openC(\''+r.c.id+'\')"><div class="mcard-name">'+esc(r.c.name)+'</div><div class="mcard-id">№'+esc(r.c.contractId||'—')+'</div></div>'+
+    (()=>{const ph=(r.c.phones||[]).find(Boolean),t=ph&&waPhone(ph);return t?'<div class="rem-call"><span>'+esc(fmtPhone(ph))+'</span><a class="btn bgh bsm" href="tel:+'+t+'" onclick="event.stopPropagation()">Позвонить</a></div>':'';})()+
     '<div class="mcard-row"><span class="mcard-label">Платёж '+r.month+' из '+(r.c.months||'—')+'</span><span class="mcard-val '+(r.over?'cr':'')+'">'+fmt(r.left)+' ₽</span></div>'+
     '<div class="mcard-row"><span class="mcard-label">Дата</span><span class="mcard-val">'+(r.df?fmtD(r.eff)+' <span class="inv-muted" style="text-decoration:line-through">'+esc(r.date)+'</span>':esc(r.date))+'</span></div>'+
     '<div class="mcard-row"><span class="mcard-label">Статус</span><span style="text-align:right">'+due(r)+'</span></div>'+
@@ -2775,7 +2874,7 @@ function renderKassa(){
     if(d!==ld){rows+='<tr class="day-sep"><td colspan="7">'+d+'</td></tr>';ld=d;}
     const sign=m.dir==='in'?'+':m.dir==='out'?'−':'';
     const cl=m.dir==='in'?'cg':m.dir==='out'?'cr':'';
-    const walletCell=o.walletToName?esc(o.walletName||'')+' → '+esc(o.walletToName):esc(o.walletName||'');
+    const walletCell=o.walletTo?esc(wName(o.wallet,o.walletName))+' → '+esc(wName(o.walletTo,o.walletToName)):esc(wName(o.wallet,o.walletName));
     const bal=balanceAfter[o.id];
     const balCell=bal?'<span class="amt" style="font-size:11px">'+fmt(bal.wallet)+' ₽</span><div style="font-size:9px;color:var(--t3)">общий: '+fmt(bal.total)+' ₽</div>':'';
     const editIco='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
@@ -3889,7 +3988,7 @@ function clMargin(c){const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0;re
 const CL_COLS={
   id:{n:'№',f:'id',td:c=>'<td '+_clO(c)+' style="font-weight:700;color:var(--t2)">'+esc(c.contractId||'—')+'</td>'},
   date:{n:'Дата',f:'date',td:c=>'<td '+_clO(c)+' style="color:var(--t2)">'+esc(c.date||'—')+'</td>'},
-  name:{n:'Клиент',f:'name',td:c=>{const dups=findDups(c.name,c.id);return'<td '+_clO(c)+'><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+'<br><span>'+fmtPhone((c.gphones||[])[0])+'</span></div></td>';}},
+  name:{n:'Клиент',f:'name',td:c=>{const dups=findDups(c.name,c.id);return'<td '+_clO(c)+'><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:10px;color:var(--t3);line-height:1.5">'+fmtPhone((c.phones||[])[0])+(guarPhone(c)?'<br><span title="Поручитель">'+fmtPhone(guarPhone(c))+'</span>':'')+'</div></td>';}},
   product:{n:'Товар',f:'product',td:c=>'<td '+_clO(c)+' style="color:var(--t2)">'+esc(c.product||'—')+'</td>'},
   partner:{n:'Поставщик',f:'partner',td:c=>'<td '+_clO(c)+' style="font-size:11px;color:var(--t2)">'+esc(c.partner||'—')+'</td>'},
   pricecost:{n:'Цена / предоплата / себест.',h:'Цена',f:'pricecost',td:c=>'<td '+_clO(c)+'><div style="font-weight:600;font-size:12px">'+fmt(c.price||0)+' ₽</div><div style="font-size:10px;color:var(--t2)">'+fmt(c.prepay||0)+' ₽</div><div style="font-size:10px;color:var(--t3)">'+fmt(c.cost||0)+' ₽</div></td>'},
@@ -3909,7 +4008,7 @@ const CL_COLS={
   gname:{n:'Поручитель',td:c=>'<td '+_clO(c)+'><div style="font-size:12px">'+esc(dealGuarantors(c).join(', ')||'—')+'</div><div style="font-size:10px;color:var(--t3)">'+fmtPhone(guarPhone(c))+'</div></td>'},
   comment:{n:'Комментарий',td:c=>'<td '+_clO(c)+' style="font-size:11px;color:var(--t2);max-width:220px;white-space:normal">'+(c.comment&&c.comment.trim()?esc(c.comment):'—')+'</td>'}
 };
-const CL_COLS_DEF=['id','date','name','product','partner','pricecost','months','bal','monthly','over','addr','status'];
+const CL_COLS_DEF=['id','date','name','product','bal','over','next','monthly','pricecost','months','partner','status'];
 // Поля карточки на телефоне
 const CARD_F={
   date:{n:'Дата',v:c=>c.date||'—'},
@@ -3934,8 +4033,8 @@ const CARD_F={
 const CARD_DEF=['date','product','partner','price','prepay','cost','months','monthly','bal','over','addr','status'];
 // Итоги внизу
 const VW_META={
-  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Галочка — показывать. Порядок — перетащите строку мышью.'},
-  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». ФИО, телефоны и № договора видны всегда. Порядок — зажмите строку пальцем и перетащите.'},
+  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Сделки» на компьютере. Галочка — показывать. Порядок — перетащите строку мышью.'},
+  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки сделки на телефоне (раздел «Сделки»). ФИО, телефоны и № договора видны всегда. Порядок — зажмите строку пальцем и перетащите.'},
   pcols:{reg:PCOLS,def:PCOLS_DEF,hint:'Колонки таблицы клиентов (на телефоне — строки карточки клиента). ФИО видно всегда. Галочка — показывать. Порядок — перетащите строку (на телефоне — зажмите пальцем).'}
 };
 function uiNorm(saved,kind){
@@ -3962,7 +4061,7 @@ function clTableHtml(visible){
 }
 // ---------- Модалка ----------
 let _vw={kind:'cols',tmp:null};
-const VW_LABEL={cols:'Колонки таблицы',card:'Карточка клиента',pcols:'Колонки клиентов'};
+const VW_LABEL={cols:'Колонки таблицы',card:'Карточка сделки',pcols:'Колонки клиентов'};
 function vwKinds(){if(_vw&&_vw.only)return[_vw.only];return window.innerWidth<=768?['card']:['cols'];}
 function openView(kind){_vw={only:kind==='pcols'?'pcols':null,kind:'cols',tmp:JSON.parse(JSON.stringify(S.ui))};const ks=vwKinds();_vw.kind=ks.includes(kind)?kind:ks[0];vwRender();openM('mView');}
 function vwTab(kind){if(!vwKinds().includes(kind))return;_vw.kind=kind;vwRender();}
@@ -4036,6 +4135,10 @@ async function vwSave(){
 
 
 // ---------- iPhone (иконка «Домой»): касания не должны пропадать после окон и клавиатуры ----------
+// Крестик «закрыть» в каждом окне (остаётся видимым при прокрутке длинной формы)
+document.querySelectorAll('.mover').forEach(m=>{const t=m.querySelector('.modal>.mtitle');if(!t||!m.id)return;
+  const bar=document.createElement('div');bar.className='m-bar';bar.innerHTML='<button type="button" class="m-x" aria-label="Закрыть" title="Закрыть">×</button>';
+  bar.firstChild.onclick=()=>closeM(m.id);t.parentNode.insertBefore(bar,t);});
 function iosTouchFix(){try{const x=window.scrollX||0,y=window.scrollY||0;window.scrollTo(x,y+1);window.scrollTo(x,y);}catch(e){}}
 function blurInside(el){const a=document.activeElement;if(a&&a!==document.body&&(!el||el.contains(a))&&typeof a.blur==='function')a.blur();}
 (function(){

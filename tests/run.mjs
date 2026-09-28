@@ -1,7 +1,7 @@
 // Запуск всех проверок: npm test (поднимает эмулятор Firebase и запускает этот файл).
 // Один набор: node run.mjs money   (эмулятор должен быть уже запущен)
 import {start,stop,setSuite,failed,total} from './lib.mjs';
-const ALL=['pages','money','investors','sync','people','security','ui','devices','speed'];
+const ALL=['pages','money','investors','sync','people','security','ui','interface','devices','speed'];
 const want=process.argv.slice(2).length?process.argv.slice(2):ALL;
 await start();
 const t0=Date.now();
