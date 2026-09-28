@@ -21,4 +21,4 @@ npm test
 Один набор: запустите эмулятор (`npx firebase emulators:start --only firestore,auth --project amana-crm-16033`)
 и в другом окне `node run.mjs money`.
 
-Наборы: `pages`, `money`, `investors`, `sync`, `people`, `security`, `ui` (папка `suites/`).
+Наборы: `pages`, `money`, `investors`, `sync`, `people`, `security`, `ui`, `speed` (папка `suites/`).
