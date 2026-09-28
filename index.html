@@ -644,10 +644,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .vw-chk{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;font-size:13px;font-weight:600;min-height:36px}
 .vw-chk input{width:18px;height:18px;accent-color:var(--green);flex:0 0 18px;margin:0}
 .vw-row:not(.on) .vw-chk span{color:var(--t3)}
-.vw-mv{display:flex;gap:4px}
-.vw-arrow{width:36px;height:36px;border-radius:8px;border:1px solid var(--brd2);background:var(--card);color:var(--t2);display:grid;place-items:center;cursor:pointer}
-.vw-arrow:hover:not(:disabled){color:var(--green);border-color:var(--green)}
-.vw-arrow:disabled{opacity:.3;cursor:default}
+.vw-row{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:grab;position:relative}
+.vw-grip{width:36px;height:36px;display:grid;place-items:center;color:var(--t3);touch-action:none;cursor:grab;flex:0 0 36px}
+.vw-row:hover .vw-grip{color:var(--green)}
+.vw-row.drag{z-index:5;cursor:grabbing;box-shadow:0 8px 24px rgba(0,0,0,.35);border-color:var(--green);background:var(--card)}
+.vw-list.dragging{cursor:grabbing}
 .vw-reset{margin-right:auto}
 .j-filters,.j-cards{display:none}
 .sdiv-sched{justify-content:space-between;flex-wrap:wrap}
@@ -1020,7 +1021,7 @@ function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=
 
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='28.09.2026 · 1';
+const CRM_VERSION='28.09.2026 · 2';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -3771,9 +3772,9 @@ const CARD_F={
 const CARD_DEF=['date','product','partner','price','prepay','cost','months','monthly','bal','over','addr','status'];
 // Итоги внизу
 const VW_META={
-  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Галочка — показывать, стрелки — порядок.'},
-  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». ФИО, телефоны и № договора видны всегда.'},
-  pcols:{reg:PCOLS,def:PCOLS_DEF,hint:'Колонки таблицы клиентов (на телефоне — строки карточки клиента). ФИО видно всегда. Галочка — показывать, стрелки — порядок.'}
+  cols:{reg:CL_COLS,def:CL_COLS_DEF,hint:'Колонки таблицы «Клиенты» на компьютере. Галочка — показывать. Порядок — перетащите строку мышью.'},
+  card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки клиента на телефоне — в «Клиентах» и «Платежах». ФИО, телефоны и № договора видны всегда. Порядок — зажмите строку пальцем и перетащите.'},
+  pcols:{reg:PCOLS,def:PCOLS_DEF,hint:'Колонки таблицы клиентов (на телефоне — строки карточки клиента). ФИО видно всегда. Галочка — показывать. Порядок — перетащите строку (на телефоне — зажмите пальцем).'}
 };
 function uiNorm(saved,kind){
   const {reg,def}=VW_META[kind],all=Object.keys(reg);
@@ -3808,11 +3809,58 @@ function vwRender(){
   const ks=vwKinds();if(!ks.includes(_vw.kind))_vw.kind=ks[0];
   document.getElementById('vwTabs').innerHTML=ks.map(x=>'<button class="ft'+(x===_vw.kind?' on':'')+'" onclick="vwTab(\''+x+'\')">'+VW_LABEL[x]+'</button>').join('');
   document.getElementById('vwHint').textContent=meta.hint;
-  const up='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>',dn='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
-  document.getElementById('vwList').innerHTML=list.map((x,i)=>'<div class="vw-row'+(x.on?' on':'')+'"><label class="vw-chk"><input type="checkbox"'+(x.on?' checked':'')+' onchange="vwToggle('+i+',this.checked)"><span>'+meta.reg[x.k].n+'</span></label><div class="vw-mv"><button type="button" class="vw-arrow" onclick="vwMove('+i+',-1)"'+(i===0?' disabled':'')+' aria-label="Выше">'+up+'</button><button type="button" class="vw-arrow" onclick="vwMove('+i+',1)"'+(i===list.length-1?' disabled':'')+' aria-label="Ниже">'+dn+'</button></div></div>').join('');
+  const grip='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+  document.getElementById('vwList').innerHTML=list.map((x,i)=>'<div class="vw-row'+(x.on?' on':'')+'" data-i="'+i+'"><label class="vw-chk"><input type="checkbox"'+(x.on?' checked':'')+' onchange="vwToggle('+i+',this.checked)"><span>'+meta.reg[x.k].n+'</span></label><div class="vw-grip" title="Перетащите">'+grip+'</div></div>').join('');
 }
 function vwToggle(i,on){const l=_vw.tmp[_vw.kind];if(!on&&l.filter(x=>x.on).length<=1){toast('Нужно оставить хотя бы одно поле','ter');vwRender();return;}l[i].on=on;vwRender();}
-function vwMove(i,d){const l=_vw.tmp[_vw.kind],j=i+d;if(j<0||j>=l.length)return;[l[i],l[j]]=[l[j],l[i]];vwRender();}
+// Порядок строк — перетаскиванием: мышью сразу, пальцем — после удержания (или сразу за значок ⋮⋮)
+let _vd=null,_vdNoClick=false;
+function vwScrollBox(){const l=document.getElementById('vwList');return l.scrollHeight>l.clientHeight+2?l:l.closest('.modal');}
+function vwDown(e){
+  const row=e.target.closest('.vw-row');if(!row||e.button>0||_vd)return;
+  const grip=!!e.target.closest('.vw-grip'),touch=e.pointerType!=='mouse';
+  _vd={row,id:e.pointerId,x:e.clientX,y:e.clientY,lastY:e.clientY,on:false,touch};
+  if(touch&&!grip)_vd.t=setTimeout(vwDragStart,350);else if(grip&&touch)vwDragStart();
+  window.addEventListener('pointermove',vwMoveP,{passive:false});window.addEventListener('pointerup',vwUp);window.addEventListener('pointercancel',vwUp);
+}
+function vwDragStart(){
+  if(!_vd||_vd.on)return;_vd.on=true;
+  const r=_vd.row,rc=r.getBoundingClientRect();_vd.off=_vd.y-rc.top;
+  r.classList.add('drag');document.getElementById('vwList').classList.add('dragging');
+  try{if(navigator.vibrate)navigator.vibrate(12);}catch(e){}
+  _vd.auto=setInterval(()=>{if(!_vd)return;const b=vwScrollBox(),br=b.getBoundingClientRect(),y=_vd.lastY;
+    const d=y<br.top+40?-8:(y>br.bottom-40?8:0);if(d){b.scrollTop+=d;vwDragPos();}},16);
+}
+function vwDragPos(){
+  const r=_vd.row;r.style.transform='';
+  const top=_vd.lastY-_vd.off;
+  let p=r.previousElementSibling,n;
+  while(p){const pr=p.getBoundingClientRect();if(top<pr.top+pr.height/2){r.parentNode.insertBefore(r,p);p=r.previousElementSibling;}else break;}
+  n=r.nextElementSibling;
+  while(n){const nr=n.getBoundingClientRect(),h=r.getBoundingClientRect().height;if(top+h>nr.top+nr.height/2){r.parentNode.insertBefore(n,r);n=r.nextElementSibling;}else break;}
+  r.style.transform='translateY('+(top-r.getBoundingClientRect().top)+'px)';
+}
+function vwMoveP(e){
+  if(!_vd||e.pointerId!==_vd.id)return;
+  if(!_vd.on){const d=Math.hypot(e.clientX-_vd.x,e.clientY-_vd.y);
+    if(_vd.touch){if(d>8)vwUp();return;} // палец сдвинулся раньше — это прокрутка
+    if(d<5)return;vwDragStart();}
+  e.preventDefault();_vd.lastY=e.clientY;vwDragPos();
+}
+function vwUp(){
+  if(!_vd)return;const d=_vd;_vd=null;clearTimeout(d.t);clearInterval(d.auto);
+  window.removeEventListener('pointermove',vwMoveP);window.removeEventListener('pointerup',vwUp);window.removeEventListener('pointercancel',vwUp);
+  if(!d.on)return;
+  _vdNoClick=true;setTimeout(()=>{_vdNoClick=false;},60);
+  const l=_vw.tmp[_vw.kind];_vw.tmp[_vw.kind]=[...document.querySelectorAll('#vwList .vw-row')].map(r=>l[+r.dataset.i]);
+  vwRender();
+}
+(function(){const l=document.getElementById('vwList');if(!l)return;
+  l.addEventListener('pointerdown',vwDown);
+  l.addEventListener('touchmove',e=>{if(_vd&&_vd.on)e.preventDefault();},{passive:false});
+  l.addEventListener('contextmenu',e=>{if(_vd)e.preventDefault();});
+  l.addEventListener('click',e=>{if(_vdNoClick){e.preventDefault();e.stopPropagation();}},true);
+})();
 function vwReset(){_vw.tmp[_vw.kind]=uiNorm(null,_vw.kind);vwRender();}
 async function vwSave(){
   S.ui=uiFrom(_vw.tmp);try{localStorage.setItem('amana_ui_v1',JSON.stringify(S.ui));}catch(e){}
