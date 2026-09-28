@@ -10,7 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,CACHE_SIZE_UNLIMITED,connectFirestoreEmulator,collection,doc,addDoc,updateDoc,getDocs,getDocsFromCache,getDocsFromServer,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc,writeBatch,runTransaction,increment,serverTimestamp,Timestamp}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,CACHE_SIZE_UNLIMITED,connectFirestoreEmulator,collection,doc,addDoc,updateDoc,getDocs,getDocsFromCache,getDocsFromServer,getDoc,getDocFromServer,terminate,clearIndexedDbPersistence,query,orderBy,limit,startAfter,where,onSnapshot,setDoc,writeBatch,runTransaction,increment,serverTimestamp,Timestamp}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import{getAuth,connectAuthEmulator,signInWithEmailAndPassword,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 const app=initializeApp({apiKey:"AIzaSyCZZCJiPUfZ2OqAa2CaQXKeHGh5MGR9uuo",authDomain:"amana-crm-16033.firebaseapp.com",projectId:"amana-crm-16033",storageBucket:"amana-crm-16033.firebasestorage.app",messagingSenderId:"21151729250",appId:"1:21151729250:web:06fe4021102a8ac8c9333b"});
 // База хранится и на устройстве (кэш без ограничения размера), поэтому при открытии
@@ -39,11 +39,6 @@ const writeBatchU=()=>{const b=writeBatch(db),w={
 // Следующие номера (договоров — settings/counter, клиентов — settings/pcounter).
 // Транзакция: два человека не получат один номер. n — сколько номеров занять сразу; возвращается первый.
 const nextCounter=(id,n)=>{id=id||'counter';n=n||1;const ref=doc(db,'settings',id);return runTransaction(db,async tx=>{const s=await tx.get(ref),first=(s.exists()?(s.data().lastId||0):0)+1;tx.set(ref,{lastId:first+n-1,[U]:serverTimestamp()},{merge:true});return first;});};
-// Однократные переносы данных: занять задачу, чтобы её не запустили одновременно на двух устройствах
-const claimTask=key=>{const ref=doc(db,'settings','migrations');return runTransaction(db,async tx=>{const s=await tx.get(ref),v=s.exists()?s.data()[key]:null;
-  if(v&&(v.done||(v.at&&Date.now()-v.at<10*60e3)))return false;tx.set(ref,{[key]:{at:Date.now()},[U]:serverTimestamp()},{merge:true});return true;});};
-const finishTask=key=>setDoc(doc(db,'settings','migrations'),{[key]:{done:true,at:Date.now()},[U]:serverTimestamp()},{merge:true});
-
 // ---- Живая коллекция: кэш устройства + только изменения с сервера ----
 const FULL_EVERY=7*864e5,OVERLAP=5*60e3,SYNC_KEY='amana_sync_v2';
 const syncGet=()=>{try{return JSON.parse(localStorage.getItem(SYNC_KEY)||'{}');}catch(e){return{};}};
@@ -97,10 +92,28 @@ async function liveTombs(){
     if(first){first=false;res();}else Object.keys(liveEmit).forEach(n=>{if(n!==TOMB)liveEmit[n]();});});
   await Promise.race([ready,new Promise(r=>setTimeout(r,8000))]);
 }
+// ---- База очищена в консоли Firebase? ----
+// В settings/meta лежит метка базы. Если её нет или она не совпадает с запомненной на устройстве,
+// данные на устройстве устарели: стираем их и загружаем всё заново (1 чтение при каждом открытии).
+const EPOCH_KEY='amana_epoch';
+async function checkEpoch(){
+  let ep;
+  try{
+    const ref=doc(db,'settings','meta'),s=await getDocFromServer(ref);
+    ep=s.exists()&&s.data().epoch;
+    if(!ep)ep=await runTransaction(db,async tx=>{const t=await tx.get(ref);if(t.exists()&&t.data().epoch)return t.data().epoch;const e=Date.now().toString(36)+Math.random().toString(36).slice(2,8);tx.set(ref,{epoch:e,[U]:serverTimestamp()});return e;});
+  }catch(e){return;} // нет интернета — работаем с данными устройства
+  let mine=null,had=false;try{mine=localStorage.getItem(EPOCH_KEY);had=!!localStorage.getItem(SYNC_KEY);}catch(e){}
+  if(mine===ep)return;
+  try{localStorage.removeItem(SYNC_KEY);localStorage.setItem(EPOCH_KEY,ep);}catch(e){}
+  if(!had)return; // на устройстве ещё ничего не загружали — стирать нечего
+  try{await terminate(db);await clearIndexedDbPersistence(db);}catch(e){console.warn('Кэш не очищен:',e);}
+  location.reload();await new Promise(()=>{});
+}
 // Полностью перечитать базу с сервера (кнопка в настройках)
-function resyncAll(){try{localStorage.removeItem(SYNC_KEY);}catch(e){}location.reload();}
+async function resyncAll(){try{localStorage.removeItem(SYNC_KEY);}catch(e){}try{await terminate(db);await clearIndexedDbPersistence(db);}catch(e){}location.reload();}
 
-window.DB={db,collection,doc,addDoc:addDocU,updateDoc:updateDocU,deleteDoc:deleteDocU,getDocs,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc:setDocU,writeBatch:writeBatchU,increment,nextCounter,claimTask,finishTask,live,liveTombs,resyncAll};
+window.DB={db,collection,doc,addDoc:addDocU,updateDoc:updateDocU,deleteDoc:deleteDocU,getDocs,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc:setDocU,writeBatch:writeBatchU,increment,nextCounter,live,liveTombs,resyncAll,checkEpoch};
 window.AUTH=auth;window.SIGN_IN=signInWithEmailAndPassword;window.SIGN_OUT=signOut;window.ON_AUTH=onAuthStateChanged;
 window.dispatchEvent(new Event('dbReady'));
 </script>
@@ -970,9 +983,7 @@ function getStats(c,ap){
   const rawSch=[];
   for(let m=0;m<mo;m++){
     const ds=c['дата'+(m+1)],sz=parseFloat(c['размер'+(m+1)])||0;
-    let ed=ds;
-    if(!ds&&c.date){const b=parseD(c.date);if(b){const a=new Date(b);a.setMonth(a.getMonth()+m+1);ed=fmtD(a);}}
-    rawSch.push({month:m+1,date:ed||'—',origSize:sz});
+    rawSch.push({month:m+1,date:ds||'—',origSize:sz});
   }
   // применим скидку: уменьшаем с конца
   let discRem=td;
@@ -1007,7 +1018,7 @@ function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=
 
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='27.09.2026 · 2';
+const CRM_VERSION='27.09.2026 · 3';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1018,8 +1029,8 @@ function doLogout(){if(window.SIGN_OUT)window.SIGN_OUT(window.AUTH).finally(()=>
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
 function initApp(){if(_inited)return;_inited=true;const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
-async function startAll(){loadSettings();const{live,liveTombs}=window.DB;await liveTombs();if(typeof startInv==='function')startInv();let _pLoaded=false,_cLoaded=false;const _mig=()=>{if(_pLoaded&&_cLoaded&&!window._migDone){window._migDone=true;setTimeout(migratePersons,1500);}};
-  live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));_pLoaded=true;_mig();const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;_cLoaded=true;_mig();if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
+async function startAll(){const{live,liveTombs,checkEpoch}=window.DB;await checkEpoch();loadSettings();await liveTombs();if(typeof startInv==='function')startInv();
+  live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
 function refreshAll(){{const f=document.getElementById('page-finance');if(f&&f.style.display!=='none')renderFinance();}if(typeof renderInvIfVisible==='function')renderInvIfVisible();renderDash();renderClients();renderKassa();if(typeof renderReminders==='function')renderReminders();{const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();}if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
 function goTo(p){
   if(p!=='client')S.curPage=p;
@@ -1129,14 +1140,14 @@ function finFact(mk,ctx){
   if(ctx.cache[mk])return ctx.cache[mk];
   const[y,m]=mk.split('-').map(Number),st=new Date(y,m-1,1),en=new Date(y,m,1);
   const inM=d=>d&&d>=st&&d<en;
-  const o={deals:0,sales:0,cost:0,plan:0,planGross:0,pay:0,payCnt:0,prepay:0,gross:0,disc:0,salary:0,opex:0,otherExp:0,invShare:0,purchase:0,invIn:0,invOut:0,invPay:0,kIn:0,kOut:0,expLeft:0,expGross:0,planDue:0,planPaid:0};
+  const o={deals:0,sales:0,cost:0,plan:0,planGross:0,pay:0,payCnt:0,prepay:0,gross:0,disc:0,salary:0,opex:0,otherExp:0,invShare:0,purchase:0,invIn:0,invOut:0,invPay:0,kIn:0,kOut:0,expLeft:0,expGross:0,deferLeft:0,planDue:0,planPaid:0};
   S.payments.forEach(p=>{const d=dTs(p.date);if(!inM(d))return;const a=parseFloat(p.amount)||0;
     if(p.type==='payment'){o.pay+=a;o.payCnt++;}else if(p.type==='prepay')o.prepay+=a;});
   const lim=new Date(today().getTime()+86400000);
   ctx.rows.forEach(x=>{
     const d=dealDate(x.c);if(inM(d)){o.deals++;o.sales+=parseFloat(x.c.price)||0;o.cost+=parseFloat(x.c.cost)||0;}
-    // отсроченный платёж считается по новой дате, а не по дате из договора
-    x.s.schedule.forEach(it=>{const df=deferOf(x.c,it.month),dd=df?safeDateFromInput(df.date):parseD(it.date);if(!inM(dd)||!(it.size>0))return;o.plan+=it.size;o.planGross+=it.size*x.rp;if(dd<lim){o.planDue+=it.size;o.planPaid+=Math.min(it.size,it.paid);}});
+    // план — по датам договора (отсрочка не отменяет просрочку)
+    x.s.schedule.forEach(it=>{const dd=parseD(it.date);if(!inM(dd)||!(it.size>0))return;o.plan+=it.size;o.planGross+=it.size*x.rp;if(dd<lim){o.planDue+=it.size;o.planPaid+=Math.min(it.size,it.paid);}});
   });
   ctx.M.events.forEach(e=>{if(!inM(e.d))return;
     if(e.kind==='profit'){if(e.src==='discount')o.disc-=e.amount;else o.gross+=e.amount;}
@@ -1144,8 +1155,9 @@ function finFact(mk,ctx){
   S.kassaOps.forEach(k=>{const d=opDate(k);if(!inM(d)||k.type==='transfer')return;const a=parseFloat(k.amount)||0,mt=kMeta(k.type);
     if(mt.dir==='in')o.kIn+=a;else if(mt.dir==='out')o.kOut+=a;
     if(k.type==='purchase')o.purchase+=a;else if(k.type==='inv_in')o.invIn+=a;else if(k.type==='inv_out')o.invOut+=a;else if(k.type==='inv_pay')o.invPay+=a;});
-  // Ещё ожидается в этом месяце по графику (без просрочки, отсрочки — по новой дате)
-  ctx.rem.forEach(r=>{if(r.over||!inM(r.eff))return;const x=ctx.byId[r.c.id];o.expLeft+=r.left;o.expGross+=r.left*(x?x.rp:0);});
+  // Ещё ожидается в этом месяце (без просрочки). Отсроченный платёж ждём в дату отсрочки,
+  // даже если по договору он уже просрочен.
+  ctx.rem.forEach(r=>{if(r.over||!inM(r.eff))return;const x=ctx.byId[r.c.id];o.expLeft+=r.left;o.expGross+=r.left*(x?x.rp:0);if(r.df)o.deferLeft+=r.left;});
   if(S.inv.length){try{const md=invMonthData(ctx.M,mk);(md.rows||[]).forEach(r=>{if(r.role!=='founder')o.invShare+=r.total||0;});}catch(e){console.error(e);}}
   ctx.cache[mk]=o;return o;
 }
@@ -1239,6 +1251,7 @@ function renderFinance(){
     {l:'Наценка по новым договорам',k:'margin',b:1},
     {h:'Поступления от клиентов'},
     {l:'План по графику',k:'plan',plan:1,all:1},
+    {l:'Отсроченные платежи (ожидаются)',k:'deferLeft',plan:1,all:1,noFact:1},
     {l:'Платежи клиентов',k:'pay'},
     {l:'Выполнение плана',k:'planPct',pct:1},
     {l:'Предоплаты',k:'prepay'},
@@ -1285,7 +1298,7 @@ function renderFinance(){
       if(EST_KEYS.includes(r.k)||r.k==='planPct'||r.k==='netPct'){const v=estD[i][r.k];t+=r.k==='planPct'?cell(null,r,cc):cell(v,r,cc+' fin-est');return;}
       t+=cell(null,r,cc);
     });
-    t+=cell(fact[r.k],r,' fin-tot');
+    t+=cell(r.noFact?null:fact[r.k],r,' fin-tot');
     if(hasFut)t+=(['deals','sales','cost','margin','prepay','disc','invShare','company','purchase','invIn','invOut','invPay','kIn','kOut','flow'].includes(r.k)||r.k==='planPct')?cell(null,r,' fin-tot'):cell(fc[r.k],r,' fin-tot fin-est');
     t+='</tr>';
   });
@@ -1387,7 +1400,7 @@ function mobileCardsHtml(list){
     const rows=fields.map(f=>{const d=CARD_F[f.k];if(d.show&&!d.show(c))return'';return d.raw?'<div class="mcard-row"><span class="mcard-label">'+d.n+'</span>'+d.v(c)+'</div>':'<div class="mcard-row"><span class="mcard-label">'+d.n+'</span><span class="mcard-val'+(d.cls?' '+d.cls(c):'')+'"'+(d.st?' style="'+d.st+'"':'')+'>'+d.v(c)+'</span></div>';}).join('');
     return'<div class="mcard" onclick="openC(\''+c.id+'\')">'+
       '<div class="mcard-top"><div class="mcard-name">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+(hc?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+'</div><div class="mcard-id">№'+(c.contractId||'—')+'</div></div>'+
-      '<div class="mcard-ph">'+fmtPhone((c.phones||[])[0])+(fmtPhone((c.gphones||[])[0])?'<br>'+fmtPhone((c.gphones||[])[0]):'')+'</div>'+rows+
+      '<div class="mcard-ph">'+fmtPhone((c.phones||[])[0])+(guarPhone(c)?'<br>'+fmtPhone(guarPhone(c)):'')+'</div>'+rows+
       '</div>';
   }).join('');
   return'<div class="mobile-cards">'+items+'</div>';
@@ -1577,7 +1590,6 @@ function renderDetail(c){
   const s=getStats(c),st=effStatus(c,s);
   const pc=s.schedule.filter(p=>p.st==='paid').length;
   const ph=(c.phones||[]).map(fmtPhone).filter(Boolean).join(', ')||'—';
-  const gph=(c.gphones||[]).map(fmtPhone).filter(Boolean).join(', ')||'—';
   const dups=findDups(c.name,c.id);
   const so=document.getElementById('schedb_'+c.id)?.classList.contains('on');
   const ho=document.getElementById('cphb_'+c.id)?.classList.contains('on');
@@ -1628,13 +1640,7 @@ async function cancelPay(pid,cid,amt,pt){
   if(pt==='prepay'){toast('Предоплату нельзя удалить из истории. Измените её в договоре.','ter');return;}
   const p=S.payments.find(x=>x.id===pid);
   if(!p){toast('Платёж не найден','ter');return;}
-  let kOp=null,ambiguous=false;
-  if(p.kassaOpId)kOp=S.kassaOps.find(o=>o.id===p.kassaOpId)||null;
-  if(!kOp){
-    const cand=S.kassaOps.filter(o=>o.type==='payment_in'&&o.refType==='client'&&o.refId===cid&&Math.abs((parseFloat(o.amount)||0)-(parseFloat(p.amount)||0))<0.005&&(!o.paymentId||o.paymentId===pid)&&(!p.dateStr||!o.dateStr||o.dateStr===p.dateStr));
-    if(cand.length===1)kOp=cand[0];else if(cand.length>1)ambiguous=true;
-  }
-  if(ambiguous){toast('В кассе несколько одинаковых операций за эту дату — отмените нужную вручную в Кассе','ter');return;}
+  const kOp=p.kassaOpId&&S.kassaOps.find(o=>o.id===p.kassaOpId)||null;
   const warn=kOp?'Касса «'+esc(kOp.walletName||'')+'» уменьшится на '+fmt(amt)+' ₽':'<span style="color:var(--yellow)">Связанная операция в кассе не найдена — касса не изменится</span>';
   showConfirm('Отменить платёж?','<strong>'+fmt(amt)+' ₽</strong><br>'+warn,async()=>{
     const{db,doc,writeBatch}=window.DB;
@@ -1700,7 +1706,7 @@ async function deleteComment(){const{db,doc,updateDoc}=window.DB;await updateDoc
 
 // ---------- NEW / EDIT CLIENT ----------
 function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=new Date().toISOString().split('T')[0];['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;_schedOk=false;document.getElementById('schedBody').innerHTML='';updSels();calcSched();schedWarn();openM('mClient');}
-function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;if(c.prepayPt)document.getElementById('f_prepayPt').value=(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))?c.prepayWallet:((S.wallets.find(w=>w.name===c.prepayPt)||{}).id||'');},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
+function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;if(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))document.getElementById('f_prepayPt').value=c.prepayWallet;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
 function addPh(id){const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" placeholder="89001234567"/><button class="ib ir" onclick="this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
 let _schedManual={size:false,dates:false};let _costOk=false;let _schedOk=false;
@@ -1917,7 +1923,7 @@ const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getEl
     if(!_cid){toast('Сумма графика '+fmt(sum)+' ₽, а должна быть '+fmt(target)+' ₽. Нажмите «Пересчитать» в графике','ter');return;}
     if(!_schedOk){showConfirm('График не сходится','Сумма графика <strong>'+fmt(sum)+' ₽</strong>, а долг клиента <strong>'+fmt(target)+' ₽</strong> (разница '+fmt(Math.abs(d))+' ₽).<br>Можно сохранить как есть или закрыть окно и нажать «Пересчитать».',()=>{_schedOk=true;saveClient();});return;}
   }
-}_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{dv=document.getElementById('f_date').value,ptVal=document.getElementById('f_prepayPt').value,ptW=walletByVal(ptVal),pt=ptW?ptW.name:'',payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',..._pp.data,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,cost,price,prepay:parseNum(document.getElementById('f_prepay').value),months:mo,payDay,prepayPt:pt,prepayWallet:ptW?ptW.id:''};for(let m=0;m<12;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseNum(rows[m].querySelector('.sz').value);const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(_cid){const old=S.clients.find(x=>x.id===_cid);
+}_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{dv=document.getElementById('f_date').value,ptVal=document.getElementById('f_prepayPt').value,ptW=walletByVal(ptVal),pt=ptW?ptW.name:'',payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',..._pp.data,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,cost,price,prepay:parseNum(document.getElementById('f_prepay').value),months:mo,payDay,prepayWallet:ptW?ptW.id:''};for(let m=0;m<12;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseNum(rows[m].querySelector('.sz').value);const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(_cid){const old=S.clients.find(x=>x.id===_cid);
   const oldPrepay=R2(old&&old.prepay),newPrepay=R2(data.prepay);
   const pr=S.payments.find(x=>x.clientId===_cid&&x.type==='prepay');
   const prK=S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===_cid);
@@ -2054,7 +2060,7 @@ async function loadSettings(){
   try{
     const s=await getDocs(collection(db,'settings'));
     let hasPart=false;
-    s.docs.forEach(d=>{if(d.id==='partners'){S.partners=d.data().list||[];hasPart=true;}if(d.id==='ui'&&typeof uiApplyRemote==='function')uiApplyRemote(d.data());if(d.id==='wa'){const w=d.data();S.wa={soon:w.soon||w.remind||WA_DEF.soon,today:w.today||w.remind||WA_DEF.today,overdue:w.overdue||WA_DEF.overdue};}});renderWaTpl();
+    s.docs.forEach(d=>{if(d.id==='partners'){S.partners=d.data().list||[];hasPart=true;}if(d.id==='ui'&&typeof uiApplyRemote==='function')uiApplyRemote(d.data());if(d.id==='wa'){const w=d.data();S.wa={soon:w.soon||WA_DEF.soon,today:w.today||WA_DEF.today,overdue:w.overdue||WA_DEF.overdue};}});renderWaTpl();
     // гарантируем "Сторонний"
     if(!S.partners.includes('Сторонний'))S.partners.unshift('Сторонний');
     if(!hasPart)await setDoc(doc(db,'settings','partners'),{list:S.partners});
@@ -2153,7 +2159,6 @@ function syncBaseNav(p){
 // ---------- Клиенты ----------
 // Клиент — карточка в коллекции persons со своим номером (К-0001). ФИО может повторяться:
 // сделка привязана к карточке полем clientPid, поручители — guarantors[{name,pid}].
-// Сделки без привязки (созданные до номеров или старой версией) находятся по ФИО.
 let _pplTab='all';
 function personKey(name){return String(name||'').trim().replace(/\s+/g,' ').toLowerCase();}
 function cleanName(name){return String(name||'').trim().replace(/\s+/g,' ');}
@@ -2166,25 +2171,17 @@ function pMaps(){
     _pm={src:S.persons,byId,byName};}
   return _pm;
 }
-// Ключ человека: 'p:<id карточки>' или 'n:<ФИО>' для человека из старой сделки без карточки
-function refKey(name,pid){const m=pMaps();if(pid&&m.byId.has(pid))return'p:'+pid;const k=personKey(name);if(!k)return null;const same=m.byName.get(k);return same&&same.length===1?'p:'+same[0].id:'n:'+k;}
+// Ключ человека: 'p:<id карточки>'
+function refKey(name,pid){return pid?'p:'+pid:null;}
 function dealClientKey(c){return refKey(c.name,c.clientPid);}
-function dealGuarantorRefs(c){
-  if(Array.isArray(c.guarantors)&&c.guarantors.length)return c.guarantors.map(g=>({name:cleanName(g&&g.name),pid:g&&g.pid||null})).filter(g=>g.name);
-  return c.gname&&cleanName(c.gname)?[{name:cleanName(c.gname),pid:null}]:[];
-}
+function dealGuarantorRefs(c){return(c.guarantors||[]).map(g=>({name:cleanName(g&&g.name),pid:g&&g.pid||null})).filter(g=>g.name);}
 function dealGuarantors(c){return dealGuarantorRefs(c).map(g=>g.name);}
-// Все клиенты: карточки + люди из старых сделок без карточки
+// Телефон первого поручителя (из его карточки)
+function guarPhone(c){const g=dealGuarantorRefs(c)[0],p=g&&g.pid&&pMaps().byId.get(g.pid);return p?(p.phones||[]).find(Boolean)||'':'';}
+// Все клиенты (карточки)
 function personIndex(){
   const m=new Map();
   (S.persons||[]).forEach(d=>m.set('p:'+d.id,{key:'p:'+d.id,id:d.id,no:d.no||'',name:cleanName(d.name),phones:(d.phones||[]).filter(Boolean),addr:d.addr||'',note:d.note||''}));
-  const add=(key,name,phones,addr)=>{if(!key||m.has(key)&&m.get(key).id)return;let p=m.get(key);
-    if(!p){p={key,id:null,no:'',name:cleanName(name),phones:[],addr:'',note:''};m.set(key,p);}
-    if(!p.phones.length&&phones&&phones.length)p.phones=phones.filter(Boolean);if(!p.addr&&addr)p.addr=addr;};
-  S.clients.slice().sort((a,b)=>(parseD(b.date)||0)-(parseD(a.date)||0)).forEach(c=>{
-    add(dealClientKey(c),c.name,c.phones,c.addr);
-    dealGuarantorRefs(c).forEach((g,i)=>add(refKey(g.name,g.pid),g.name,i===0?c.gphones:[],i===0?c.gaddr:''));
-  });
   return m;
 }
 const pLabel=p=>(p.no?p.no+' · ':'')+p.name;
@@ -2334,10 +2331,9 @@ async function savePerson(){
   _saving=true;
   try{
     const{db,collection,doc,writeBatch,nextCounter}=window.DB;
-    const ref=old&&old.id?doc(db,'persons',old.id):doc(collection(db,'persons'));
+    const ref=old?doc(db,'persons',old.id):doc(collection(db,'persons'));
     const data={name,phones,addr,note,updatedAt:new Date()};
-    if(!old||!old.id){data.createdAt=new Date();data.no=pNo(await nextCounter('pcounter'));}
-    else if(!old.no)data.no=pNo(await nextCounter('pcounter'));
+    if(!old){data.createdAt=new Date();data.no=pNo(await nextCounter('pcounter'));}
     const pid=ref.id,no=data.no||old.no;
     // карточка + все сделки, где человек клиент или поручитель (пачками по 400)
     const ops=[b=>b.set(ref,data,{merge:true})];
@@ -2346,48 +2342,18 @@ async function savePerson(){
         const upd={};
         if(dealClientKey(c)===old.key){if(c.name!==name)upd.name=name;if(c.clientPid!==pid)upd.clientPid=pid;if(JSON.stringify(c.phones||[])!==JSON.stringify(phones))upd.phones=phones;if((c.addr||'')!==addr)upd.addr=addr;}
         const gs=dealGuarantorRefs(c),gi=gs.findIndex(g=>refKey(g.name,g.pid)===old.key);
-        if(gi>=0){
-          if(gs[gi].name!==name||gs[gi].pid!==pid){const ng=gs.map(g=>({name:g.name,pid:g.pid||null}));ng[gi]={name,pid};upd.guarantors=ng;}
-          if(gi===0){if((c.gname||'')!==name)upd.gname=name;if(JSON.stringify(c.gphones||[])!==JSON.stringify(phones))upd.gphones=phones;if((c.gaddr||'')!==addr)upd.gaddr=addr;}
-        }
+        if(gi>=0&&gs[gi].name!==name){const ng=gs.map(g=>({name:g.name,pid:g.pid}));ng[gi]={name,pid};upd.guarantors=ng;}
         if(Object.keys(upd).length)ops.push(b=>b.update(doc(db,'clients',c.id),upd));
       });
     }
     for(let i=0;i<ops.length;i+=400){const b=writeBatch(db);ops.slice(i,i+400).forEach(f=>f(b));await b.commit();}
-    await logA(old&&old.id?'Клиент изменён':'Новый клиент',no+' '+name+(old&&old.name!==name?' (было: '+old.name+')':'')+(ops.length>1?' · сделок обновлено: '+(ops.length-1):''));
+    await logA(old?'Клиент изменён':'Новый клиент',no+' '+name+(old&&old.name!==name?' (было: '+old.name+')':'')+(ops.length>1?' · сделок обновлено: '+(ops.length-1):''));
     closeM('mPerson');toast(old?'Сохранено':'Клиент '+no+' создан','tok');
     if(old&&S.curPerson===old.key)S.curPerson='p:'+pid;
     const cb=_pf.cb;_pf={key:null,cb:null,dupOk:false};
     if(cb)cb({key:'p:'+pid,id:pid,no,name,phones,addr});
   }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
   finally{_saving=false;}
-}
-
-// ---------- Однократно: номера всем клиентам и привязка старых сделок ----------
-// Люди из старых сделок получают карточки, сделки — ссылки clientPid/guarantors[].pid.
-async function migratePersons(){
-  const idx=personIndex();
-  const virt=[...idx.values()].filter(p=>!p.id),noNo=(S.persons||[]).filter(d=>!d.no);
-  const unlinked=S.clients.filter(c=>!c.clientPid||dealGuarantorRefs(c).some(g=>!g.pid));
-  if(!virt.length&&!noNo.length&&!unlinked.length)return;
-  const{db,collection,doc,writeBatch,nextCounter,claimTask,finishTask}=window.DB;
-  if(!await claimTask('persons_v1'))return;
-  try{
-    const need=virt.length+noNo.length;let n=need?await nextCounter('pcounter',need):0;
-    const ops=[],pidOf=new Map(),now=new Date();
-    virt.forEach(p=>{const ref=doc(collection(db,'persons'));pidOf.set(p.key,ref.id);ops.push(b=>b.set(ref,{name:p.name,phones:p.phones,addr:p.addr,note:'',no:pNo(n++),createdAt:now,updatedAt:now}));});
-    noNo.forEach(d=>{const v=pNo(n++);ops.push(b=>b.update(doc(db,'persons',d.id),{no:v}));});
-    const pidFor=key=>key&&key.startsWith('p:')?key.slice(2):pidOf.get(key)||null;
-    S.clients.forEach(c=>{
-      const upd={},cp=pidFor(dealClientKey(c));if(cp&&c.clientPid!==cp)upd.clientPid=cp;
-      const gs=dealGuarantorRefs(c);
-      if(gs.length&&gs.some(g=>!g.pid))upd.guarantors=gs.map(g=>({name:g.name,pid:g.pid||pidFor(refKey(g.name,g.pid))}));
-      if(Object.keys(upd).length)ops.push(b=>b.update(doc(db,'clients',c.id),upd));
-    });
-    for(let i=0;i<ops.length;i+=400){const b=writeBatch(db);ops.slice(i,i+400).forEach(f=>f(b));await b.commit();}
-    await finishTask('persons_v1');
-    await logA('Клиенты: номера','Карточек создано: '+virt.length+', номеров выдано: '+need+', сделок привязано: '+(ops.length-need));
-  }catch(e){console.error('Перенос клиентов:',e);}
 }
 
 // ---------- Выбор клиента в форме сделки ----------
@@ -2452,11 +2418,7 @@ async function dealPeopleData(){
     if(seen.has(g.p.key))return{err:g.p.key===cp.key?'Клиент не может быть своим поручителем':'Поручитель «'+g.p.name+'» указан дважды'};
     seen.add(g.p.key);gs.push(g.p);
   }
-  // люди из старых сделок без карточки — создаём карточку сейчас, чтобы сделка ссылалась на неё
-  const ensure=async p=>{if(p.id)return p;const{db,collection,doc,setDoc,nextCounter}=window.DB;const ref=doc(collection(db,'persons'));const no=pNo(await nextCounter('pcounter'));await setDoc(ref,{name:p.name,phones:p.phones,addr:p.addr,note:'',no,createdAt:new Date(),updatedAt:new Date()});return Object.assign({},p,{id:ref.id,no,key:'p:'+ref.id});};
-  const c2=await ensure(cp),g2=[];for(const g of gs)g2.push(await ensure(g));
-  const g0=g2[0];
-  return{data:{name:c2.name,clientPid:c2.id,phones:c2.phones,addr:c2.addr,guarantors:g2.map(p=>({name:p.name,pid:p.id})),gname:g0?g0.name:'',gphones:g0?g0.phones:[],gaddr:g0?g0.addr:''}};
+  return{data:{name:cp.name,clientPid:cp.id,phones:cp.phones,addr:cp.addr,guarantors:gs.map(p=>({name:p.name,pid:p.id}))}};
 }
 
 // ---------- Отсрочка платежа ----------
@@ -2542,7 +2504,7 @@ function renderReminders(){
   if(!list.length){el.innerHTML='<div class="empty" style="padding:40px">В этом списке пусто</div>';return;}
   const due=r=>{
     let b=r.over?'<span class="badge bo">просрочка '+r.days+' '+invPlural(r.days,'день','дня','дней')+'</span>':(r.todayDue?'<span class="badge ba">сегодня</span>':'<span class="inv-muted">через '+(-r.days)+' '+invPlural(-r.days,'день','дня','дней')+'</span>');
-    if(r.df)b+='<div class="rem-mark rem-df">отсрочка до '+fmtD(r.eff)+(r.df.note?' · '+esc(r.df.note):'')+'</div>';
+    if(r.df)b+='<div class="rem-mark rem-df">отсрочка до '+fmtD(r.eff)+(r.df.note?' · '+esc(r.df.note):'')+'</div>'+(r.origOver&&!r.over?'<div class="rem-mark cr">по договору — просрочка</div>':'');
     if(r.partial)b+='<div class="rem-mark rem-pt">оплачено '+fmt(r.paid)+' из '+fmt(r.size)+' ₽</div>';
     if(r.c.lastRemind&&r.c.lastRemind.date)b+='<div class="rem-wa">WhatsApp: '+esc(r.c.lastRemind.date)+'</div>';
     return b;
@@ -2590,11 +2552,7 @@ const kTypeMeta={
   opex:{name:'Опер. расход',dir:'out',group:'opex',color:'bo',auto:false},
   salary:{name:'Зарплата',dir:'out',group:'salary',color:'bo',auto:false},
   other_exp:{name:'Прочий расход',dir:'out',group:'opex',color:'bo',auto:false},
-  transfer:{name:'Перевод',dir:'neutral',group:'transfer',color:'brp',auto:false},
-  // Старые типы: новых таких записей не бывает, но прежние должны правильно считаться в остатках
-  withdraw:{name:'Вывод себе',dir:'out',group:'opex',color:'by2',auto:true},
-  income:{name:'Приход',dir:'in',group:'payment',color:'ba',auto:true},
-  expense:{name:'Расход',dir:'out',group:'opex',color:'bo',auto:false}
+  transfer:{name:'Перевод',dir:'neutral',group:'transfer',color:'brp',auto:false}
 };
 function kMeta(t){return kTypeMeta[t]||{name:t,dir:'neutral',group:'other',color:'brp',auto:false};}
 
@@ -2913,7 +2871,7 @@ kTypeMeta.inv_in={name:'Вклад в пул',dir:'in',group:'invest',color:'bd'
 kTypeMeta.inv_out={name:'Возврат капитала',dir:'out',group:'invest',color:'by2',auto:true};
 kTypeMeta.inv_pay={name:'Выплата прибыли',dir:'out',group:'invest',color:'by2',auto:true};
 
-const INV_EXP_TYPES=['salary','opex','expense'];
+const INV_EXP_TYPES=['salary','opex'];
 // «Прочий расход» — только за счёт учредителей, пропорционально их капиталу
 const INV_FEXP_TYPES=['other_exp'];
 const INV_MN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -3698,7 +3656,7 @@ function filterClientList(list,cfIn){
   if(cf.date_from){const d=safeDateFromInput(cf.date_from);list=list.filter(c=>{const x=parseD(c.date);return x&&x>=d;});}
   if(cf.date_to){const d=safeDateFromInput(cf.date_to);list=list.filter(c=>{const x=parseD(c.date);return x&&x<=d;});}
   if(cf.name)list=list.filter(c=>(c.name||'').toLowerCase().includes(cf.name.toLowerCase()));
-  if(cf.phone){const q=cf.phone.replace(/\D/g,'');if(q)list=list.filter(c=>[...(c.phones||[]),...(c.gphones||[])].some(p=>(p||'').replace(/\D/g,'').includes(q)));}
+  if(cf.phone){const q=cf.phone.replace(/\D/g,'');if(q)list=list.filter(c=>[...(c.phones||[]),...dealGuarantorRefs(c).flatMap(g=>(pMaps().byId.get(g.pid)||{}).phones||[])].some(p=>(p||'').replace(/\D/g,'').includes(q)));}
   if(cf.product)list=list.filter(c=>(c.product||'').toLowerCase().includes(cf.product.toLowerCase()));
   if(cf.partner)list=list.filter(c=>(c.partner||'').toLowerCase().includes(cf.partner.toLowerCase()));
   if(cf.price_q)list=list.filter(c=>String(c.price||'').includes(cf.price_q));
@@ -3743,7 +3701,7 @@ function clOverHtml(c){
   const cm=hc?' <span class="comment-toggle" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle(\'on\')">'+_cmtIcon+'</span><div class="comment-body"><div style="font-size:10px;color:var(--t3);margin-bottom:2px">'+(c.commentDate||'')+'</div>'+esc(c.comment)+'</div>':'';
   return(c._over>0?'<span class="amt cr">'+fmt(c._over)+' ₽</span>':_dash)+cm;
 }
-function clNextHtml(c){const p=clNextPay(c);if(!p)return _dash;const df=deferOf(c,p.month),late=!df&&(p.st==='overdue'||p.st==='partial');return'<div style="font-weight:700;font-size:12px" class="'+(late?'cr':'')+'">'+fmt(p.size-p.paid)+' ₽</div><div style="font-size:10px;color:var(--t2)">'+(df?fmtD(safeDateFromInput(df.date))+' <span style="color:var(--yellow)">отсрочка</span>':p.date)+'</div>';}
+function clNextHtml(c){const p=clNextPay(c);if(!p)return _dash;const df=deferOf(c,p.month),late=p.st==='overdue'||p.st==='partial';return'<div style="font-weight:700;font-size:12px" class="'+(late?'cr':'')+'">'+fmt(p.size-p.paid)+' ₽</div><div style="font-size:10px;color:var(--t2)">'+(df?fmtD(safeDateFromInput(df.date))+' <span style="color:var(--yellow)">отсрочка</span>':p.date)+'</div>';}
 function clMargin(c){const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0;return co?pr-co:null;}
 // Колонки таблицы (ПК)
 const CL_COLS={
@@ -3766,7 +3724,7 @@ const CL_COLS={
   prepay:{n:'Предоплата',td:c=>'<td '+_clO(c)+'>'+fmt(c.prepay||0)+' ₽</td>'},
   cost:{n:'Себестоимость',h:'Себест.',td:c=>'<td '+_clO(c)+'>'+(parseFloat(c.cost)?fmt(c.cost)+' ₽':'—')+'</td>'},
   margin:{n:'Наценка',td:c=>{const m=clMargin(c);return'<td '+_clO(c)+'>'+(m===null?_dash:'<span class="amt cg">'+fmt(m)+' ₽</span>')+'</td>';}},
-  gname:{n:'Поручитель',td:c=>'<td '+_clO(c)+'><div style="font-size:12px">'+esc(dealGuarantors(c).join(', ')||'—')+'</div><div style="font-size:10px;color:var(--t3)">'+fmtPhone((c.gphones||[])[0])+'</div></td>'},
+  gname:{n:'Поручитель',td:c=>'<td '+_clO(c)+'><div style="font-size:12px">'+esc(dealGuarantors(c).join(', ')||'—')+'</div><div style="font-size:10px;color:var(--t3)">'+fmtPhone(guarPhone(c))+'</div></td>'},
   comment:{n:'Комментарий',td:c=>'<td '+_clO(c)+' style="font-size:11px;color:var(--t2);max-width:220px;white-space:normal">'+(c.comment&&c.comment.trim()?c.comment:'—')+'</td>'}
 };
 const CL_COLS_DEF=['id','date','name','product','partner','pricecost','months','bal','monthly','over','addr','status'];
