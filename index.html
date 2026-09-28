@@ -7,11 +7,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <title>Amana CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,CACHE_SIZE_UNLIMITED,connectFirestoreEmulator,collection,doc,addDoc,updateDoc,getDocs,getDocsFromCache,getDocsFromServer,getDoc,getDocFromServer,terminate,clearIndexedDbPersistence,query,orderBy,limit,startAfter,where,onSnapshot,setDoc,writeBatch,runTransaction,increment,serverTimestamp,Timestamp}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import{getAuth,connectAuthEmulator,signInWithEmailAndPassword,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import{initializeApp}from"./vendor/firebase-11.0.0/firebase-app.js";
+import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,CACHE_SIZE_UNLIMITED,connectFirestoreEmulator,collection,doc,addDoc,updateDoc,getDocs,getDocsFromCache,getDocsFromServer,getDoc,getDocFromServer,terminate,clearIndexedDbPersistence,query,orderBy,limit,startAfter,where,onSnapshot,setDoc,writeBatch,runTransaction,increment,serverTimestamp,Timestamp}from"./vendor/firebase-11.0.0/firebase-firestore.js";
+import{getAuth,connectAuthEmulator,signInWithEmailAndPassword,onAuthStateChanged,signOut}from"./vendor/firebase-11.0.0/firebase-auth.js";
 const app=initializeApp({apiKey:"AIzaSyCZZCJiPUfZ2OqAa2CaQXKeHGh5MGR9uuo",authDomain:"amana-crm-16033.firebaseapp.com",projectId:"amana-crm-16033",storageBucket:"amana-crm-16033.firebasestorage.app",messagingSenderId:"21151729250",appId:"1:21151729250:web:06fe4021102a8ac8c9333b"});
 // База хранится и на устройстве (кэш без ограничения размера), поэтому при открытии
 // с сервера скачиваются только изменения — это экономит лимит чтений Firebase.
@@ -789,6 +788,7 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 <div class="ph"><div><div class="pt">Касса</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
 <div id="kWallets" class="sg4"></div>
 <details class="card k-recon" id="kRecon"><summary class="ct" style="margin:0;cursor:pointer;list-style:none">Сверка касс <span id="reconBadge"></span></summary><div style="font-size:11px;color:var(--t3);margin:10px 0 8px;line-height:1.5">Как работает: остаток каждого счёта, который хранится в базе, сравнивается с суммой всех операций по этому счёту (приходы − расходы ± переводы). Если сходится — всё записалось правильно. Если нет — значит, когда-то остаток внесли вручную, не через операцию кассы, или запись прошла не полностью. «Исправить» приводит остаток к сумме операций.</div><div id="reconList"></div></details>
+<details class="card k-recon" id="kCheck"><summary class="ct" style="margin:0;cursor:pointer;list-style:none">Проверка базы <span id="checkBadge"></span></summary><div style="font-size:11px;color:var(--t3);margin:10px 0 8px;line-height:1.5">Ищет то, что не должно быть: оплату без операции в кассе и наоборот, переплату, график, который не сходится с ценой, сделку без карточки клиента, изменения в месяцах, уже закрытых у инвесторов. Нажмите на строку, чтобы открыть сделку.</div><div id="checkList"></div></details>
 <div class="ftabs" id="kTabs"><button class="ft on" onclick="setKTab('all',this)">Все</button><button class="ft" onclick="setKTab('payment',this)">Оплаты</button><button class="ft" onclick="setKTab('purchase',this)">Закупки</button><button class="ft" onclick="setKTab('salary',this)">Зарплата</button><button class="ft" onclick="setKTab('opex',this)">Расходы</button><button class="ft" onclick="setKTab('transfer',this)">Переводы</button><button class="ft" onclick="setKTab('invest',this)">Инвесторы</button></div>
 <div class="card" style="padding:0;overflow:hidden"><div id="kList"></div></div>
 </div>
@@ -1028,7 +1028,7 @@ function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=
 
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='29.09.2026 · 1';
+const CRM_VERSION='29.09.2026 · 2';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1060,6 +1060,7 @@ function goTo(p){
   if(p==='dashboard')renderDash();
   if(p==='finance')renderFinance();
   if(p==='settings')renderSettings();
+  if(p==='kassa')renderIntegrity();
   if(p==='investors')renderInvestors();
   if(p==='investor'){const ni=document.getElementById('nav-investors');if(ni)ni.classList.add('on');renderInvDetail();}
   if(p==='reminders')renderReminders();
@@ -1822,6 +1823,43 @@ function renderRecon(){
   const bd=document.getElementById('reconBadge');if(bd)bd.innerHTML=bad?'<span class="badge bo" style="margin-left:6px">расхождение: '+bad+'</span>':'<span class="badge ba" style="margin-left:6px">сходится</span>';
   const box=document.getElementById('kRecon');if(box&&bad&&!box.dataset.opened){box.open=true;box.dataset.opened='1';}
 }
+// ---------- ПРОВЕРКА БАЗЫ ----------
+// Список расхождений в данных. Ничего не исправляет сама — только показывает, где посмотреть.
+function integrityIssues(){
+  const out=[],add=(t,cid)=>out.push({t,cid:cid||null});
+  const kById=new Map(S.kassaOps.map(o=>[o.id,o])),pById=new Map(S.payments.map(p=>[p.id,p])),cById=new Map(S.clients.map(c=>[c.id,c]));
+  const lbl=c=>'№'+(c&&c.contractId||'—')+' '+(c&&c.name||'');
+  S.payments.forEach(p=>{
+    if(p.type!=='payment'&&p.type!=='prepay')return;
+    const c=cById.get(p.clientId);
+    if(!c){add('Платёж '+fmt(p.amount)+' ₽ от '+(p.dateStr||'')+' относится к удалённой сделке');return;}
+    const k=p.kassaOpId?kById.get(p.kassaOpId):(p.type==='prepay'?S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===p.clientId):null);
+    if(!k)add(lbl(c)+': '+(p.type==='prepay'?'предоплата':'оплата')+' '+fmt(p.amount)+' ₽ от '+(p.dateStr||'')+' без операции в кассе',c.id);
+    else if(Math.abs((parseFloat(k.amount)||0)-(parseFloat(p.amount)||0))>0.004)add(lbl(c)+': сумма оплаты '+fmt(p.amount)+' ₽ и операции в кассе '+fmt(k.amount)+' ₽ не совпадают',c.id);
+  });
+  S.kassaOps.forEach(o=>{
+    if(o.type==='payment_in'&&!(o.paymentId&&pById.has(o.paymentId)))add('Касса: поступление '+fmt(o.amount)+' ₽ от '+(o.dateStr||'')+' без платежа в сделке ('+(o.desc||'')+')',o.refId);
+    if(o.type==='prepay_in'&&!S.payments.some(p=>p.type==='prepay'&&p.clientId===o.refId))add('Касса: предоплата '+fmt(o.amount)+' ₽ без предоплаты в сделке ('+(o.desc||'')+')',o.refId);
+  });
+  S.clients.forEach(c=>{
+    const s=getStats(c);
+    if(s.overpaid>0.004)add(lbl(c)+': переплата '+fmt(s.overpaid)+' ₽',c.id);
+    const price=parseFloat(c.price)||0,pre=parseFloat(c.prepay)||0,sum=R2(s.schedule.reduce((a,x)=>a+(parseFloat(c['размер'+x.month])||0),0));
+    if(price>0&&Math.abs(sum-R2(price-pre))>0.004)add(lbl(c)+': сумма графика '+fmt(sum)+' ₽, а цена минус предоплата '+fmt(R2(price-pre))+' ₽',c.id);
+    if(!c.clientPid||!pMaps().byId.has(c.clientPid))add(lbl(c)+': нет карточки клиента',c.id);
+    if(c.archived&&s.balance>0.004)add(lbl(c)+': в архиве с долгом '+fmt(s.balance)+' ₽',c.id);
+  });
+  if(S.invMonths.length){try{const M=invModel();S.invMonths.forEach(m=>{const live=invComputeMonth(M,m.id);
+    if(Math.abs(live.gross-(m.gross||0))>0.5||Math.abs(live.exp-(m.exp||0))>0.5)add('Инвесторы: '+mkLabel(m.id)+' закрыт с прибылью '+fmt(m.gross)+' ₽ и расходами '+fmt(m.exp)+' ₽, а сейчас по платежам и кассе '+fmt(live.gross)+' ₽ и '+fmt(live.exp)+' ₽ — после закрытия что-то изменили');});}catch(e){console.error(e);}}
+  return out;
+}
+function renderIntegrity(){
+  const el=document.getElementById('checkList'),pg=document.getElementById('page-kassa');if(!el||!pg||pg.style.display==='none')return;
+  const list=integrityIssues();
+  el.innerHTML=list.length?list.map(x=>'<div class="rc-row"'+(x.cid?' style="cursor:pointer" onclick="openC(\''+esc(x.cid)+'\')"':'')+'><span style="grid-column:1/-1">'+esc(x.t)+'</span></div>').join(''):'<div class="inv-muted">Расхождений нет ✓</div>';
+  const bd=document.getElementById('checkBadge');if(bd)bd.innerHTML=list.length?'<span class="badge bo" style="margin-left:6px">'+list.length+'</span>':'<span class="badge ba" style="margin-left:6px">всё в порядке</span>';
+  const box=document.getElementById('kCheck');if(box&&list.length&&!box.dataset.opened){box.open=true;box.dataset.opened='1';}
+}
 function fixWallet(id){
   const w=S.wallets.find(x=>x.id===id);if(!w)return;
   const c=walletCalc()[id]||0,b=R2(w.balance);
@@ -1965,11 +2003,12 @@ const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getEl
   const newW=ptW?ptW.id:null;
   // договор, платёж предоплаты, операция кассы и балансы — одной пачкой: либо всё, либо ничего
   const bt=window.DB.writeBatch(db),prepayChanged=oldPrepay!==newPrepay||(newPrepay>0&&oldW&&newW&&oldW!==newW);
+  const npRef=doc(collection(db,'payments')),nkRef=doc(collection(db,'kassaOps')); // если предоплата появляется впервые — связываем платёж и операцию кассы
   if(prepayChanged){
     if(newPrepay>0&&!newW){toast('Выберите кассу предоплаты','ter');return;}
     if(pr&&newPrepay>0)bt.update(doc(db,'payments',pr.id),{amount:newPrepay,payType:pt,wallet:newW});
     else if(pr&&newPrepay===0){trashPut(bt,'payments',pr.id,pr);bt.delete(doc(db,'payments',pr.id));}
-    else if(!pr&&newPrepay>0)bt.set(doc(collection(db,'payments')),{clientId:_cid,contractId:old.contractId,name,amount:newPrepay,type:'prepay',typeLabel:'Предоплата',payType:pt,wallet:newW,date:new Date(),dateStr:fmtD(new Date())});
+    else if(!pr&&newPrepay>0)bt.set(npRef,{clientId:_cid,contractId:old.contractId,name,amount:newPrepay,type:'prepay',typeLabel:'Предоплата',payType:pt,wallet:newW,kassaOpId:prK?prK.id:nkRef.id,date:new Date(),dateStr:fmtD(new Date())});
     if(prK&&newPrepay>0){
       bt.update(doc(db,'kassaOps',prK.id),{amount:newPrepay,wallet:newW,walletName:ptW.name,desc:'Предоплата от '+name+' (№'+old.contractId+')'});
       if(oldW===newW)bt.update(doc(db,'wallets',newW),WINC(newPrepay-oldPrepay));
@@ -1978,7 +2017,7 @@ const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getEl
       trashPut(bt,'kassaOps',prK.id,prK);bt.delete(doc(db,'kassaOps',prK.id));
       if(oldW)bt.update(doc(db,'wallets',oldW),WINC(-oldPrepay));
     }else if(!prK&&newPrepay>0){
-      bt.set(doc(collection(db,'kassaOps')),{type:'prepay_in',amount:newPrepay,wallet:newW,walletName:ptW.name,desc:'Предоплата от '+name+' (№'+old.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,clientName:name,contractId:old.contractId});
+      bt.set(nkRef,{type:'prepay_in',amount:newPrepay,wallet:newW,walletName:ptW.name,desc:'Предоплата от '+name+' (№'+old.contractId+')',date:new Date(),dateStr:fmtD(new Date()),auto:true,refType:'client',refId:_cid,paymentId:pr?pr.id:npRef.id,clientName:name,contractId:old.contractId});
       bt.update(doc(db,'wallets',newW),WINC(newPrepay));
     }
   }
@@ -2689,7 +2728,7 @@ function renderKassa(){
   });
   const loadMoreKBtn=hasMoreK?'<div class="scroll-sentinel" data-target="kassa"></div>':'';
   document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="kcards">'+mobileCards+'</div>'+loadMoreKBtn;
-  setupInfiniteScroll();
+  setupInfiniteScroll();renderIntegrity();
 }
 
 function kassaTypeChanged(){
@@ -2893,7 +2932,10 @@ function delKassaOp(id){
     finally{_saving=false;}
   });
 }
-function exportExcel(){const r=[['№','Дата','ФИО','Телефоны','Товар','Поставщик','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{if(c.archived)return;const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
+// Библиотека Excel большая (≈0,9 МБ), поэтому загружается только при первой выгрузке
+let _xlsxP=null;
+function loadXlsx(){if(window.XLSX)return Promise.resolve();if(!_xlsxP)_xlsxP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='./vendor/xlsx-0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=()=>{_xlsxP=null;no(new Error('не загрузилась библиотека Excel'));};document.head.appendChild(s);});return _xlsxP;}
+async function exportExcel(){try{await loadXlsx();}catch(e){toast('Ошибка: '+e.message,'ter');return;}const r=[['№','Дата','ФИО','Телефоны','Товар','Поставщик','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{if(c.archived)return;const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
 function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);}
 function closeM(id){document.getElementById(id).classList.remove('on');}
 function toast(m,c){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}

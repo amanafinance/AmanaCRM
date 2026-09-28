@@ -1,0 +1,15 @@
+{
+  "name": "amana-crm-tests",
+  "private": true,
+  "type": "module",
+  "description": "Автотесты Amana CRM: эмулятор Firebase + браузер Chromium",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,auth --project amana-crm-16033 \"node run.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0",
+    "firebase-tools": "15.31.0",
+    "playwright": "1.56.1"
+  }
+}
