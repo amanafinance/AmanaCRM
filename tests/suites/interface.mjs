@@ -18,11 +18,20 @@ export default async function(){
   if(x){await x.click();await wait(M.p,200);check('крестик закрывает окно',!(await M.p.evaluate(()=>document.getElementById('mClient').classList.contains('on'))));}
   await M.p.click('.sidebar .gs-nb');await wait(M.p,200);
   check('на телефоне поиск есть в нижнем меню',await M.p.evaluate(()=>document.getElementById('mSearch').classList.contains('on')));
+  check('дашборд на телефоне не шире экрана',await M.p.evaluate(()=>{goTo('dashboard');return document.documentElement.scrollWidth<=innerWidth;}));
   noErrors('интерфейс, телефон',M.errs);await M.ctx.close();
 
   // --- компьютер
   const {p,errs,ctx}=await device();await login(p);await autoConfirm(p);
   check('в плитках дашборда суммы без копеек',await p.evaluate(()=>{goTo('dashboard');return![...document.querySelectorAll('#dStats .sv')].some(e=>/\d,\d{2}\s*₽/.test(e.textContent));}));
+  // график по месяцам: подсказка показывает те же цифры, что ОПИУ; наведение и вкладки работают
+  const ch=await p.evaluate(()=>{goTo('dashboard');const mk=monthKey(new Date()),m=finDerive(finFact(mk,finCtx()));
+    const tip=()=>document.querySelector('#dshTip .v').textContent;const last=tip();
+    const a=document.getElementById('dshArea'),r=a.getBoundingClientRect();a.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+1,clientY:r.top+50,bubbles:true}));
+    const first=document.getElementById('dshTip').textContent;setDsh('tab','sales');const sales=tip();setDsh('tab','pay');
+    return{ok:last===dMoney(m.pay),first:first.includes(mkLabel(mkShift(mk,-11))),sales:sales===dMoney(m.sales),partners:document.querySelectorAll('.dsh-pr:not(.hd)').length};});
+  check('график на дашборде: подсказка, наведение и вкладки',ch.ok&&ch.first&&ch.sales,ch);
+  check('на дашборде есть портфель по поставщикам',ch.partners>0,ch);
   // поиск по сделкам над таблицей
   const dq=await p.evaluate(()=>{goBase('clients');const i=document.getElementById('clQ');i.value='00011';renderClients();const n=document.querySelectorAll('#cList tbody tr').length;i.value='';renderClients();return n;});
   check('поиск сделки по номеру договора',dq===1,dq);

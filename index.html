@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <title>Amana CRM</title>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Roboto+Condensed:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script type="module">
 import{initializeApp}from"./vendor/firebase-11.0.0/firebase-app.js";
 import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,CACHE_SIZE_UNLIMITED,connectFirestoreEmulator,collection,doc,addDoc,updateDoc,getDocs,getDocsFromCache,getDocsFromServer,getDoc,getDocFromServer,terminate,clearIndexedDbPersistence,query,orderBy,limit,startAfter,where,onSnapshot,setDoc,writeBatch,runTransaction,increment,arrayUnion,arrayRemove,deleteField,serverTimestamp,Timestamp}from"./vendor/firebase-11.0.0/firebase-firestore.js";
@@ -774,6 +774,112 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
   #nav-investors{display:flex!important}
   #nav-investors2{display:none!important}
 }
+/* ===== Оформление 2026: тёмные карточки, узкий шрифт для цифр, мини-графики ===== */
+:root{--bg:#060a07;--bg3:#131c15;--card:#0c130e;--card-hi:#111a13;--line:rgba(255,255,255,0.065);--fd:'Roboto Condensed','Manrope',sans-serif;--glow:drop-shadow(0 0 6px rgba(149,193,31,0.35));--r:16px;--r2:10px}
+body.light{--card-hi:#ffffff;--line:rgba(20,45,25,0.09);--glow:none}
+.sidebar{background:linear-gradient(180deg,var(--card-hi),var(--card));border-right:1px solid var(--line)}
+.sc,.card{background:linear-gradient(180deg,var(--card-hi),var(--card));border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,0.025)}
+body.light .sc,body.light .card{box-shadow:0 1px 3px rgba(20,45,25,0.05)}
+.pt,.sname{font-family:var(--fd);font-weight:700;letter-spacing:0;font-size:26px}
+.sname{font-size:18px}
+.sv,.amt{font-family:var(--fd);letter-spacing:0}
+.sv{font-size:24px}
+.sl,.ct,.il,.th-name,.tbl th.plain,.dsh-ht,.lbl,.sg{font-family:var(--fd);letter-spacing:.06em;font-weight:600}
+.sl{font-size:11px;color:var(--t2)}
+.dsh-ht{font-size:13px;color:var(--text)}
+.btn{border-radius:10px}
+.bgh{background:transparent;border:1px solid var(--line)}
+.nb.on{background:rgba(149,193,31,0.08);border:1px solid rgba(149,193,31,0.14)}
+/* Плитки дашборда */
+.kt{display:flex;flex-direction:column;min-height:196px}
+.kt .sv{font-size:28px;line-height:1.1}
+.kt-vis{flex:1;display:flex;align-items:flex-end;justify-content:center;min-height:62px;margin:12px 0 10px;color:var(--green)}
+.kt-vis.red{color:var(--red)}
+.kt-f{font-size:11px;color:var(--t3);display:flex;gap:8px;align-items:center;min-height:15px}
+.kt-f .dsh-d{margin:0;font-size:11px}
+.dsh-sp{width:100%;height:62px;display:block;overflow:visible;filter:var(--glow)}
+.dsh-mb{display:flex;align-items:flex-end;gap:3px;width:100%;height:62px}
+.dsh-mb i{flex:1;background:currentColor;opacity:.45;border-radius:3px 3px 0 0;min-height:2px}
+.dsh-mb i.cur{opacity:1;filter:var(--glow)}
+.dsh-ring{position:relative;width:92px;height:92px}
+.dsh-ring svg{width:100%;height:100%;transform:rotate(-90deg);filter:var(--glow)}
+.dsh-ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;font-weight:700;color:currentColor}
+.dsh-split{width:100%}
+.dsh-split .bar{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden}
+.dsh-split .bar i{display:block;height:100%}
+.dsh-split .lg{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;margin-top:8px;font-size:11px;color:var(--t2)}
+.dsh-split .lg span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.dsh-split .lg span::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--c)}
+.dsh-wl{width:100%;display:flex;flex-direction:column;gap:7px}
+.dsh-wl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;font-size:11px;color:var(--t2)}
+.dsh-wl>div span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dsh-wl>div b{font-weight:600;color:var(--text)}
+.dsh-wl .dsh-bar{grid-column:1/-1;margin:0;height:4px}
+/* Большой график */
+.dsh-ch{padding:20px 22px 16px;margin:14px 0 0}
+.dsh-ch-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.dsh-ch-t{font-family:var(--fd);font-size:20px;font-weight:700}
+.dsh-ch .ftabs{margin:0}
+.dsh-tabs{display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none}
+.dsh-tabs::-webkit-scrollbar{display:none}
+.dsh-tab{font-family:var(--fd);font-size:14px;font-weight:600;padding:8px 14px;border-radius:10px;border:none;background:none;color:var(--t2);cursor:pointer;white-space:nowrap}
+.dsh-tab.on{background:rgba(149,193,31,0.12);color:var(--green)}
+.dsh-plot{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:220px auto;column-gap:10px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.dsh-y{position:relative;font-size:11px;color:var(--t3);min-width:44px;text-align:right}
+.dsh-y span{position:absolute;right:0;transform:translateY(-50%);white-space:nowrap}
+.dsh-area{position:relative;cursor:crosshair}
+.dsh-area svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.dsh-area svg .ln{filter:var(--glow)}
+.dsh-grid{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.dsh-grid.zero{border-top-color:var(--t3)}
+.dsh-cur{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--green);opacity:.7;pointer-events:none}
+.dsh-dot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--card),0 0 12px rgba(149,193,31,0.6);pointer-events:none}
+.dsh-tip{position:absolute;top:6px;min-width:170px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 28px rgba(0,0,0,0.45);pointer-events:none;font-size:12px;color:var(--t2);z-index:3}
+body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
+.dsh-tip .v{font-family:var(--fd);font-size:24px;font-weight:700;color:var(--green);margin:4px 0 2px}
+.dsh-tip .v.neg{color:var(--red)}
+.dsh-tip div+div{margin-top:2px}
+.dsh-x{grid-column:2;display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-top:8px}
+.dsh-x span{flex:0 0 0;display:flex;justify-content:center;white-space:nowrap}
+.dsh-leg{display:flex;justify-content:center;gap:22px;margin-top:14px;font-size:12px;color:var(--t2)}
+.dsh-leg span{display:inline-flex;align-items:center;gap:8px}
+.dsh-leg i{width:22px;border-top:2px solid var(--green)}
+.dsh-leg i.dash{border-top-style:dashed;opacity:.7}
+/* Поставщики */
+.dsh-pt{padding:20px 22px 8px;margin:14px 0 0}
+.dsh-pr{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}
+.dsh-pr:last-child{border-bottom:none}
+.dsh-pr.hd{font-family:var(--fd);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);padding:4px 0 10px}
+.dsh-pr .nm{display:flex;align-items:center;gap:10px;min-width:0}
+.dsh-pr .nm b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dsh-pr .nm small{display:block;font-size:11px;color:var(--t3)}
+.dsh-av{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;color:var(--green);flex-shrink:0;background:rgba(149,193,31,0.06)}
+.dsh-pr .num{font-family:var(--fd);font-size:15px;font-weight:600;white-space:nowrap}
+.dsh-pr .dsh-bar{margin-top:6px;height:4px;max-width:110px}
+@media(max-width:768px){
+  .pt{font-size:22px}
+  .sv{font-size:18px}
+  .kt{min-height:0}
+  .kt .sv{font-size:20px}
+  .kt-vis{min-height:48px;margin:10px 0 8px}
+  .dsh-sp,.dsh-mb{height:48px}
+  .dsh-ring{width:74px;height:74px}.dsh-ring b{font-size:16px}
+  .kt-f{font-size:10px;flex-wrap:wrap;gap:4px}
+  .dsh-ch,.dsh-pt{padding:16px 14px 12px}
+  .dsh-ch-t{font-size:17px}
+  .dsh-tab{font-size:13px;padding:7px 11px}
+  .dsh-plot{grid-template-rows:190px auto;column-gap:6px}
+  .dsh-y{min-width:34px;font-size:10px}
+  .dsh-x{font-size:10px}
+  .dsh-x.many span:nth-child(even){visibility:hidden}
+  .dsh-tip{min-width:140px;padding:9px 11px;font-size:11px}.dsh-tip .v{font-size:19px}
+  .dsh-pr{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,.9fr);gap:8px;font-size:12px}
+  .dsh-pr .c-paid{display:none}
+  .dsh-av{width:28px;height:28px;font-size:12px}
+  .dsh-pr .num{font-size:13px}
+  .sidebar{background:var(--bg);border-top:1px solid var(--line)}
+  .nb.on{background:none;border:none}
+}
 </style>
 
 </head>
@@ -1091,7 +1197,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='29.09.2026 · 6';
+const CRM_VERSION='30.09.2026 · 1';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1277,6 +1383,99 @@ function finDerive(o){
 }
 function finSum(list){const r={};list.forEach(o=>Object.keys(o).forEach(k=>{if(typeof o[k]==='number')r[k]=(r[k]||0)+o[k];}));return r;}
 
+// ---- Мини-графики дашборда (только показ: цифры берутся из тех же расчётов, что и плитки) ----
+let _gid=0;
+const dNum=n=>{const a=Math.abs(n),s=n<0?'−':'';if(a>=1e6)return s+String(Math.round(a/1e5)/10).replace('.',',')+' млн';if(a>=1e3)return s+Math.round(a/1e3)+' тыс';return s+Math.round(a);};
+// Площадь под линией: vals — числа, один ряд
+function dSpark(vals){
+  const n=vals.length;if(n<2)return'';
+  const mx=Math.max(...vals,0),mn=Math.min(...vals,0),rg=mx-mn||1,id='dg'+(++_gid);
+  const pts=vals.map((v,i)=>(i*100/(n-1)).toFixed(2)+','+(38-(v-mn)/rg*34).toFixed(2)),d='M'+pts.join('L');
+  return'<svg class="dsh-sp" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+d+'L100,40L0,40Z" fill="url(#'+id+')"/><path d="'+d+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+}
+// Столбики по месяцам; последний — текущий месяц
+function dMiniBars(vals,labels){
+  const mx=Math.max(...vals.map(v=>Math.max(0,v)),0)||1;
+  return'<div class="dsh-mb">'+vals.map((v,i)=>'<i'+(i===vals.length-1?' class="cur"':'')+' style="height:'+Math.max(3,Math.round(Math.max(0,v)/mx*100))+'%" title="'+labels[i]+': '+dMoney(v)+'"></i>').join('')+'</div>';
+}
+// Кольцо с процентом
+function dRing(x){
+  const v=Math.max(0,Math.min(1,x||0)),c=2*Math.PI*32;
+  return'<div class="dsh-ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" stroke-opacity=".14" stroke-width="8"/>'+
+    '<circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+(c*v).toFixed(1)+' '+c.toFixed(1)+'"/></svg><b>'+dPct(x)+'</b></div>';
+}
+function dTile(o){
+  return'<div class="sc kt'+(o.onclick?' dsh-click':'')+'"'+(o.onclick?' onclick="'+o.onclick+'"':'')+'><div class="sl">'+o.label+'</div><div class="sv'+(o.cls?' '+o.cls:'')+'">'+o.value+'</div>'+(o.sub?'<div class="ss">'+o.sub+'</div>':'')+
+    '<div class="kt-vis'+(o.red?' red':'')+'"'+(o.visStyle?' style="'+o.visStyle+'"':'')+'>'+(o.vis||'')+'</div><div class="kt-f">'+(o.foot||'')+'</div></div>';
+}
+const dFoot=(cur,prev,inverse)=>{const d=dDelta(cur,prev,inverse);return d?d+'<span>к прошлому месяцу</span>':'<span>прошлый месяц: '+dMoney(prev)+'</span>';};
+
+S.dsh={tab:'pay',range:12};
+function setDsh(k,v){S.dsh[k]=v;renderDash();}
+// Большой график по месяцам: факт (линия) и план (пунктир, только для платежей)
+function dshChart(ctx){
+  const curMk=monthKey(new Date()),n=S.dsh.range,mks=[];for(let i=n-1;i>=0;i--)mks.push(mkShift(curMk,-i));
+  const ms=mks.map(mk=>finDerive(finFact(mk,ctx)));
+  const T={pay:{t:'Платежи клиентов',v:m=>m.pay,p:m=>m.plan},sales:{t:'Продажи',v:m=>m.sales},net:{t:'Чистая прибыль',v:m=>m.net}}[S.dsh.tab];
+  const vals=ms.map(T.v),plan=T.p?ms.map(T.p):null,all=vals.concat(plan||[]);
+  let mx=Math.max(...all,0),mn=Math.min(...all,0);if(mx===mn)mx=mn+1;
+  // «круглые» деления оси
+  const raw=(mx-mn)/4,mag=Math.pow(10,Math.floor(Math.log10(raw))),step=[1,2,2.5,5,10].map(k=>k*mag).find(k=>k>=raw);
+  const lo=Math.floor(mn/step)*step,hi=Math.ceil(mx/step)*step,Y=v=>(hi-v)/(hi-lo)*100,X=i=>n>1?i*100/(n-1):50;
+  const ticks=[];for(let v=hi;v>=lo-step/2;v-=step)ticks.push(v);
+  const path=a=>'M'+a.map((v,i)=>X(i).toFixed(2)+','+Y(v).toFixed(2)).join('L');
+  const id='dg'+(++_gid),base=Y(Math.max(lo,Math.min(0,hi)));
+  let svg='<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--green)" stop-opacity=".32"/><stop offset="1" stop-color="var(--green)" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+path(vals)+'L100,'+base+'L0,'+base+'Z" fill="url(#'+id+')"/>'+
+    (plan?'<path d="'+path(plan)+'" fill="none" stroke="var(--green)" stroke-opacity=".6" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>':'')+
+    '<path class="ln" d="'+path(vals)+'" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+  const MN=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+  const lab=mk=>{const[y,m]=mk.split('-').map(Number);return MN[m-1]+(m===1||mk===mks[0]?' '+String(y).slice(2):'');};
+  S.dsh.pts={mks,vals,plan,ms,X,Y,tab:S.dsh.tab,curMk};
+  let h='<div class="card dsh-ch"><div class="dsh-ch-h"><div class="dsh-ch-t">Динамика по месяцам</div><div class="ftabs">'+
+    [6,12,24].map(r=>'<button class="ft'+(r===n?' on':'')+'" onclick="setDsh(\'range\','+r+')">'+r+' мес</button>').join('')+'</div></div>';
+  h+='<div class="dsh-tabs" role="tablist">'+[['pay','Платежи клиентов'],['sales','Продажи'],['net','Чистая прибыль']].map(([k,t])=>'<button class="dsh-tab'+(k===S.dsh.tab?' on':'')+'" role="tab" aria-selected="'+(k===S.dsh.tab)+'" onclick="setDsh(\'tab\',\''+k+'\')">'+t+'</button>').join('')+'</div>';
+  h+='<div class="dsh-plot"><div class="dsh-y">'+ticks.map(v=>'<span style="top:'+Y(v)+'%">'+dNum(v)+'</span>').join('')+'</div>'+
+    '<div class="dsh-area" id="dshArea">'+ticks.map(v=>'<div class="dsh-grid'+(Math.abs(v)<step/2&&lo<0?' zero':'')+'" style="top:'+Y(v)+'%"></div>').join('')+svg+
+    '<div class="dsh-cur" id="dshCur"></div><div class="dsh-dot" id="dshDot"></div><div class="dsh-tip" id="dshTip"></div></div>'+
+    '<div class="dsh-x'+(n>6?' many':'')+'">'+mks.map(mk=>'<span>'+lab(mk)+'</span>').join('')+'</div></div>';
+  if(plan)h+='<div class="dsh-leg"><span><i></i>Пришло</span><span><i class="dash"></i>По графику</span></div>';
+  return h+'</div>';
+}
+function dshPoint(i){
+  const P=S.dsh.pts,a=document.getElementById('dshArea');if(!P||!a)return;
+  const v=P.vals[i],m=P.ms[i],x=P.X(i),cur=document.getElementById('dshCur'),dot=document.getElementById('dshDot'),tip=document.getElementById('dshTip');
+  cur.style.left=x+'%';dot.style.left=x+'%';dot.style.top=P.Y(v)+'%';
+  const prev=i>0?P.vals[i-1]:null,dl=prev!==null?dDelta(v,prev):'';
+  let t='<div>'+mkLabel(P.mks[i])+(P.mks[i]===P.curMk?' · идёт':'')+'</div><div class="v'+(v<0?' neg':'')+'">'+dMoney(v)+'</div>'+(dl?'<div>'+dl+' к прошлому месяцу</div>':'');
+  if(P.tab==='pay')t+='<div>По графику: '+dMoney(m.plan)+'</div><div>Выполнено: '+dPct(m.planPct)+'</div>';
+  else if(P.tab==='sales')t+='<div>'+m.deals+' '+invPlural(m.deals,'договор','договора','договоров')+'</div><div>Наценка: '+dMoney(m.margin)+'</div>';
+  else t+='<div>Наценка в платежах: '+dMoney(m.grossNet)+'</div><div>Расходы: '+dMoney(m.exp)+'</div>';
+  tip.innerHTML=t;
+  if(x>55){tip.style.left='';tip.style.right=(100-x)+'%';tip.style.marginRight='14px';tip.style.marginLeft='';}
+  else{tip.style.right='';tip.style.left=x+'%';tip.style.marginLeft='14px';tip.style.marginRight='';}
+}
+function dshBind(){
+  const a=document.getElementById('dshArea'),P=S.dsh.pts;if(!a||!P)return;
+  const n=P.vals.length,pick=e=>{const r=a.getBoundingClientRect();dshPoint(Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left)/r.width*(n-1)))));};
+  a.onpointermove=pick;a.onpointerdown=pick;a.onpointerleave=()=>dshPoint(n-1);
+  dshPoint(n-1);
+}
+// Портфель по поставщикам
+function dshPartners(ctx){
+  const g={};ctx.active.forEach(x=>{const k=x.c.partner||'Без поставщика',o=g[k]||(g[k]={n:0,bal:0,over:0,price:0});o.n++;o.bal+=x.s.balance;o.over+=x.s.overdue;o.price+=parseFloat(x.c.price)||0;});
+  const list=Object.entries(g).sort((a,b)=>b[1].bal-a[1].bal);if(!list.length)return'';
+  const top=list.slice(0,6);
+  let h='<div class="card dsh-pt"><div class="dsh-ch-h"><div class="dsh-ch-t">Портфель по поставщикам</div><button class="btn bgh bsm" onclick="goBase(\'clients\')">Все сделки →</button></div>';
+  h+='<div class="dsh-pr hd"><span>Поставщик</span><span>Остаток долга</span><span class="c-paid">Оплачено</span><span>Просрочка</span></div>';
+  top.forEach(([k,o])=>{const paid=o.price>0?1-o.bal/o.price:0,op=o.bal>0?o.over/o.bal:0;
+    h+='<div class="dsh-pr"><div class="nm"><span class="dsh-av">'+esc(k.trim().charAt(0).toUpperCase())+'</span><div style="min-width:0"><b>'+esc(k)+'</b><small>'+o.n+' '+invPlural(o.n,'договор','договора','договоров')+'</small></div></div>'+
+      '<div class="num">'+dMoney(o.bal)+'</div><div class="c-paid"><div class="num">'+dPct(paid)+'</div>'+dBar(paid)+'</div>'+
+      '<div><div class="num'+(o.over>0.004?' cr':'')+'">'+dMoney(o.over)+'</div><div class="ss">'+(o.over>0.004?dPct(op)+' остатка':'нет')+'</div></div></div>';});
+  if(list.length>top.length)h+='<div class="ss" style="padding:10px 0 6px">и ещё '+(list.length-top.length)+' '+invPlural(list.length-top.length,'поставщик','поставщика','поставщиков')+'</div>';
+  return h+'</div>';
+}
 function renderDash(){
   const el=document.getElementById('dStats');if(!el||!pageOn('dashboard'))return;
   const ctx=finCtx(),curMk=monthKey(new Date()),{active,M}=ctx;
@@ -1284,18 +1483,31 @@ function renderDash(){
   const overCl=active.filter(x=>x.s.overdue>0.004).length;
   const cash=S.wallets.reduce((a,w)=>a+(parseFloat(w.balance)||0),0);
   const cur=finDerive(finFact(curMk,ctx)),prev=finDerive(finFact(mkShift(curMk,-1),ctx));
+  const last=[];for(let i=11;i>=0;i--)last.push(mkShift(curMk,-i));
+  const lastD=last.map(mk=>finDerive(finFact(mk,ctx))),lastL=last.map(mkLabel);
+  // поступления текущего месяца нарастающим итогом по дням
+  const now=new Date(),byDay=new Array(now.getDate()).fill(0);
+  (ctx.bk[curMk]?ctx.bk[curMk].pays:[]).forEach(p=>{if(p.type!=='payment'&&p.type!=='prepay')return;const d=dTs(p.date);if(d&&d.getDate()<=byDay.length)byDay[d.getDate()-1]+=parseFloat(p.amount)||0;});
+  let acc=0;const cum=[0].concat(byDay.map(v=>acc+=v));
+  const rateCls=cur.rate===null?'':(cur.rate>=0.9?'cg':(cur.rate>=0.7?'cy':'cr'));
   let h='<div class="dsh-h"><div class="dsh-ht">Портфель сейчас</div></div><div class="dsh-g4">';
-  h+=dCard('Портфель (остаток долга)',dMoney(debt),active.length+' '+invPlural(active.length,'активный договор','активных договора','активных договоров'),'cg',"goBase('clients')");
-  h+=dCard('Просрочка',dMoney(over),dPct(debt>0?over/debt:0)+' портфеля · '+overCl+' '+invPlural(overCl,'клиент','клиента','клиентов'),'cr',"goBase('reminders')");
-  h+=dCard('Деньги в кассах',dMoney(cash),S.wallets.length+' '+invPlural(S.wallets.length,'счёт','счёта','счетов'),'',"goTo('kassa')");
-  h+=dCard('Ожидаемая прибыль в портфеле',dMoney(M.profLeft||0),'ещё не получена','cb');
-  h+='</div><div class="dsh-h"><div class="dsh-ht">'+mkLabel(curMk)+'</div>'+'<button class="btn bgh bsm" onclick="goTo(\'finance\')">Все показатели →</button>'+'</div><div class="dsh-g4">';
-  h+=dCard('Собрано денег',dMoney(cur.received)+dDelta(cur.received,prev.received),cur.payCnt+' '+invPlural(cur.payCnt,'платёж','платежа','платежей')+(cur.prepay?' + предоплаты '+dMoney(cur.prepay):''),'cg');
-  h+='<div class="sc"><div class="sl">Собираемость по графику</div><div class="sv'+(cur.rate===null?'':(cur.rate>=0.9?' cg':(cur.rate>=0.7?' cy':' cr')))+'">'+dPct(cur.rate)+'</div>'+dBar(cur.rate,cur.rate===null?'':(cur.rate>=0.9?'':(cur.rate>=0.7?'warn':'bad')))+'<div class="ss">пришло '+dMoney(cur.planPaid)+' из '+dMoney(cur.planDue)+' с наступившим сроком</div></div>';
-  h+=dCard('Продажи',dMoney(cur.sales)+dDelta(cur.sales,prev.sales),cur.deals+' '+invPlural(cur.deals,'договор','договора','договоров'));
-  h+=dCard('Чистая прибыль',dMoney(cur.net)+dDelta(cur.net,prev.net),'наценка в платежах − расходы',cur.net<0?'cr':'cg');
+  const inTime=Math.max(0,debt-over);
+  h+=dTile({label:'Портфель (остаток долга)',value:dMoney(debt),cls:'cg',sub:active.length+' '+invPlural(active.length,'активный договор','активных договора','активных договоров'),onclick:"goBase('clients')",
+    vis:'<div class="dsh-split"><div class="bar"><i style="flex:'+inTime+';background:var(--green)"></i><i style="flex:'+over+';background:var(--red)"></i></div><div class="lg"><span style="--c:var(--green)">в срок '+dPct(debt>0?inTime/debt:0)+'</span><span style="--c:var(--red)">просрочка '+dPct(debt>0?over/debt:0)+'</span></div></div>'});
+  h+=dTile({label:'Просрочка',value:dMoney(over),cls:'cr',sub:overCl+' '+invPlural(overCl,'клиент','клиента','клиентов'),onclick:"goBase('reminders')",red:true,vis:dRing(debt>0?over/debt:0),foot:'<span>доля портфеля</span>'});
+  const ws=S.wallets.map(w=>({n:w.name,b:parseFloat(w.balance)||0})).sort((a,b)=>b.b-a.b),wmx=Math.max(...ws.map(w=>w.b),1);
+  h+=dTile({label:'Деньги в кассах',value:dMoney(cash),sub:S.wallets.length+' '+invPlural(S.wallets.length,'счёт','счёта','счетов'),onclick:"goTo('kassa')",
+    vis:'<div class="dsh-wl">'+ws.slice(0,3).map(w=>'<div><span>'+esc(w.n)+'</span><b>'+dMoney(w.b)+'</b>'+dBar(w.b/wmx)+'</div>').join('')+'</div>'});
+  h+=dTile({label:'Ожидаемая прибыль в портфеле',value:dMoney(M.profLeft||0),cls:'cb',sub:'ещё не получена',vis:'<span style="color:var(--blue);width:100%">'+dMiniBars(lastD.map(m=>m.grossNet),lastL)+'</span>',foot:'<span>получено наценки по месяцам</span>'});
+  h+='</div><div class="dsh-h"><div class="dsh-ht">'+mkLabel(curMk)+'</div><button class="btn bgh bsm" onclick="goTo(\'finance\')">Все показатели →</button></div><div class="dsh-g4">';
+  h+=dTile({label:'Собрано денег',value:dMoney(cur.received),cls:'cg',sub:cur.payCnt+' '+invPlural(cur.payCnt,'платёж','платежа','платежей')+(cur.prepay?' + предоплаты '+dMoney(cur.prepay):''),vis:dSpark(cum),foot:dFoot(cur.received,prev.received)});
+  h+=dTile({label:'Собираемость по графику',value:dPct(cur.rate),cls:rateCls,sub:'пришло '+dMoney(cur.planPaid)+' из '+dMoney(cur.planDue),
+    vis:'<span style="color:var(--'+(rateCls==='cr'?'red':rateCls==='cy'?'yellow':'green')+')">'+dRing(cur.rate)+'</span>',foot:'<span>с наступившим сроком</span>'});
+  h+=dTile({label:'Продажи',value:dMoney(cur.sales),sub:cur.deals+' '+invPlural(cur.deals,'договор','договора','договоров'),vis:dMiniBars(lastD.map(m=>m.sales),lastL),foot:dFoot(cur.sales,prev.sales)});
+  h+=dTile({label:'Чистая прибыль',value:dMoney(cur.net),cls:cur.net<0?'cr':'cg',sub:'наценка в платежах − расходы',red:cur.net<0,vis:dSpark(lastD.map(m=>m.net)),foot:dFoot(cur.net,prev.net)});
   h+='</div>';
-  el.innerHTML=h;
+  h+=dshChart(ctx)+dshPartners(ctx);
+  el.innerHTML=h;dshBind();
 }
 
 // ---------- ПОКАЗАТЕЛИ БИЗНЕСА (ОПИУ) ----------
