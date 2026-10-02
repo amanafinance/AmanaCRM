@@ -1197,7 +1197,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='30.09.2026 · 1';
+const CRM_VERSION='02.10.2026 · 1';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1947,6 +1947,7 @@ async function cancelPay(pid,cid,amt,pt){
   const p=S.payments.find(x=>x.id===pid);
   if(!p){toast('Платёж не найден','ter');return;}
   const kOp=p.kassaOpId&&S.kassaOps.find(o=>o.id===p.kassaOpId)||null;
+  if(kOp&&kOp.wallet){const short=walletShort({[kOp.wallet]:-(parseFloat(kOp.amount)||0)});if(short){walletBlock('Отмена платежа заберёт деньги из кассы. '+short);return;}}
   const warn=pt==='discount'?'Скидка будет отменена, долг клиента вырастет на эту сумму. Касса не меняется.':(kOp?'Касса «'+esc(kOp.walletName||'')+'» уменьшится на '+fmt(amt)+' ₽':'<span style="color:var(--yellow)">Связанная операция в кассе не найдена — касса не изменится</span>');
   showConfirm('Отменить платёж?','<strong>'+fmt(amt)+' ₽</strong><br>'+warn,async()=>{
     const{db,doc,writeBatch}=window.DB;
@@ -2025,6 +2026,16 @@ let _schedManual={size:false,dates:false};let _costOk=false;let _schedOk=false;
 const R2=n=>Math.round(((parseFloat(n)||0)+Number.EPSILON)*100)/100;
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const WINC=v=>({balance:window.DB.increment(R2(v))});
+// Счёт не может уйти в минус. eff — {id счёта: изменение остатка}. Возвращает текст ошибки или ''.
+// Пополнение счёта, который уже в минусе, разрешено — оно приближает его к нулю.
+function walletShort(eff){
+  for(const k of Object.keys(eff)){const w=S.wallets.find(x=>x.id===k);if(!w||!(eff[k]<-0.004))continue;
+    const b=R2(parseFloat(w.balance)||0),nb=R2(b+eff[k]);
+    if(nb<-0.004)return'На счёте «'+esc(w.name)+'» '+fmt(b)+' ₽, а нужно '+fmt(-eff[k])+' ₽. Счёт не может уйти в минус.';}
+  return'';
+}
+function walletBlock(msg){const l=document.getElementById('confirmLayer');
+  l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">Недостаточно денег</div><div class="confirm-msg">'+msg+'</div><div class="confirm-actions"><button class="btn bg" onclick="this.closest(\'.confirm-ov\').remove()">Понятно</button></div></div></div>';}
 const curUser=()=>{const u=window.AUTH&&window.AUTH.currentUser;return u?(u.email||u.uid):'';};
 // Перед удалением кладём копию документа в «корзину» (коллекция trash) — ничего не пропадает бесследно
 function trashPut(bt,coll,id,data){if(!data)return;const{db,doc,collection}=window.DB;const clean={};Object.keys(data).forEach(k=>{if(k!=='id'&&k[0]!=='_'&&data[k]!==undefined)clean[k]=data[k];});bt.set(doc(collection(db,'trash')),{coll,docId:id,data:clean,deletedAt:new Date(),deletedBy:curUser()});}
@@ -2314,6 +2325,8 @@ const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getEl
   const npRef=doc(collection(db,'payments')),nkRef=doc(collection(db,'kassaOps')); // если предоплата появляется впервые — связываем платёж и операцию кассы
   if(prepayChanged){
     if(newPrepay>0&&!newW){toast('Выберите кассу предоплаты','ter');return;}
+    const pe={};if(prK&&oldW)pe[oldW]=-oldPrepay;if(newPrepay>0&&newW)pe[newW]=(pe[newW]||0)+newPrepay;
+    const short=walletShort(pe);if(short){walletBlock('Предоплата уменьшится. '+short);return;}
     if(pr&&newPrepay>0)bt.update(doc(db,'payments',pr.id),{amount:newPrepay,payType:pt,wallet:newW});
     else if(pr&&newPrepay===0){trashPut(bt,'payments',pr.id,pr);bt.delete(doc(db,'payments',pr.id));}
     else if(!pr&&newPrepay>0)bt.set(npRef,{clientId:_cid,contractId:old.contractId,name,amount:newPrepay,type:'prepay',typeLabel:'Предоплата',payType:pt,wallet:newW,kassaOpId:prK?prK.id:nkRef.id,date:new Date(),dateStr:fmtD(new Date())});
@@ -3243,15 +3256,6 @@ async function saveKassaOp(){
     if(!wtid){toast('Выберите кошелёк назначения','ter');return;}
     if(wid===wtid){toast('Нельзя перевести на тот же кошелёк','ter');return;}
   }
-  // Проверка баланса для расходов/переводов (при правке — с учётом старой суммы)
-  const back=old&&old.wallet===wid&&(kMeta(old.type).dir==='out'||old.type==='transfer')?(parseFloat(old.amount)||0):0;
-  const wb=(parseFloat(w.balance)||0)+back;
-  if(meta.dir==='out'||type==='transfer'){
-    if(wb<amt){
-      showConfirm('Недостаточно средств','<strong>На кошельке «'+esc(w.name)+'» всего '+fmt(wb)+' ₽</strong><br>Баланс уйдёт в минус на '+fmt(amt-wb)+' ₽. Продолжить?',async()=>{await doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old);});
-      return;
-    }
-  }
   await doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old);
 }
 
@@ -3279,6 +3283,7 @@ async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old){
     // остатки: отменяем старую операцию (при правке) и проводим новую — одной пачкой
     const eff=kassaEffect(type,amt,wid,wt?wtid:null);
     if(old){const oe=kassaEffect(old.type,R2(old.amount),old.wallet,old.walletTo);Object.keys(oe).forEach(k=>eff[k]=(eff[k]||0)-oe[k]);}
+    const short=walletShort(eff);if(short){walletBlock(short);return;}
     Object.keys(eff).forEach(k=>{if(Math.abs(eff[k])>0.004&&S.wallets.some(x=>x.id===k))bt.update(doc(db,'wallets',k),WINC(eff[k]));});
     await bt.commit();
     await logA(old?'Касса: изменение':'Касса: '+meta.name,(old?meta.name+': было '+fmt(old.amount)+' ₽ от '+(old.dateStr||'')+', стало ':'')+fmt(amt)+' ₽ от '+fmtD(d)+' — '+(w.name||'')+(desc?' ('+desc+')':''));
@@ -3292,6 +3297,8 @@ function delKassaOp(id){
   const op=S.kassaOps.find(x=>x.id===id);if(!op)return;
   const meta=kMeta(op.type);
   if(meta.auto||op.auto){toast('Автоматические операции нельзя удалить. Их нужно отменять через исходную сущность.','ter');return;}
+  if(op.wallet){const oe=kassaEffect(op.type,R2(op.amount),op.wallet,op.walletTo),back={};Object.keys(oe).forEach(k=>back[k]=-oe[k]);
+    const short=walletShort(back);if(short){walletBlock('Удаление вернёт деньги обратно. '+short);return;}}
   showConfirm('Удалить операцию?','<strong>'+meta.name+' '+fmt(op.amount)+' ₽</strong><br>Остаток счёта будет скорректирован',async()=>{
     if(_saving)return;_saving=true;
     try{
@@ -3919,6 +3926,7 @@ async function saveInvOp(){
       if(meta.wallet){
         const kRef=doc(collection(db,'kassaOps'));kId=kRef.id;
         const dir=kTypeMeta[meta.k].dir==='in'?1:-1;
+        const short=walletShort({[w.id]:dir*amt});if(short){walletBlock(short);return;}
         bt.set(kRef,{type:meta.k,amount:amt,wallet:w.id,walletName:w.name||'',desc:kTypeMeta[meta.k].name+': '+i.name+(desc?' ('+desc+')':''),date:d,dateStr:fmtD(d),auto:true,refType:'investor',refId:i.id,invOpId:opRef.id});
         bt.update(doc(db,'wallets',w.id),WINC(dir*amt));
       }
@@ -3947,6 +3955,8 @@ function delInvOp(id){
   const a=parseFloat(o.amount)||0;
   if(o.type==='reinvest'&&o.depId&&M.tranches[o.depId]&&invR((M.tcapNow[o.depId]||0)-a)<0){toast('Капитал вклада уйдёт в минус — сначала удалите более поздний вывод','ter');return;}
   const m=INV_OP[o.type];const i=S.inv.find(x=>x.id===o.invId);
+  const ko=o.kassaOpId&&S.kassaOps.find(x=>x.id===o.kassaOpId);
+  if(ko&&ko.wallet){const short=walletShort({[ko.wallet]:-(kMeta(ko.type).dir==='in'?1:-1)*(parseFloat(ko.amount)||0)});if(short){walletBlock('Удаление заберёт деньги из кассы. '+short);return;}}
   showConfirm('Удалить операцию?','<strong>'+m.name+' '+fmt(a)+' ₽</strong><br>'+invEsc(i?i.name:o.invName||'')+(o.kassaOpId?'<br>Операция в кассе и баланс кошелька тоже откатятся':''),async()=>{
     try{
       const{db,doc,writeBatch}=window.DB;const bt=writeBatch(db);

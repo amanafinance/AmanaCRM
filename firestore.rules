@@ -15,8 +15,15 @@ service cloud.firestore {
       allow read, create: if signedIn();
       allow update, delete: if false;
     }
+    // Остаток счёта не может уйти в минус. Пополнить счёт, который уже в минусе, можно.
+    match /wallets/{id} {
+      allow read, delete: if signedIn();
+      allow create: if signedIn() && request.resource.data.get('balance', 0) >= 0;
+      allow update: if signedIn() && (request.resource.data.get('balance', 0) >= -0.004
+        || request.resource.data.get('balance', 0) >= resource.data.get('balance', 0));
+    }
     match /{collection}/{id} {
-      allow read, write: if signedIn() && collection != 'journal' && collection != 'trash';
+      allow read, write: if signedIn() && collection != 'journal' && collection != 'trash' && collection != 'wallets';
     }
   }
 }
