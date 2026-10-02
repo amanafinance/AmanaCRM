@@ -66,5 +66,26 @@ export default async function(){
   // история: фильтр по датам спрашивает сервер
   const jr=await p.evaluate(async()=>{await logA('Проверка истории','тест');goTo('journal');await new Promise(r=>setTimeout(r,800));S.JF.date_from=dayKey(new Date());S.JF.date_to=dayKey(new Date());await loadJournal();return _jd.length>0&&_jd.every(j=>j.dateStr===fmtD(new Date()));});
   check('фильтр истории по датам загружает нужный период',jr);
+  // счёт не уходит в минус: перевод и расход больше остатка, удаление прихода, отмена платежа
+  const mn=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));goTo('kassa');
+    const W=id=>R2(S.wallets.find(x=>x.id===id).balance),ops=()=>S.kassaOps.length,shown=()=>{const t=document.querySelector('#confirmLayer .confirm-title');const ok=!!t&&t.textContent==='Недостаточно денег';document.getElementById('confirmLayer').innerHTML='';return ok;};
+    const w2=S.wallets.find(x=>x.id==='w2'),b=W('w2'),b1=W('w1'),n=ops(),r={};
+    await doSaveKassa('transfer',b+10000,'w2','w1','',null,w2,new Date(),null);await sl(600);r.transfer=shown()&&W('w2')===b&&W('w1')===b1&&ops()===n;
+    await doSaveKassa('opex',b+1,'w2',null,'',null,w2,new Date(),null);await sl(600);r.expense=shown()&&W('w2')===b&&ops()===n;
+    await doSaveKassa('transfer',b,'w2','w1','',null,w2,new Date(),null);await sl(1000);r.exact=W('w2')===0&&W('w1')===R2(b1+b);
+    const pay=S.payments.find(x=>x.type==='payment'&&x.kassaOpId&&(S.kassaOps.find(o=>o.id===x.kassaOpId)||{}).wallet==='w2');
+    await cancelPay(pay.id,pay.clientId,pay.amount,'payment');await sl(300);r.cancel=shown()&&S.payments.some(x=>x.id===pay.id);
+    // приход на счёт, деньги потрачены — удалить приход нельзя
+    const w1=S.wallets.find(x=>x.id==='w1');await doSaveKassa('transfer',100,'w1','w2','приход',null,w1,new Date(),null);await sl(1000);
+    await doSaveKassa('opex',100,'w2',null,'',null,w2,new Date(),null);await sl(1000);
+    const inc=S.kassaOps.find(o=>o.type==='transfer'&&o.walletTo==='w2'&&o.desc==='приход');delKassaOp(inc.id);await sl(300);r.delIn=W('w2')===0&&shown()&&S.kassaOps.some(o=>o.id===inc.id);
+    const tr=S.kassaOps.find(o=>o.type==='transfer'&&o.wallet==='w2'&&R2(o.amount)===b);delKassaOp(tr.id);await sl(1200);r.undo=W('w2')===b&&W('w1')===R2(b1-100);
+    return r;});
+  check('перевод больше остатка не проводится',mn.transfer,mn);
+  check('расход больше остатка не проводится',mn.expense,mn);
+  check('счёт можно потратить ровно до нуля',mn.exact,mn);
+  check('отмена платежа не уводит кассу в минус',mn.cancel,mn);
+  check('удаление прихода не уводит счёт в минус',mn.delIn,mn);
+  check('удаление перевода возвращает деньги на место',mn.undo,mn);
   noErrors('интерфейс, ПК',errs);await ctx.close();
 }

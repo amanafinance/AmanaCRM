@@ -16,6 +16,12 @@ export default async function(){
   check('вошедший сотрудник читает и пишет',await tryOp(getDoc(doc(user,'clients/a')))&&await tryOp(setDoc(doc(user,'clients/b'),{x:1})));
   check('историю действий нельзя исправить',!(await tryOp(updateDoc(doc(user,'journal/j'),{t:2}))));
   check('историю действий нельзя удалить',!(await tryOp(deleteDoc(doc(user,'journal/j')))));
+  // Остаток счёта не уходит в минус — даже если запись пришла в обход CRM
+  await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'wallets/w'),{name:'Сбер',balance:100});await setDoc(doc(c.firestore(),'wallets/neg'),{name:'Старый',balance:-50});});
+  check('счёт нельзя увести в минус',!(await tryOp(updateDoc(doc(user,'wallets/w'),{balance:-10}))));
+  check('счёт можно потратить до нуля',await tryOp(updateDoc(doc(user,'wallets/w'),{balance:0})));
+  check('счёт в минусе можно пополнить и переименовать',await tryOp(updateDoc(doc(user,'wallets/neg'),{balance:-20}))&&await tryOp(updateDoc(doc(user,'wallets/neg'),{name:'Сбербанк'})));
+  check('новый счёт нельзя создать с минусом',!(await tryOp(setDoc(doc(user,'wallets/x'),{name:'X',balance:-1}))));
   await env.cleanup();
 
   // Текст из полей не выполняется как код
