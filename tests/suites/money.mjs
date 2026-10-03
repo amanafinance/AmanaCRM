@@ -39,9 +39,39 @@ export default async function(){
   check('прочий расход 9 000 целиком на учредителе',Math.abs(fx.f-9000)<0.02&&Math.abs(fx.i)<0.02,fx);
   check('прочий расход виден в ОПИУ',fx.other===9000,fx);
 
-  // Архив с долгом запрещён
-  const ar=await p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>0);let title='';window.showConfirm=(t)=>{title=t;};archiveClient(c.id,true);await new Promise(r=>setTimeout(r,500));window.showConfirm=(t,m,ok)=>ok&&ok();return{title,arch:!!S.clients.find(x=>x.id===c.id).archived};});
-  check('договор с долгом в архив не уходит',ar.title==='В архив нельзя'&&!ar.arch,ar);
+  // Архив: можно и с долгом
+  const ar=await p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>0);let msg='';window.showConfirm=(t,m,ok)=>{msg=m;ok&&ok();};archiveClient(c.id,true);await new Promise(r=>setTimeout(r,1200));window.showConfirm=(t,m,ok)=>ok&&ok();
+    const arch=!!S.clients.find(x=>x.id===c.id).archived;archiveClient(c.id,false);await new Promise(r=>setTimeout(r,1000));return{arch,warn:/Долг .* пропадёт/.test(msg)};});
+  check('договор с долгом уходит в архив, CRM предупреждает о долге',ar.arch&&ar.warn,ar);
+
+  // Удаление договора: можно с долгом, если нет денег и закупок
+  const dl=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const{db,doc,setDoc}=window.DB;
+    const b={...S.clients.find(x=>x.id==='c3')};delete b.id;delete b._u;delete b.archived;await setDoc(doc(db,'clients','cDel'),{...b,contractId:'09990',name:'Удаляемый',cost:30000});await sl(1200);
+    const r={};r.btn=cdDelBtn(S.clients.find(x=>x.id==='cDel')).includes('Удалить');
+    delClient('cDel');await sl(1500);r.gone=!S.clients.some(x=>x.id==='cDel');
+    const withPay=S.clients.find(x=>!x.archived&&S.payments.some(p=>p.clientId===x.id&&p.type==='payment'));
+    r.btnPay=cdDelBtn(withPay).includes('Удалить');delClient(withPay.id);await sl(300);
+    const t=document.querySelector('#confirmLayer .confirm-title');r.blocked=!!t&&t.textContent==='Удалить нельзя'&&S.clients.some(x=>x.id===withPay.id);document.getElementById('confirmLayer').innerHTML='';
+    return r;});
+  check('договор без денег и закупок удаляется, даже с долгом',dl.btn&&dl.gone,dl);
+  check('договор с платежами удалить нельзя',!dl.btnPay&&dl.blocked,dl);
+
+  // Закупка частями: пока не оплачена вся себестоимость
+  const pu=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const{db,doc,setDoc}=window.DB;
+    const b={...S.clients.find(x=>x.id==='c3')};delete b.id;delete b._u;delete b.archived;await setDoc(doc(db,'clients','cBuy'),{...b,contractId:'09991',name:'Закупка',cost:30000});await sl(1200);
+    const r={};const sh=()=>{const t=document.querySelector('#confirmLayer .confirm-title');const v=t?t.textContent:'';document.getElementById('confirmLayer').innerHTML='';return v;};
+    goTo('kassa');openKassaOp();document.getElementById('koWallet').value='w1';koClientPick('cBuy');r.pre=parseNum(document.getElementById('koAmt').value);
+    document.getElementById('koAmt').value='10 000';await saveKassaOp();await sl(1200);r.first=purchasePaid('cBuy');
+    openKassaOp();document.getElementById('koWallet').value='w1';koClientPick('cBuy');r.pre2=parseNum(document.getElementById('koAmt').value);
+    document.getElementById('koAmt').value='25 000';await saveKassaOp();await sl(600);r.over=sh();r.still=purchasePaid('cBuy');
+    document.getElementById('koAmt').value='20 000';await saveKassaOp();await sl(1200);r.full=purchasePaid('cBuy');
+    openKassaOp();koClientPick('cBuy');r.blocked=document.getElementById('koClientId').value==='__blocked__';closeM('mKassa');
+    openC('cBuy');await sl(200);r.card=document.getElementById('cDetail').innerText.includes('Оплачено полностью');
+    return r;});
+  check('закупка подставляет себестоимость, можно оплатить частично',pu.pre===30000&&pu.first===10000,pu);
+  check('вторая закупка подставляет остаток',pu.pre2===20000,pu);
+  check('закупка больше остатка себестоимости не проводится',pu.over==='Больше себестоимости'&&pu.still===10000,pu);
+  check('после полной оплаты новая закупка по договору закрыта',pu.full===30000&&pu.blocked&&pu.card,pu);
 
   // Правка договора с предоплатой: одна запись; при обрыве — ничего
   const ed=await p.evaluate(async()=>{const run=async fail=>{openEdit('c7');await new Promise(r=>setTimeout(r,200));document.getElementById('f_prepay').value='7000';document.getElementById('f_product').value='Изменённый товар';_schedOk=true;
