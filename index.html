@@ -880,6 +880,7 @@ body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
   .sidebar{background:var(--bg);border-top:1px solid var(--line)}
   .nb.on{background:none;border:none}
 }
+.ko-amt-hint{font-size:11px;color:var(--t3);margin-top:5px}.ko-amt-hint.bad{color:var(--red);font-weight:700}
 </style>
 
 </head>
@@ -894,7 +895,7 @@ body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
 <button class="nb" id="nav-finance" onclick="goTo('finance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="20"/><rect x="5" y="11" width="3" height="6"/><rect x="10.5" y="7" width="3" height="10"/><rect x="16" y="4" width="3" height="13"/></svg>Показатели бизнеса</button>
 <div class="sg">Работа</div>
 <button class="nb" id="nav-clients" onclick="goBase()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>База</button>
-<button class="nb" id="nav-kassa" onclick="goTo('kassa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h2"/></svg>Касса</button>
+<button class="nb" id="nav-kassa" onclick="goTo('kassa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h2"/></svg>Касса/ДДС</button>
 <button class="nb" id="nav-investors" onclick="goTo('investors')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1.5A4.5 4.5 0 0 1 7 14h4"/><circle cx="17" cy="15" r="4.5"/><path d="M17 12.8v4.4M15.4 13.9h2.4a1.1 1.1 0 0 1 0 2.2h-1.6a1.1 1.1 0 0 0 0 2.2h2.4"/></svg>Инвесторы</button>
 <div class="sg">Система</div>
 <button class="nb" id="nav-journal" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>История действий</button>
@@ -930,7 +931,7 @@ body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
 <div id="page-reminders" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div class="ph"><div><div class="pt">Контроль платежей</div><div class="ps" id="remCount"></div></div></div><div class="ftabs" id="remTabs"><button class="ft on" onclick="setRemTab('all',this)">Все</button><button class="ft" onclick="setRemTab('soon',this)">Ближайшие 5 дней</button><button class="ft" onclick="setRemTab('today',this)">Сегодня</button><button class="ft" onclick="setRemTab('overdue',this)">Просрочка</button><button class="ft" onclick="setRemTab('deferred',this)">Отсроченные</button><button class="ft" onclick="setRemTab('partial',this)">Частично оплаченные</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('payments')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgePayments" class="mf-badge"></span></button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div></div></div>
 
 <div id="page-kassa" class="page" style="display:none">
-<div class="ph"><div><div class="pt">Касса</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
+<div class="ph"><div><div class="pt">Касса/ДДС</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
 <div id="kWallets" class="sg4"></div>
 <details class="card k-recon" id="kRecon"><summary class="ct" style="margin:0;cursor:pointer;list-style:none">Сверка касс <span id="reconBadge"></span></summary><div style="font-size:11px;color:var(--t3);margin:10px 0 8px;line-height:1.5">Как работает: остаток каждого счёта, который хранится в базе, сравнивается с суммой всех операций по этому счёту (приходы − расходы ± переводы). Если сходится — всё записалось правильно. Если нет — значит, когда-то остаток внесли вручную, не через операцию кассы, или запись прошла не полностью. «Исправить» приводит остаток к сумме операций.</div><div id="reconList"></div></details>
 <details class="card k-recon" id="kCheck"><summary class="ct" style="margin:0;cursor:pointer;list-style:none">Проверка базы <span id="checkBadge"></span></summary><div style="font-size:11px;color:var(--t3);margin:10px 0 8px;line-height:1.5">Ищет то, что не должно быть: оплату без операции в кассе и наоборот, переплату, график, который не сходится с ценой, сделку без карточки клиента, изменения в месяцах, уже закрытых у инвесторов. Нажмите на строку, чтобы открыть сделку.</div><div id="checkList"></div></details>
@@ -986,7 +987,7 @@ body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
 <option value="transfer">Перевод между кошельками</option>
 </select><div id="koHint" class="ko-hint" style="display:none"></div></div>
 <div class="fgp" style="margin-bottom:10px;display:none;position:relative" id="koClientRow"><label class="lbl">Договор клиента *</label><input class="inp" type="text" id="koClientSearch" placeholder="Поиск по №, ФИО или товару..." autocomplete="off" oninput="koClientSearchInput()" onfocus="koClientSearchInput()"/><input type="hidden" id="koClientId"/><div id="koClientDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);max-height:220px;overflow-y:auto;z-index:10;margin-top:2px;box-shadow:var(--sh)"></div><div style="font-size:10px;color:var(--t3);margin-top:3px" id="koClientHint"></div></div>
-<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="koAmt" autocomplete="off"/></div>
+<div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="koAmt" autocomplete="off" oninput="koAmtHint()"/><div id="koAmtHint" class="ko-amt-hint"></div></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl" for="koDate">Дата операции</label><input class="inp" type="date" id="koDate"/></div>
 <div class="fgp" style="margin-bottom:10px" id="koWalletRow"><label class="lbl" id="koWalletLbl">Кошелёк</label><select class="inp sel" id="koWallet"></select></div>
 <div class="fgp" style="margin-bottom:10px;display:none" id="koWalletToRow"><label class="lbl">Куда</label><select class="inp sel" id="koWalletTo"></select></div>
@@ -1197,7 +1198,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='02.10.2026 · 1';
+const CRM_VERSION='03.10.2026 · 1';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2034,8 +2035,9 @@ function walletShort(eff){
     if(nb<-0.004)return'На счёте «'+esc(w.name)+'» '+fmt(b)+' ₽, а нужно '+fmt(-eff[k])+' ₽. Счёт не может уйти в минус.';}
   return'';
 }
-function walletBlock(msg){const l=document.getElementById('confirmLayer');
-  l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">Недостаточно денег</div><div class="confirm-msg">'+msg+'</div><div class="confirm-actions"><button class="btn bg" onclick="this.closest(\'.confirm-ov\').remove()">Понятно</button></div></div></div>';}
+function walletBlock(msg){walletBlockT('Недостаточно средств',msg);}
+function walletBlockT(t,msg){const l=document.getElementById('confirmLayer');
+  l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+msg+'</div><div class="confirm-actions"><button class="btn bg" onclick="this.closest(\'.confirm-ov\').remove()">Понятно</button></div></div></div>';}
 const curUser=()=>{const u=window.AUTH&&window.AUTH.currentUser;return u?(u.email||u.uid):'';};
 // Перед удалением кладём копию документа в «корзину» (коллекция trash) — ничего не пропадает бесследно
 function trashPut(bt,coll,id,data){if(!data)return;const{db,doc,collection}=window.DB;const clean={};Object.keys(data).forEach(k=>{if(k!=='id'&&k[0]!=='_'&&data[k]!==undefined)clean[k]=data[k];});bt.set(doc(collection(db,'trash')),{coll,docId:id,data:clean,deletedAt:new Date(),deletedBy:curUser()});}
@@ -2385,46 +2387,34 @@ async function savePay(a,pt){
 function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mdName').innerHTML=esc(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mdAmt').value='';document.getElementById('mdAmt').max=s.balance;document.getElementById('mdReason').value='';openM('mDisc');}
 function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Сумма','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
 async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{await addDoc(collection(db,'payments'),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;}}
-function purchaseOf(id){return S.kassaOps.find(o=>o.type==='purchase'&&o.refType==='client'&&o.refId===id)||null;}
+// Закупки по договору: можно платить поставщику частями, пока не оплачена вся себестоимость
+function purchasesOf(id){return S.kassaOps.filter(o=>o.type==='purchase'&&o.refType==='client'&&o.refId===id);}
+function purchasePaid(id,except){return R2(purchasesOf(id).filter(o=>o.id!==except).reduce((a,o)=>a+(parseFloat(o.amount)||0),0));}
 function purchaseInfo(c){
-  const op=purchaseOf(c.id);
-  if(!op)return '<span class="cy">не проведена</span>';
-  const fact=R2(op.amount),co=R2(c.cost);
-  let h=fmt(fact)+' ₽ · '+esc(op.dateStr||'')+' · '+esc(wName(op.wallet,op.walletName));
-  if(Math.abs(fact-co)>0.004)h+='<div class="cy" style="font-size:11px;margin-top:4px">В договоре '+fmt(co)+' ₽ <button class="btn bgh bsm" style="margin-left:6px" onclick="applyFactCost(\''+c.id+'\')">Привести к факту</button></div>';
+  const ops=purchasesOf(c.id).slice().sort((a,b)=>(opDate(a)||0)-(opDate(b)||0));
+  if(!ops.length)return '<span class="cy">не проведена</span>';
+  const paid=purchasePaid(c.id),co=R2(c.cost),left=R2(co-paid);
+  let h=ops.map(op=>fmt(op.amount)+' ₽ · '+esc(op.dateStr||'')+' · '+esc(wName(op.wallet,op.walletName))).join('<br>');
+  if(ops.length>1)h+='<div style="margin-top:4px">Всего: <b>'+fmt(paid)+' ₽</b></div>';
+  if(co>0&&left>0.004)h+='<div class="cy" style="font-size:11px;margin-top:4px">Осталось оплатить поставщику '+fmt(left)+' ₽ из '+fmt(co)+' ₽</div>';
+  else if(co>0&&left<-0.004)h+='<div class="cr" style="font-size:11px;margin-top:4px">Оплачено больше себестоимости на '+fmt(-left)+' ₽</div>';
+  else if(co>0)h+='<div class="cg" style="font-size:11px;margin-top:4px">Оплачено полностью</div>';
   return h;
 }
-function contractClosedMonths(id){
-  const closed=new Set((S.invMonths||[]).map(m=>m.id));
-  if(!closed.size)return [];
-  return [...new Set(S.payments.filter(p=>p.clientId===id&&(p.type==='payment'||p.type==='discount')).map(p=>{const d=p.date&&p.date.toDate?p.date.toDate():new Date(p.date||0);return monthKey(d);}).filter(mk=>closed.has(mk)))];
-}
-function applyFactCost(id){
-  const c=S.clients.find(x=>x.id===id),op=purchaseOf(id);if(!c||!op)return;
-  const fact=R2(op.amount),old=R2(c.cost);
-  const blocked=contractClosedMonths(id);
-  if(blocked.length){toast('Месяц '+mkLabel(blocked[0])+' уже закрыт в Инвесторах — себестоимость менять нельзя','ter');return;}
-  showConfirm('Привести себестоимость к факту?','<strong>№'+(c.contractId||'')+'</strong><br>В договоре '+fmt(old)+' ₽, по факту закупки '+fmt(fact)+' ₽.<br>Прибыль по этому договору пересчитается.',async()=>{
-    try{
-      const{db,doc,updateDoc}=window.DB;
-      await updateDoc(doc(db,'clients',id),{cost:fact,costFactAt:new Date()});
-      await logA('Себестоимость изменена','№'+(c.contractId||'')+' — было '+fmt(old)+' ₽, стало '+fmt(fact)+' ₽ (по факту закупки)');
-      toast('Себестоимость обновлена','tok');
-    }catch(e){toast('Ошибка: '+e.message,'ter');}
-  });
-}
-function clientHasMoney(id){return S.payments.some(p=>p.clientId===id)||S.kassaOps.some(o=>o.refType==='client'&&o.refId===id);}
+// Деньги по договору: платежи, предоплата и любые операции кассы (в том числе закупка). Скидки — не деньги.
+function clientHasMoney(id){return S.payments.some(p=>p.clientId===id&&p.type!=='discount')||S.kassaOps.some(o=>o.refType==='client'&&o.refId===id);}
 function cdDelBtn(c){
   const id=c.id;
-  if(c.archived)return '<button class="btn bgh bsm" onclick="archiveClient(\''+id+'\',false)">Вернуть из архива</button><button class="btn br bsm cd-del" onclick="delClient(\''+id+'\')">Удалить навсегда</button>';
-  return '<button class="btn bgh bsm cd-del" onclick="archiveClient(\''+id+'\',true)">В архив</button>';
+  const del=clientHasMoney(id)?'':'<button class="btn br bsm cd-del" onclick="delClient(\''+id+'\')">Удалить</button>';
+  if(c.archived)return '<button class="btn bgh bsm" onclick="archiveClient(\''+id+'\',false)">Вернуть из архива</button>'+del;
+  return '<button class="btn bgh bsm cd-del" onclick="archiveClient(\''+id+'\',true)">В архив</button>'+del;
 }
 function archiveClient(id,on){
   const c=S.clients.find(x=>x.id===id);if(!c)return;
   const s=getStats(c);
-  // С долгом в архив нельзя: иначе долг пропадёт из портфеля, просрочки и контроля платежей
-  if(on&&R2(s.balance)>0.004){showConfirm('В архив нельзя','<strong>№'+esc(c.contractId||'')+' · '+esc(c.name)+'</strong><br>По договору долг '+fmt(s.balance)+' ₽. Сначала закройте его оплатой или скидкой — тогда договор можно убрать в архив.',()=>{});return;}
-  showConfirm(on?'Отправить договор в архив?':'Вернуть договор из архива?','<strong>№'+(c.contractId||'')+' · '+esc(c.name)+'</strong><br>'+(on?'История, платежи и касса сохранятся. Договор пропадёт из активных списков.':'Договор снова появится в списках.'),async()=>{
+  // В архив можно и с долгом: долг уходит из портфеля, просрочки и контроля платежей, история денег сохраняется
+  const debt=on&&R2(s.balance)>0.004?'<br><span class="cy">Долг '+fmt(s.balance)+' ₽ пропадёт из портфеля, просрочки и контроля платежей.</span>':'';
+  showConfirm(on?'Отправить договор в архив?':'Вернуть договор из архива?','<strong>№'+(c.contractId||'')+' · '+esc(c.name)+'</strong><br>'+(on?'История, платежи и касса сохранятся. Договор пропадёт из активных списков.'+debt:'Договор снова появится в списках.'),async()=>{
     try{
       const{db,doc,updateDoc}=window.DB;
       await updateDoc(doc(db,'clients',id),{archived:!!on,archivedAt:on?new Date():null});
@@ -2437,12 +2427,14 @@ function archiveClient(id,on){
 function delClient(id){
   const c=S.clients.find(x=>x.id===id);if(!c)return;
   if(clientHasMoney(id)){
-    showConfirm('Удалить нельзя','<strong>№'+(c.contractId||'')+' · '+esc(c.name)+'</strong><br>По сделке есть платежи или операции в кассе. Она останется в архиве, чтобы не потерять историю денег.',()=>{});
+    walletBlockT('Удалить нельзя','<strong>№'+esc(c.contractId||'')+' · '+esc(c.name)+'</strong><br>По договору есть платежи, предоплата или закупка. Его можно отправить в архив — история денег сохранится.');
     return;
   }
-  showConfirm('Удалить навсегда?','<strong>№'+(c.contractId||'')+' · '+esc(c.name)+'</strong><br>Платежей и операций нет. Сделка будет удалена без возможности восстановления.',async()=>{
+  const disc=S.payments.filter(p=>p.clientId===id&&p.type==='discount'),st=getStats(c);
+  showConfirm('Удалить договор?','<strong>№'+esc(c.contractId||'')+' · '+esc(c.name)+'</strong><br>Платежей, предоплаты и закупок нет'+(R2(st.balance)>0.004?', долг '+fmt(st.balance)+' ₽ удалится вместе с договором':'')+'. Копия останется в корзине Firebase.',async()=>{
     try{
       const{db,doc,writeBatch}=window.DB;const bt=writeBatch(db);
+      disc.forEach(p=>{trashPut(bt,'payments',p.id,p);bt.delete(doc(db,'payments',p.id));});
       trashPut(bt,'clients',id,c);bt.delete(doc(db,'clients',id));await bt.commit();
       await logA('Удаление сделки','№'+(c.contractId||'')+' — '+(c.name||''));
       toast('Удалена','tok');
@@ -3120,10 +3112,22 @@ function kassaTypeChanged(){
   fillKoWallets();
 }
 
+// Под суммой: сколько на счёте и хватает ли денег (для расхода, закупки и перевода)
+function koAmtHint(){
+  const el=document.getElementById('koAmtHint');if(!el)return;
+  const t=document.getElementById('koType').value,m=kMeta(t);
+  if(m.dir!=='out'&&t!=='transfer'){el.innerHTML='';return;}
+  const w=S.wallets.find(x=>x.id===document.getElementById('koWallet').value);if(!w){el.innerHTML='';return;}
+  const old=_koEdit?S.kassaOps.find(x=>x.id===_koEdit):null,back=old&&old.wallet===w.id?R2(old.amount):0;
+  const have=R2((parseFloat(w.balance)||0)+back),a=parseNum(document.getElementById('koAmt').value)||0;
+  el.className='ko-amt-hint'+(a>have+0.004?' bad':'');
+  el.innerHTML=a>have+0.004?'Недостаточно средств: на счёте «'+esc(w.name)+'» '+fmt(have)+' ₽, не хватает '+fmt(R2(a-have))+' ₽':'На счёте «'+esc(w.name)+'» '+fmt(have)+' ₽';
+}
 function fillKoWallets(){
   const w=document.getElementById('koWallet'),wt=document.getElementById('koWalletTo');
   w.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+esc(x.name)+' ('+fmt(x.balance||0)+' ₽)</option>').join('');
   wt.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+  w.onchange=koAmtHint;koAmtHint();
 }
 
 function fillKoClients(){
@@ -3151,9 +3155,9 @@ function koClientSearchInput(){
   }
   if(!matches.length){dd.innerHTML='<div style="padding:12px;color:var(--t3);font-size:12px">Ничего не найдено</div>';dd.style.display='block';return;}
   dd.innerHTML=matches.map(c=>{
-    const hasPurchase=S.kassaOps.some(o=>o.type==='purchase'&&o.refId===c.id);
-    const badge=hasPurchase?'<span style="color:var(--red);font-weight:700;font-size:10px;margin-left:6px">● закупка есть</span>':'';
-    const opacity=hasPurchase?'0.5':'1';
+    const paid=purchasePaid(c.id),co=R2(c.cost),full=co>0&&paid>=co-0.004;
+    const badge=full?'<span style="color:var(--green);font-weight:700;font-size:10px;margin-left:6px">● оплачено полностью</span>':(paid>0?'<span style="color:var(--yellow);font-weight:700;font-size:10px;margin-left:6px">● оплачено '+fmt(paid)+' из '+fmt(co)+' ₽</span>':'');
+    const opacity=full?'0.5':'1';
     return'<div onclick="koClientPick(\''+c.id+'\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd2);font-size:12px;opacity:'+opacity+'" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'transparent\'"><div style="font-weight:700;color:var(--t2)">№'+(c.contractId||'—')+' · '+esc(c.name)+badge+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">'+esc(c.product||'—')+' · себестоимость: '+fmt(c.cost)+' ₽</div></div>';
   }).join('');
   dd.style.display='block';
@@ -3164,22 +3168,16 @@ function koClientPick(id){
   document.getElementById('koClientId').value=id;
   document.getElementById('koClientSearch').value='№'+(c.contractId||'')+' · '+c.name;
   document.getElementById('koClientDropdown').style.display='none';
-  // Проверяем не было ли уже закупки
-  const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===c.id);
-  if(existing.length){
-    const total=existing.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
-    document.getElementById('koClientHint').innerHTML='<span style="color:var(--red);font-weight:700">⚠ По этому договору уже есть закупка на '+fmt(total)+' ₽. Чтобы изменить — сначала удалите старую закупку.</span>';
-    // Очищаем сумму и описание, блокируем кнопку сохранения
-    document.getElementById('koAmt').value='';
-    document.getElementById('koDesc').value='';
-    document.getElementById('koClientId').value='__blocked__';
-    return;
+  // Сколько ещё не оплачено поставщику
+  const co=R2(c.cost),paid=purchasePaid(c.id,_koEdit),left=R2(co-paid),hint=document.getElementById('koClientHint');
+  if(co>0&&left<=0.004){
+    hint.innerHTML='<span style="color:var(--red);font-weight:700">Товар по этому договору уже оплачен полностью ('+fmt(paid)+' ₽).</span>';
+    document.getElementById('koAmt').value='';document.getElementById('koDesc').value='';document.getElementById('koClientId').value='__blocked__';koAmtHint();return;
   }
-  // Подставляем себестоимость как сумму
-  document.getElementById('koAmt').value=c.cost||'';
-  // Автоописание (read-only)
+  if(!_koEdit)document.getElementById('koAmt').value=co>0?fmt(left):'';
   document.getElementById('koDesc').value='Закупка для '+c.name+' (№'+c.contractId+')';
-  document.getElementById('koClientHint').textContent='Себестоимость подставлена автоматически, можно изменить';
+  hint.innerHTML=paid>0?'Уже оплачено поставщику '+fmt(paid)+' ₽ из '+fmt(co)+' ₽ — подставлен остаток '+fmt(left)+' ₽, можно оплатить частично':'Себестоимость '+fmt(co)+' ₽ — можно оплатить частично';
+  koAmtHint();
 }
 
 // Закрывать dropdown при клике вне
@@ -3218,6 +3216,7 @@ function openKassaEdit(id){
   document.getElementById('koWallet').value=o.wallet||'';if(o.walletTo)document.getElementById('koWalletTo').value=o.walletTo;
   const d=opDate(o);if(d)document.getElementById('koDate').value=dayKey(d);
   if(o.type==='purchase'&&o.refId){const c=S.clients.find(x=>x.id===o.refId);document.getElementById('koClientId').value=o.refId;document.getElementById('koClientSearch').value=c?'№'+(c.contractId||'')+' · '+c.name:(o.clientName||'');}
+  koAmtHint();
 }
 // Расход в месяце, уже закрытом у инвесторов, менять нельзя — начисления зафиксированы
 function kassaClosedMonth(type,d){
@@ -3248,9 +3247,9 @@ async function saveKassaOp(){
   const meta=kMeta(type);
   // Проверки
   if(type==='purchase'){
-    if(!clientId||clientId==='__blocked__'){toast('Выберите договор клиента без повторной закупки','ter');return;}
-    const existing=S.kassaOps.filter(o=>o.type==='purchase'&&o.refId===clientId&&o.id!==_koEdit);
-    if(existing.length){toast('По этому договору уже есть закупка. Удалите её чтобы создать новую.','ter');return;}
+    if(!clientId||clientId==='__blocked__'){toast('Выберите договор, по которому товар оплачен не полностью','ter');return;}
+    const c=S.clients.find(x=>x.id===clientId),co=c?R2(c.cost):0,left=R2(co-purchasePaid(clientId,_koEdit));
+    if(co>0&&amt>left+0.004){walletBlockT('Больше себестоимости','По договору №'+esc(c.contractId||'')+' осталось оплатить поставщику <strong>'+fmt(Math.max(0,left))+' ₽</strong> из '+fmt(co)+' ₽.');return;}
   }
   if(type==='transfer'){
     if(!wtid){toast('Выберите кошелёк назначения','ter');return;}
@@ -3915,7 +3914,7 @@ async function saveInvOp(){
   }
   if(t==='payout'||t==='reinvest'){
     if(amt>depPay){toast('К выплате по этому вкладу '+fmt(depPay)+' ₽','ter');return;}
-    if(t==='payout'&&amt>wb){toast('В кошельке «'+w.name+'» только '+fmt(wb)+' ₽','ter');return;}
+    if(t==='payout'&&amt>wb){walletBlock('На счёте «'+esc(w.name)+'» '+fmt(wb)+' ₽, а нужно '+fmt(amt)+' ₽.');return;}
   }
   const desc=document.getElementById('ioDesc').value.trim();
   const commit=async()=>{

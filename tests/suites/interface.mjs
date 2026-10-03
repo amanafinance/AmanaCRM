@@ -68,7 +68,7 @@ export default async function(){
   check('фильтр истории по датам загружает нужный период',jr);
   // счёт не уходит в минус: перевод и расход больше остатка, удаление прихода, отмена платежа
   const mn=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));goTo('kassa');
-    const W=id=>R2(S.wallets.find(x=>x.id===id).balance),ops=()=>S.kassaOps.length,shown=()=>{const t=document.querySelector('#confirmLayer .confirm-title');const ok=!!t&&t.textContent==='Недостаточно денег';document.getElementById('confirmLayer').innerHTML='';return ok;};
+    const W=id=>R2(S.wallets.find(x=>x.id===id).balance),ops=()=>S.kassaOps.length,shown=()=>{const t=document.querySelector('#confirmLayer .confirm-title');const ok=!!t&&t.textContent==='Недостаточно средств';document.getElementById('confirmLayer').innerHTML='';return ok;};
     const w2=S.wallets.find(x=>x.id==='w2'),b=W('w2'),b1=W('w1'),n=ops(),r={};
     await doSaveKassa('transfer',b+10000,'w2','w1','',null,w2,new Date(),null);await sl(600);r.transfer=shown()&&W('w2')===b&&W('w1')===b1&&ops()===n;
     await doSaveKassa('opex',b+1,'w2',null,'',null,w2,new Date(),null);await sl(600);r.expense=shown()&&W('w2')===b&&ops()===n;
@@ -82,6 +82,9 @@ export default async function(){
     const tr=S.kassaOps.find(o=>o.type==='transfer'&&o.wallet==='w2'&&R2(o.amount)===b);delKassaOp(tr.id);await sl(1200);r.undo=W('w2')===b&&W('w1')===R2(b1-100);
     return r;});
   check('перевод больше остатка не проводится',mn.transfer,mn);
+  const hint=await p.evaluate(()=>{goTo('kassa');openKassaOp();const t=document.getElementById('koType');t.value='opex';kassaTypeChanged();document.getElementById('koWallet').value='w2';
+    document.getElementById('koAmt').value=fmt(R2(S.wallets.find(x=>x.id==='w2').balance)+1);koAmtHint();const h=document.getElementById('koAmtHint');const r={txt:h.textContent,bad:h.classList.contains('bad')};closeM('mKassa');return r;});
+  check('в форме операции видно «Недостаточно средств» до сохранения',hint.bad&&/Недостаточно средств/.test(hint.txt),hint);
   check('расход больше остатка не проводится',mn.expense,mn);
   check('счёт можно потратить ровно до нуля',mn.exact,mn);
   check('отмена платежа не уводит кассу в минус',mn.cancel,mn);
