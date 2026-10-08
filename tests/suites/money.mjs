@@ -56,6 +56,22 @@ export default async function(){
   check('договор без денег и закупок удаляется, даже с долгом',dl.btn&&dl.gone,dl);
   check('договор с платежами удалить нельзя',!dl.btnPay&&dl.blocked,dl);
 
+  // Новый договор: выбор клиента двумя кнопками, срок 18 месяцев, номер удалённого договора возвращается
+  const nd=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const r={};
+    const make=async()=>{openNew();await sl(200);
+      r.btns=[...document.querySelectorAll('#pk_client .pick-btns button')].map(b=>b.textContent);r.boxHidden=getComputedStyle(document.querySelector('#pk_client .pick-box')).display==='none';
+      const k=[...personIndex().values()].find(x=>x.no==='К-0001').key;pickSet('f_name',encodeURIComponent(k));
+      document.getElementById('f_product').value='Телефон';document.getElementById('f_price').value='90 000';document.getElementById('f_cost').value='60 000';document.getElementById('f_prepay').value='0';
+      document.getElementById('f_months').value='18';monthsInput(true);await sl(100);r.rows=document.querySelectorAll('#schedBody tr').length;
+      await saveClient();await sl(1500);return S.clients.filter(c=>c.product==='Телефон').sort((a,b)=>b.contractId.localeCompare(a.contractId))[0];};
+    const max=()=>S.clients.reduce((a,c)=>Math.max(a,parseInt(c.contractId)||0),0);
+    const before=max();const c1=await make();r.no1=c1&&c1.contractId;r.months=c1&&c1.months;r.sched=c1&&getStats(c1).schedule.length;r.exp=String(before+1).padStart(5,'0');
+    delClient(c1.id);await sl(1500);r.gone=!S.clients.some(x=>x.id===c1.id);
+    const c2=await make();r.no2=c2&&c2.contractId;return r;});
+  check('в форме сделки две кнопки: «Выбрать существующего» и «Новый клиент»',nd.boxHidden&&nd.btns[0]==='Выбрать существующего'&&/Новый клиент/.test(nd.btns[1]),nd);
+  check('договор на 18 месяцев: график из 18 платежей',nd.rows===18&&String(nd.months)==='18'&&nd.sched===18,nd);
+  check('номер удалённого договора достаётся следующему',nd.no1===nd.exp&&nd.gone&&nd.no2===nd.exp,nd);
+
   // Закупка частями: пока не оплачена вся себестоимость
   const pu=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const{db,doc,setDoc}=window.DB;
     const b={...S.clients.find(x=>x.id==='c3')};delete b.id;delete b._u;delete b.archived;await setDoc(doc(db,'clients','cBuy'),{...b,contractId:'09991',name:'Закупка',cost:30000});await sl(1200);
@@ -67,11 +83,13 @@ export default async function(){
     document.getElementById('koAmt').value='20 000';await saveKassaOp();await sl(1200);r.full=purchasePaid('cBuy');
     openKassaOp();koClientPick('cBuy');r.blocked=document.getElementById('koClientId').value==='__blocked__';closeM('mKassa');
     openC('cBuy');await sl(200);r.card=document.getElementById('cDetail').innerText.includes('Оплачено полностью');
+    goTo('kassa');openKassaOp();document.getElementById('koClientSearch').value='09991';koClientSearchInput();r.hidden=!document.getElementById('koClientDropdown').innerText.includes('09991');closeM('mKassa');
     return r;});
   check('закупка подставляет себестоимость, можно оплатить частично',pu.pre===30000&&pu.first===10000,pu);
   check('вторая закупка подставляет остаток',pu.pre2===20000,pu);
   check('закупка больше остатка себестоимости не проводится',pu.over==='Больше себестоимости'&&pu.still===10000,pu);
   check('после полной оплаты новая закупка по договору закрыта',pu.full===30000&&pu.blocked&&pu.card,pu);
+  check('договор с полностью оплаченным товаром не виден в списке закупки',pu.hidden,pu);
 
   // Правка договора с предоплатой: одна запись; при обрыве — ничего
   const ed=await p.evaluate(async()=>{const run=async fail=>{openEdit('c7');await new Promise(r=>setTimeout(r,200));document.getElementById('f_prepay').value='7000';document.getElementById('f_product').value='Изменённый товар';_schedOk=true;

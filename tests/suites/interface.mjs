@@ -18,20 +18,40 @@ export default async function(){
   if(x){await x.click();await wait(M.p,200);check('крестик закрывает окно',!(await M.p.evaluate(()=>document.getElementById('mClient').classList.contains('on'))));}
   await M.p.click('.sidebar .gs-nb');await wait(M.p,200);
   check('на телефоне поиск есть в нижнем меню',await M.p.evaluate(()=>document.getElementById('mSearch').classList.contains('on')));
-  check('дашборд на телефоне не шире экрана',await M.p.evaluate(()=>{goTo('dashboard');return document.documentElement.scrollWidth<=innerWidth;}));
+  check('дашборд и окно договора на телефоне не шире экрана',await M.p.evaluate(async()=>{goTo('dashboard');await new Promise(r=>setTimeout(r,200));const a=innerWidth===390&&document.documentElement.scrollWidth<=390;openNew();await new Promise(r=>setTimeout(r,200));const b=document.querySelector('#mClient .modal').getBoundingClientRect().right<=390;closeM('mClient');return a&&b;}));
   noErrors('интерфейс, телефон',M.errs);await M.ctx.close();
 
   // --- компьютер
   const {p,errs,ctx}=await device();await login(p);await autoConfirm(p);
   check('в плитках дашборда суммы без копеек',await p.evaluate(()=>{goTo('dashboard');return![...document.querySelectorAll('#dStats .sv')].some(e=>/\d,\d{2}\s*₽/.test(e.textContent));}));
-  // график по месяцам: подсказка показывает те же цифры, что ОПИУ; наведение и вкладки работают
+  // график: подсказка показывает те же цифры, что ОПИУ; наведение, показатели и периоды работают
   const ch=await p.evaluate(()=>{goTo('dashboard');const mk=monthKey(new Date()),m=finDerive(finFact(mk,finCtx()));
     const tip=()=>document.querySelector('#dshTip .v').textContent;const last=tip();
     const a=document.getElementById('dshArea'),r=a.getBoundingClientRect();a.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+1,clientY:r.top+50,bubbles:true}));
-    const first=document.getElementById('dshTip').textContent;setDsh('tab','sales');const sales=tip();setDsh('tab','pay');
-    return{ok:last===dMoney(m.pay),first:first.includes(mkLabel(mkShift(mk,-11))),sales:sales===dMoney(m.sales),partners:document.querySelectorAll('.dsh-pr:not(.hd)').length};});
-  check('график на дашборде: подсказка, наведение и вкладки',ch.ok&&ch.first&&ch.sales,ch);
-  check('на дашборде есть портфель по поставщикам',ch.partners>0,ch);
+    const first=document.getElementById('dshTip').textContent;setDsh('metric','sales');const sales=tip();
+    const opts=document.querySelectorAll('.dsh-ch select[aria-label="Показатель"] option').length;
+    // период «этот месяц» — по дням; «за всё время» — по месяцам
+    S.perChart={v:'m0'};renderDash();const days=S.dsh.pts.us.length,dayOk=S.dsh.pts.us.every(u=>(u.to-u.from)<=864e5+36e5);
+    S.perChart={v:'all'};renderDash();const allN=S.dsh.pts.us.length;
+    S.perChart={v:'l12'};setDsh('metric','pay');
+    return{ok:last===dMoney(m.pay),first:first.includes(S.dsh.pts.us[0].label),sales:sales===dMoney(m.sales),opts,days,dayOk,allN,partners:document.querySelectorAll('.dsh-pr:not(.hd)').length,av:!!document.querySelector('.dsh-av')};});
+  check('график на дашборде: подсказка, наведение и показатели',ch.ok&&ch.first&&ch.sales&&ch.opts>=20,ch);
+  check('график за месяц — по дням, за всё время — по месяцам',ch.days>=28&&ch.dayOk&&ch.allN>=12,ch);
+  check('на дашборде есть портфель по поставщикам, без круглых иконок',ch.partners>0&&!ch.av,ch);
+  // блок показателей на дашборде: период и сравнение
+  const dpr=await p.evaluate(()=>{S.perDash={v:'m1'};renderDash();const t=document.querySelector('#dStats .dsh-ht:nth-of-type(1)');const hd=[...document.querySelectorAll('#dStats .dsh-ht')].map(x=>x.textContent);
+    const ctx=finCtx(),pm=mkShift(monthKey(new Date()),-1),r=finDerive(finFact(pm,ctx)).received;const v=document.querySelectorAll('#dStats .dsh-g4')[1].querySelector('.sv').textContent;S.perDash={v:'m0'};renderDash();return{hd,ok:v===dMoney(r)};});
+  check('показатели дашборда за выбранный период (прошлый месяц)',dpr.ok&&dpr.hd.some(h=>/Показатели · /.test(h)),dpr);
+  // Обзор: любой период — суммы сходятся с ОПИУ по месяцам
+  const ov=await p.evaluate(()=>{const ctx=finCtx(),n=new Date(),y=n.getFullYear();
+    S.perFin={v:'custom',from:dayKey(new Date(y,n.getMonth()-2,1)),to:dayKey(new Date(y,n.getMonth()-1,0))};goTo('finance');
+    const head=[...document.querySelectorAll('.fin-t thead th')].map(t=>t.textContent);
+    const exp=finDerive(finFact(mkShift(monthKey(n),-2),ctx)).received,card=document.querySelector('#finBody .dsh-g4 .sc:nth-child(2) .sv').textContent;
+    S.perFin={v:'custom',from:dayKey(new Date(y,n.getMonth()-2,1)),to:dayKey(new Date(y,n.getMonth()-2,10))};renderFinance();const half=document.querySelector('#finBody .dsh-g4 .sc:nth-child(2) .sv').textContent;
+    S.perFin={v:'all'};renderFinance();const allCols=document.querySelectorAll('.fin-t thead th').length;
+    S.perFin={v:'y0'};renderFinance();return{head,ok:card===dMoney(exp),half,allCols,title:document.querySelector('#page-finance .pt').textContent};});
+  check('«Обзор»: свой период считается так же, как ОПИУ за месяц',ov.ok&&ov.title==='Обзор',ov);
+  check('«Обзор»: часть месяца и всё время',ov.half!==undefined&&ov.allCols>=14,ov);
   // поиск по сделкам над таблицей
   const dq=await p.evaluate(()=>{goBase('clients');const i=document.getElementById('clQ');i.value='00011';renderClients();const n=document.querySelectorAll('#cList tbody tr').length;i.value='';renderClients();return n;});
   check('поиск сделки по номеру договора',dq===1,dq);
