@@ -4,24 +4,28 @@ export default async function(){
   await reseed();
   const A=await device(),B=await device();await login(A.p);await login(B.p);await autoConfirm(A.p);
 
-  // --- без интернета
+  // --- без интернета: ничего не сохраняется, понятное сообщение; смотреть данные можно
   await A.ctx.setOffline(true);
-  const off=await A.p.evaluate(async()=>{const w0=S.wallets.find(w=>w.id==='w1').balance;_cid='c4';const t=Date.now();
-    await savePay(1111,'w1');const took=Date.now()-t;await new Promise(r=>setTimeout(r,500));
+  const off=await A.p.evaluate(async()=>{const w0=S.wallets.find(w=>w.id==='w1').balance,n0=S.payments.length;_cid='c4';const t=Date.now();
+    await savePay(1111,'w1');const took=Date.now()-t,msg=document.getElementById('toast').textContent;await new Promise(r=>setTimeout(r,500));
     const vis=S.payments.some(p=>p.amount===1111&&p.clientId==='c4'),bal=S.wallets.find(w=>w.id==='w1').balance-w0;
-    _cid='c4';document.getElementById('mcText').value='Обещал завтра';await saveComment();await new Promise(r=>setTimeout(r,300));
-    const badge=document.getElementById('netBadge');return{took,vis,bal,saving:_saving,comment:S.clients.find(c=>c.id==='c4').comment,badge:badge&&badge.classList.contains('on')?badge.textContent:''};});
-  check('без интернета оплата сохраняется за пару секунд, а не «висит»',off.took<4000&&!off.saving,off);
-  check('без интернета оплата сразу видна, остаток счёта сразу изменился',off.vis&&Math.abs(off.bal-1111)<0.01,off);
-  check('без интернета другие сохранения тоже работают',off.comment==='Обещал завтра',off);
-  check('видна плашка «Нет интернета · изменений ждут отправки»',/Нет интернета/.test(off.badge)&&/ждут отправки/.test(off.badge),off.badge);
+    _cid='c4';document.getElementById('mcText').value='Обещал завтра';await saveComment();await new Promise(r=>setTimeout(r,300));const msg2=document.getElementById('toast').textContent;
+    goTo('clients');const view=document.querySelectorAll('#cList tbody tr').length>0;
+    const badge=document.getElementById('netBadge');return{took,msg,msg2,vis,bal,saving:_saving,view,comment:S.clients.find(c=>c.id==='c4').comment||'',badge:badge&&badge.classList.contains('on')?badge.textContent:''};});
+  check('без интернета оплата не сохраняется и не «висит»',!off.vis&&Math.abs(off.bal)<0.01&&off.took<4000&&!off.saving,off);
+  check('без интернета — сообщение «Нет интернета — изменение не сохранено»',/^Нет интернета — изменение не сохранено/.test(off.msg),off);
+  check('без интернета комментарий тоже не сохраняется',off.comment!=='Обещал завтра'&&/Нет интернета/.test(off.msg2),off);
+  check('без интернета данные можно смотреть, видна плашка «только просмотр»',off.view&&/Нет интернета/.test(off.badge)&&/только просмотр/.test(off.badge),off);
   const nd=await A.p.evaluate(async()=>{openNew('p:P9');await new Promise(r=>setTimeout(r,100));document.getElementById('f_product').value='Офлайн';document.getElementById('f_cost').value='1000';document.getElementById('f_price').value='3000';calcSched();
     await Promise.race([saveClient(),new Promise(r=>setTimeout(r,15000))]);const t=document.getElementById('toast').textContent;closeM('mClient');return t;});
   check('новый договор без интернета — понятное сообщение',/интернет/i.test(nd),nd);
-  await A.ctx.setOffline(false);await wait(A.p,5000);
-  const on=await B.p.evaluate(()=>({pay:S.payments.some(p=>p.amount===1111&&p.clientId==='c4'),comment:S.clients.find(c=>c.id==='c4').comment}));
-  check('когда сеть вернулась, оплата и комментарий дошли до второго устройства',on.pay&&on.comment==='Обещал завтра',on);
-  check('плашка пропала',await A.p.evaluate(()=>!document.getElementById('netBadge').classList.contains('on')));
+  await A.ctx.setOffline(false);await wait(A.p,3000);
+  const on=await A.p.evaluate(async()=>{_cid='c4';await savePay(1112,'w1');await new Promise(r=>setTimeout(r,800));return{pay:S.payments.some(p=>p.amount===1112&&p.clientId==='c4'),badge:document.getElementById('netBadge').classList.contains('on')};});
+  await wait(B.p,2000);
+  const onB=await B.p.evaluate(()=>({pay1111:S.payments.some(p=>p.amount===1111&&p.clientId==='c4'),pay1112:S.payments.some(p=>p.amount===1112&&p.clientId==='c4')}));
+  check('когда сеть вернулась, сохранение снова работает и видно на втором устройстве',on.pay&&onB.pay1112,{on,onB});
+  check('то, что пытались сохранить без интернета, в базу не попало',!onB.pay1111,onB);
+  check('плашка пропала',!on.badge);
 
   // --- настройки с двух устройств
   await A.p.evaluate(async()=>{document.getElementById('newPart').value='Поставщик-ПК';document.getElementById('newPartPh').value='89000000001';await addPart();});
