@@ -26,34 +26,43 @@ if(window.__AMANA_EMU){connectFirestoreEmulator(db,'127.0.0.1',window.__AMANA_EM
 const U='_u',TOMB='deleted';
 const stamp=d=>Object.assign({},d,{[U]:serverTimestamp()});
 const tomb=(bt,ref)=>bt.set(doc(collection(db,TOMB)),{c:ref.parent.id,id:ref.id,[U]:serverTimestamp()});
-// ---- Запись без интернета ----
-// Firebase сохраняет запись на устройстве сразу и отправит её, когда появится сеть. Если сети нет,
-// не ждём ответа сервера (иначе кнопки «висят»): считаем записанным и показываем значок «ждут отправки».
-let pendingN=0;
+// ---- Запись только при интернете ----
+// Без связи с сервером ничего не сохраняется: перед записью проверяем, что сервер отвечает.
+// Читать (смотреть данные) без интернета можно — они хранятся на устройстве.
+let netOkAt=0,netDown=false;
 const netBadge=()=>{let el=document.getElementById('netBadge');if(!el){el=document.createElement('div');el.id='netBadge';document.body.appendChild(el);}
-  el.textContent=navigator.onLine?(pendingN?'Отправляю изменения на сервер…':''):('Нет интернета'+(pendingN?' · изменений ждут отправки: '+pendingN:' · изменения сохранятся на устройстве'));
-  el.classList.toggle('on',!navigator.onLine||pendingN>0);};
-window.addEventListener('online',netBadge);window.addEventListener('offline',netBadge);netBadge();
-const soft=pr=>new Promise((ok,no)=>{let done=false,queued=false;
-  pr.then(v=>{if(queued){pendingN=Math.max(0,pendingN-1);netBadge();}if(!done){done=true;ok(v);}},
-    e=>{if(queued){pendingN=Math.max(0,pendingN-1);netBadge();console.error(e);if(window.toast)toast('Изменение не принято сервером: '+(e&&e.message||''),'ter');}if(!done){done=true;no(e);}});
-  const wait=()=>{if(done)return;if(!navigator.onLine){done=queued=true;pendingN++;netBadge();ok();}else setTimeout(wait,1000);};setTimeout(wait,600);});
-const setDocU=(ref,d,o)=>soft(o?setDoc(ref,stamp(d),o):setDoc(ref,stamp(d)));
-const updateDocU=(ref,d)=>soft(updateDoc(ref,stamp(d)));
-const addDocU=(c,d)=>{const r=doc(c);return soft(setDoc(r,stamp(d))).then(()=>r);};
-const deleteDocU=ref=>{const b=writeBatch(db);b.delete(ref);tomb(b,ref);return soft(b.commit());};
+  const off=!navigator.onLine||netDown;el.textContent=off?'Нет интернета · только просмотр, изменения не сохраняются':'';el.classList.toggle('on',off);};
+window.addEventListener('online',()=>{netOkAt=0;netDown=false;netBadge();});window.addEventListener('offline',()=>{netOkAt=0;netBadge();});netBadge();
+const NET_ERR='Нет интернета — изменение не сохранено. Подключитесь к сети и повторите.';
+const netFail=()=>{netDown=true;netOkAt=0;netBadge();return Object.assign(new Error(NET_ERR),{code:'offline'});};
+// «Нет интернета» — ожидаемая ситуация, а не сбой: в консоли это предупреждение, а не ошибка
+const _cErr=console.error.bind(console);console.error=(...a)=>a[0]&&a[0].code==='offline'?console.warn(...a):_cErr(...a);
+const withTimeout=(pr,ms)=>Promise.race([pr,new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]);
+// Сервер отвечал недавно (15 с) — не спрашиваем снова: одно действие часто пишет несколько раз
+const netCheck=async()=>{
+  if(!navigator.onLine)throw netFail();
+  if(Date.now()-netOkAt<15000)return;
+  try{await withTimeout(getDocFromServer(doc(db,'settings','meta')),7000);netOkAt=Date.now();if(netDown){netDown=false;netBadge();}}
+  catch(e){throw netFail();}
+};
+// Запись ждём не дольше 15 с: если связь пропала прямо во время сохранения, честно говорим об этом
+const send=pr=>withTimeout(pr,15000).catch(e=>{if(e&&e.message==='timeout'){netFail();throw new Error('Связь пропала во время сохранения. Изменение отправится само, когда сеть вернётся — не повторяйте его, а проверьте через минуту.');}throw e;});
+const setDocU=(ref,d,o)=>netCheck().then(()=>send(o?setDoc(ref,stamp(d),o):setDoc(ref,stamp(d))));
+const updateDocU=(ref,d)=>netCheck().then(()=>send(updateDoc(ref,stamp(d))));
+const addDocU=(c,d)=>{const r=doc(c);return netCheck().then(()=>send(setDoc(r,stamp(d)))).then(()=>r);};
+const deleteDocU=ref=>netCheck().then(()=>{const b=writeBatch(db);b.delete(ref);tomb(b,ref);return send(b.commit());});
 const writeBatchU=()=>{const b=writeBatch(db),w={
   set:(r,d,o)=>{o?b.set(r,stamp(d),o):b.set(r,stamp(d));return w;},
   update:(r,d)=>{b.update(r,stamp(d));return w;},
   delete:r=>{b.delete(r);tomb(b,r);return w;},
-  commit:()=>soft(b.commit())};return w;};
+  commit:()=>netCheck().then(()=>send(b.commit()))};return w;};
 // Следующие номера (договоров — settings/counter, клиентов — settings/pcounter).
 // Транзакция: два человека не получат один номер. n — сколько номеров занять сразу; возвращается первый.
-const nextCounter=(id,n)=>{id=id||'counter';n=n||1;const ref=doc(db,'settings',id);return runTransaction(db,async tx=>{const s=await tx.get(ref),first=(s.exists()?(s.data().lastId||0):0)+1;tx.set(ref,{lastId:first+n-1,[U]:serverTimestamp()},{merge:true});return first;});};
+const nextCounter=async(id,n)=>{await netCheck();id=id||'counter';n=n||1;const ref=doc(db,'settings',id);return runTransaction(db,async tx=>{const s=await tx.get(ref),first=(s.exists()?(s.data().lastId||0):0)+1;tx.set(ref,{lastId:first+n-1,[U]:serverTimestamp()},{merge:true});return first;});};
 // Записать документ, только если его ещё нет (вместе с сопутствующими записями) — защита от двойного
 // действия с двух устройств. Если документ уже есть, бросает ошибку с code:'exists'.
-const createOnce=(ref,data,more)=>runTransaction(db,async tx=>{const s=await tx.get(ref);if(s.exists())throw Object.assign(new Error('exists'),{code:'exists'});
-  tx.set(ref,stamp(data));(more||[]).forEach(([r,d])=>tx.set(r,stamp(d)));});
+const createOnce=async(ref,data,more)=>{await netCheck();return runTransaction(db,async tx=>{const s=await tx.get(ref);if(s.exists())throw Object.assign(new Error('exists'),{code:'exists'});
+  tx.set(ref,stamp(data));(more||[]).forEach(([r,d])=>tx.set(r,stamp(d)));});};
 
 // ---- Живая коллекция: кэш устройства + только изменения с сервера ----
 const FULL_EVERY=7*864e5,OVERLAP=5*60e3,SYNC_KEY='amana_sync_v2';
@@ -138,7 +147,7 @@ async function resyncAll(){try{localStorage.removeItem(SYNC_KEY);}catch(e){}try{
 
 // Номер договора и сам договор пишутся одной транзакцией: если сохранить не удалось, номер не тратится.
 // fn(w,last) делает записи через w и возвращает новое значение счётчика.
-const counterTx=(id,fn)=>{const ref=doc(db,'settings',id);return runTransaction(db,async tx=>{
+const counterTx=async(id,fn)=>{await netCheck();const ref=doc(db,'settings',id);return runTransaction(db,async tx=>{
   const s=await tx.get(ref),last=s.exists()?(s.data().lastId||0):0;
   const w={set:(r,d,o)=>{o?tx.set(r,stamp(d),o):tx.set(r,stamp(d));return w;},update:(r,d)=>{tx.update(r,stamp(d));return w;},delete:r=>{tx.delete(r);tomb(tx,r);return w;}};
   const nv=await fn(w,last);if(nv!==last)tx.set(ref,{lastId:nv,[U]:serverTimestamp()},{merge:true});return nv;});};
@@ -387,7 +396,7 @@ body.light .bwa{color:#128c4a}
 .rc-row:last-child{border-bottom:none}
 .toast{position:fixed;bottom:18px;right:18px;padding:11px 16px;background:var(--card);border:1px solid var(--brd);border-radius:var(--r2);font-size:12px;font-weight:600;box-shadow:var(--sh);z-index:9999;transform:translateY(60px);opacity:0;transition:.3s}.toast.on{transform:translateY(0);opacity:1}
 .toast{pointer-events:none;visibility:hidden}
-#netBadge{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top,0px));z-index:9998;display:none;padding:7px 14px;border-radius:999px;background:var(--yellow);color:#1a1a1a;font-size:12px;font-weight:700;box-shadow:var(--sh);max-width:calc(100% - 24px);text-align:center}
+#netBadge{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top,0px));z-index:9998;display:none;padding:7px 14px;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:700;box-shadow:var(--sh);max-width:calc(100% - 24px);text-align:center}
 #netBadge.on{display:block}
 .toast.on{pointer-events:auto;visibility:visible}.tok{border-color:var(--green)!important;color:var(--green)}.ter{border-color:var(--red)!important;color:var(--red)}
 .bback{display:inline-flex;align-items:center;gap:5px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;border:none;background:none;transition:.2s}.bback:hover{color:var(--green)}
@@ -1214,7 +1223,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='08.10.2026 · 1';
+const CRM_VERSION='25.10.2026 · 1';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2459,7 +2468,7 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
     bt.set(kRef,{type:'prepay_in',amount:pp,wallet:ptW.id,walletName:ptW.name,desc:'Предоплата от '+name+' (№'+data.contractId+')',date:now,dateStr:fmtD(now),auto:true,refType:'client',refId:ref.id,paymentId:pRef.id,clientName:name,contractId:data.contractId});
     bt.update(doc(db,'wallets',ptW.id),WINC(pp));
   }
-  return n;});}catch(e){console.warn(e);throw new Error(navigator.onLine?'Не удалось сохранить договор. Попробуйте снова':'Новый договор можно создать только при интернете: ему нужен номер');}
+  return n;});}catch(e){console.warn(e);throw e&&e.code==='offline'?e:new Error(navigator.onLine?'Не удалось сохранить договор. Попробуйте снова':'Нет интернета — договор не сохранён. Подключитесь к сети и повторите.');}
   await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
 
 // ---------- PAY / DISCOUNT ----------
@@ -2894,7 +2903,7 @@ async function savePerson(){
     if(old&&S.curPerson===old.key)S.curPerson='p:'+pid;
     const cb=_pf.cb;_pf={key:null,cb:null,dupOk:false};
     if(cb)cb({key:'p:'+pid,id:pid,no,name,phones,addr});
-  }catch(e){toast(!navigator.onLine&&!_pf.key?'Нового клиента можно создать только при интернете: ему нужен номер':'Ошибка: '+e.message,'ter');console.error(e);}
+  }catch(e){toast(e&&e.code==='offline'?e.message:'Ошибка: '+e.message,'ter');console.error(e);}
   finally{_saving=false;}
 }
 
@@ -3434,7 +3443,7 @@ function loadXlsx(){if(window.XLSX)return Promise.resolve();if(!_xlsxP)_xlsxP=ne
 async function exportExcel(){try{await loadXlsx();}catch(e){toast('Ошибка: '+e.message,'ter');return;}const r=[['№','Дата','ФИО','Телефоны','Товар','Поставщик','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{if(c.archived)return;const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
 function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);}
 function closeM(id){document.getElementById(id).classList.remove('on');}
-function toast(m,c){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
+function toast(m,c){m=String(m).replace(/^Ошибка: (Нет интернета|Связь пропала)/,'$1');const t=document.getElementById('toast');t.textContent=m;if(/^(Нет интернета|Связь пропала)/.test(m)){t.className='toast ter';t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),6000);return;}t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 </script>
 <script>
