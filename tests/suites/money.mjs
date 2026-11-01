@@ -92,15 +92,31 @@ export default async function(){
   check('договор с полностью оплаченным товаром не виден в списке закупки',pu.hidden,pu);
 
   // Правка договора с предоплатой: одна запись; при обрыве — ничего
-  const ed=await p.evaluate(async()=>{const run=async fail=>{openEdit('c7');await new Promise(r=>setTimeout(r,200));document.getElementById('f_prepay').value='7000';document.getElementById('f_product').value='Изменённый товар';_schedOk=true;
+  const ed=await p.evaluate(async()=>{const run=async fail=>{openEdit('c7');await new Promise(r=>setTimeout(r,200));document.getElementById('f_prepay').value='7000';document.getElementById('f_product').value='Изменённый товар';recalcSched();
       const orig=window.DB.writeBatch;if(fail)window.DB.writeBatch=db=>{const b=orig(db);return{...b,commit:()=>Promise.reject(new Error('обрыв'))};};
       await saveClient();window.DB.writeBatch=orig;closeM('mClient');await new Promise(r=>setTimeout(r,1200));
       const c=S.clients.find(x=>x.id==='c7');return{prepay:c.prepay,product:c.product,kassa:S.kassaOps.filter(o=>o.type==='prepay_in'&&o.refId==='c7').map(o=>o.amount),pay:S.payments.filter(x=>x.clientId==='c7'&&x.type==='prepay').map(x=>x.amount)};};
     return{fail:await run(true),ok:await run(false)};});
   check('правка договора при обрыве связи не записывает половину',ed.fail.prepay===5000&&!ed.fail.kassa.length&&ed.fail.product!=='Изменённый товар',ed.fail);
   check('правка договора без обрыва записывает всё вместе',ed.ok.prepay===7000&&ed.ok.kassa[0]===7000&&ed.ok.pay[0]===7000&&ed.ok.product==='Изменённый товар',ed.ok);
-  const sc=await p.evaluate(()=>integrityIssues().map(x=>x.t));
-  check('график, который после правки не сходится с ценой, виден в «Проверке базы»',sc.some(t=>/№00008.*сумма графика/.test(t)),sc);
+  // график, не сходящийся с ценой, сохранить нельзя; если такой пришёл в базу в обход CRM — виден в «Проверке базы»
+  const sm=await p.evaluate(async()=>{openEdit('c8');await new Promise(r=>setTimeout(r,200));const e=document.getElementById('f_price');e.value=fmt(parseNum(e.value)+10000);e.dispatchEvent(new Event('input',{bubbles:true}));
+    const p0=S.clients.find(x=>x.id==='c8').price;await saveClient();await new Promise(r=>setTimeout(r,800));const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',same:S.clients.find(x=>x.id==='c8').price===p0};
+    document.getElementById('confirmLayer').innerHTML='';closeM('mClient');
+    const{db,doc,updateDoc}=window.DB;await updateDoc(doc(db,'clients','c8'),{'размер6':1});await new Promise(r=>setTimeout(r,1200));r.issues=integrityIssues().map(x=>x.t);return r;});
+  check('договор с графиком, не сходящимся с ценой, не сохраняется',sm.title==='График не сходится с ценой'&&sm.same,sm);
+  check('такой график, пришедший в обход CRM, виден в «Проверке базы»',sm.issues.some(t=>/№00009.*сумма графика/.test(t)),sm.issues);
+  // дата оплаты: только в открытом месяце, не раньше договора, не в будущем
+  const pdt=await p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>3000&&dealDate(x)<new Date(Date.now()-40*864e5));const r={};
+    const pay=async(dv)=>{openPay(c.id);await new Promise(r=>setTimeout(r,100));document.getElementById('mpAmt').value='1 000';if(dv)document.getElementById('mpDate').value=dv;const n=S.payments.length;confirmPay();await new Promise(r=>setTimeout(r,1500));closeM('mPay');return{added:S.payments.length>n,t:document.getElementById('toast').textContent};};
+    const y=new Date();y.setDate(y.getDate()-1);r.back=await pay(dayKey(y));r.backDate=(S.payments.filter(x=>x.clientId===c.id&&x.amount===1000).map(x=>x.dateStr));
+    const f=new Date();f.setDate(f.getDate()+2);r.future=await pay(dayKey(f));
+    const old=new Date(dealDate(c));old.setDate(old.getDate()-3);r.before=await pay(dayKey(old));
+    const{db,doc,setDoc,deleteDoc}=window.DB;const mk=mkShift(monthKey(new Date()),-2);await setDoc(doc(db,'invMonths',mk),{month:mk,closedAt:new Date(),rows:[]});await new Promise(r=>setTimeout(r,1000));
+    const inClosed=mStart(Number(mk.slice(0,4)),Number(mk.slice(5))-1);inClosed.setDate(10);r.closed=await pay(dayKey(inClosed));r.min=document.getElementById('mpDate').min;
+    await deleteDoc(doc(db,'invMonths',mk));await new Promise(r=>setTimeout(r,800));r.yest=fmtD(y);return r;});
+  check('оплату можно записать вчерашним числом',pdt.back.added&&pdt.backDate.includes(pdt.yest),pdt);
+  check('дату оплаты в будущем, раньше договора и в закрытом месяце поставить нельзя',!pdt.future.added&&!pdt.before.added&&!pdt.closed.added,pdt);
 
   // Переплата попадает в список проверки и в карточку
   const op=await p.evaluate(async()=>{const bal=R2(getStats(S.clients.find(x=>x.id==='c3')).balance);_cid='c3';await savePay(bal,'w1');
