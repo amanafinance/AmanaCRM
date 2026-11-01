@@ -106,6 +106,14 @@ export default async function(){
     const{db,doc,updateDoc}=window.DB;await updateDoc(doc(db,'clients','c8'),{'размер6':1});await new Promise(r=>setTimeout(r,1200));r.issues=integrityIssues().map(x=>x.t);return r;});
   check('договор с графиком, не сходящимся с ценой, не сохраняется',sm.title==='График не сходится с ценой'&&sm.same,sm);
   check('такой график, пришедший в обход CRM, виден в «Проверке базы»',sm.issues.some(t=>/№00009.*сумма графика/.test(t)),sm.issues);
+  // предоплата больше себестоимости — договор не сохраняется
+  const ppc=await p.evaluate(async()=>{const k=[...personIndex().values()].find(x=>x.no==='К-0003').key;const mk=async(pre)=>{openNew();await new Promise(r=>setTimeout(r,150));pickSet('f_name',encodeURIComponent(k));
+      const set=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));};set('f_product','Предоплата-тест');set('f_cost','40 000');set('f_price','70 000');set('f_prepay',pre);
+      document.getElementById('f_months').value='3';monthsInput(true);await new Promise(r=>setTimeout(r,100));const n=S.clients.length;document.getElementById('confirmLayer').innerHTML='';await saveClient();await new Promise(r=>setTimeout(r,1500));
+      const t=document.querySelector('#confirmLayer .confirm-title');const r={saved:S.clients.length>n,title:t?t.textContent:'',toast:document.getElementById('toast').textContent};document.getElementById('confirmLayer').innerHTML='';closeM('mClient');return r;};
+    return{over:await mk('50 000'),equal:await mk('40 000')};});
+  check('предоплата больше или равная себестоимости — договор не сохраняется, понятное окно',!ppc.over.saved&&!ppc.equal.saved&&ppc.over.title==='Предоплата не меньше себестоимости'&&ppc.equal.title==='Предоплата не меньше себестоимости',ppc);
+
   // дата оплаты: только в открытом месяце, не раньше договора, не в будущем
   const pdt=await p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>3000&&dealDate(x)<new Date(Date.now()-40*864e5));const r={};
     const pay=async(dv)=>{openPay(c.id);await new Promise(r=>setTimeout(r,100));document.getElementById('mpAmt').value='1 000';if(dv)document.getElementById('mpDate').value=dv;const n=S.payments.length;confirmPay();await new Promise(r=>setTimeout(r,1500));closeM('mPay');return{added:S.payments.length>n,t:document.getElementById('toast').textContent};};
