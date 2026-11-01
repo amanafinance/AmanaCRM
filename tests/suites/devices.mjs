@@ -27,6 +27,42 @@ export default async function(){
   check('то, что пытались сохранить без интернета, в базу не попало',!onB.pay1111,onB);
   check('плашка пропала',!on.badge);
 
+  // --- сервер сверяет остатки в момент записи
+  await B.p.evaluate(()=>{window.showConfirm=(t,m,ok)=>ok&&ok();});
+  const cc=await A.p.evaluate(()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>0&&getStats(x).balance<20000);return{id:c.id,bal:getStats(c).balance};});
+  await Promise.all([A.p.evaluate(([id,b])=>{_cid=id;return savePay(b,'w1');},[cc.id,cc.bal]),B.p.evaluate(([id,b])=>{_cid=id;return savePay(b,'w1');},[cc.id,cc.bal])]);
+  await wait(A.p,2500);
+  const dbl=await A.p.evaluate(id=>{const c=S.clients.find(x=>x.id===id),s=getStats(c);return{bal:s.balance,over:s.overpaid};},cc.id);
+  const msgB=await B.p.evaluate(()=>document.getElementById('toast').textContent),msgA=await A.p.evaluate(()=>document.getElementById('toast').textContent);
+  check('один остаток с двух устройств одновременно: проходит одна оплата, переплаты нет',dbl.bal===0&&!(dbl.over>0),dbl);
+  check('второе устройство получает «Договор изменился»',/Договор изменился/.test(msgA+msgB),{msgA,msgB});
+  const w2=await A.p.evaluate(()=>R2(S.wallets.find(w=>w.id==='w2').balance)),part=Math.floor(w2*0.7);
+  const ex=x=>x.p.evaluate(async a=>{const w=S.wallets.find(v=>v.id==='w2');await doSaveKassa('opex',a,'w2',null,'расход',null,w,new Date(),null);document.getElementById('confirmLayer').innerHTML='';return document.getElementById('toast').textContent;},part);
+  const [ea,eb]=await Promise.all([ex(A),ex(B)]);await wait(A.p,2500);
+  const w2a=await A.p.evaluate(()=>R2(S.wallets.find(w=>w.id==='w2').balance));
+  check('два расхода по 70% остатка одновременно: счёт не ушёл в минус',w2a>=0&&Math.abs(w2a-(w2-part))<0.01,{w2,part,w2a});
+  check('второй расход получает «Недостаточно средств»',/Недостаточно средств/.test(ea+eb),{ea,eb});
+  // комментарий к платежу
+  const pn=await A.p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>1000);openPay(c.id);await new Promise(r=>setTimeout(r,100));
+    document.getElementById('mpAmt').value='1 000';document.getElementById('mpNote').value='Внёс 28.10, записали позже';confirmPay();await new Promise(r=>setTimeout(r,1500));
+    const p=S.payments.find(x=>x.clientId===c.id&&x.note==='Внёс 28.10, записали позже');openC(c.id);await new Promise(r=>setTimeout(r,200));
+    return{saved:!!p,shown:document.getElementById('cDetail').innerHTML.includes('Внёс 28.10, записали позже')};});
+  check('комментарий к платежу сохраняется и виден в истории платежей',pn.saved&&pn.shown,pn);
+  // закрытый у инвесторов месяц не трогается
+  const cm=await A.p.evaluate(async()=>{const{db,doc,setDoc,deleteDoc}=window.DB;const p=S.payments.find(x=>x.type==='payment'&&dTs(x.date)<new Date(new Date().getFullYear(),new Date().getMonth()-1,1));const mk=monthKey(dTs(p.date));
+    await setDoc(doc(db,'invMonths',mk),{month:mk,closedAt:new Date(),rows:[]});await new Promise(r=>setTimeout(r,1200));
+    document.getElementById('confirmLayer').innerHTML='';await cancelPay(p.id,p.clientId,p.amount,'payment');await new Promise(r=>setTimeout(r,300));
+    const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',still:S.payments.some(x=>x.id===p.id)};document.getElementById('confirmLayer').innerHTML='';
+    await deleteDoc(doc(db,'invMonths',mk));await new Promise(r=>setTimeout(r,800));return r;});
+  check('платёж в закрытом у инвесторов месяце отменить нельзя',cm.title==='Месяц закрыт'&&cm.still,cm);
+  // удаление поставщика — с подтверждением; номер клиента — одной транзакцией
+  const rp=await A.p.evaluate(async()=>{let asked='';const sc=window.showConfirm;window.showConfirm=(t)=>{asked=t;};goTo('settings');document.getElementById('newPart').value='Временный';await addPart();await new Promise(r=>setTimeout(r,600));
+    removePart(S.partners.indexOf('Временный'));const still=S.partners.includes('Временный');window.showConfirm=sc;return{asked,still};});
+  check('удаление поставщика спрашивает подтверждение',rp.asked==='Удалить поставщика?'&&rp.still,rp);
+  const np=await A.p.evaluate(async()=>{const before=Math.max(...S.persons.map(p=>parseInt(String(p.no||'').replace(/\D/g,''))||0));openPersonForm(null,'');await new Promise(r=>setTimeout(r,150));
+    document.getElementById('pf_name').value='Новиков Новый';await savePerson();await new Promise(r=>setTimeout(r,1200));const p=S.persons.find(x=>x.name==='Новиков Новый');return{before,no:p&&p.no};});
+  check('новый клиент получает следующий номер',np.no&&parseInt(np.no.replace(/\D/g,''))===np.before+1,np);
+
   // --- настройки с двух устройств
   await A.p.evaluate(async()=>{document.getElementById('newPart').value='Поставщик-ПК';document.getElementById('newPartPh').value='89000000001';await addPart();});
   await B.p.evaluate(async()=>{document.getElementById('newPart').value='Поставщик-телефон';await addPart();});

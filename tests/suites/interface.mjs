@@ -44,14 +44,16 @@ export default async function(){
   check('показатели дашборда за выбранный период (прошлый месяц)',dpr.ok&&dpr.hd.some(h=>/Показатели · /.test(h)),dpr);
   // Обзор: любой период — суммы сходятся с ОПИУ по месяцам
   const ov=await p.evaluate(()=>{const ctx=finCtx(),n=new Date(),y=n.getFullYear();
-    S.perFin={v:'custom',from:dayKey(new Date(y,n.getMonth()-2,1)),to:dayKey(new Date(y,n.getMonth()-1,0))};goTo('finance');
-    const head=[...document.querySelectorAll('.fin-t thead th')].map(t=>t.textContent);
+    S.perFin={v:'custom',from:dayKey(new Date(y,n.getMonth()-2,1)),to:dayKey(new Date(y,n.getMonth()-1,0))};S.finTab='opiu';goTo('finance');
+    const head=[...document.querySelectorAll('.fin-t thead th')].map(t=>t.textContent);S.finTab='sum';renderFinance();
     const exp=finDerive(finFact(mkShift(monthKey(n),-2),ctx)).received,card=document.querySelector('#finBody .dsh-g4 .sc:nth-child(2) .sv').textContent;
     S.perFin={v:'custom',from:dayKey(new Date(y,n.getMonth()-2,1)),to:dayKey(new Date(y,n.getMonth()-2,10))};renderFinance();const half=document.querySelector('#finBody .dsh-g4 .sc:nth-child(2) .sv').textContent;
-    S.perFin={v:'all'};renderFinance();const allCols=document.querySelectorAll('.fin-t thead th').length;
-    S.perFin={v:'y0'};renderFinance();return{head,ok:card===dMoney(exp),half,allCols,title:document.querySelector('#page-finance .pt').textContent};});
+    S.perFin={v:'all'};S.finTab='opiu';renderFinance();const allCols=document.querySelectorAll('.fin-t thead th').length;
+    const tabs={};for(const t of ['sum','opiu','money','deals']){S.finTab=t;renderFinance();const tx=document.getElementById('finBody').innerText;tabs[t]=/NaN|undefined|Infinity/.test(tx)?'bad':tx.length;}
+    S.perFin={v:'y0'};S.finTab='sum';renderFinance();return{tabs,ntabs:document.querySelectorAll('.fin-tabs .dsh-tab').length,head,ok:card===dMoney(exp),half,allCols,title:document.querySelector('#page-finance .pt').textContent};});
   check('«Обзор»: свой период считается так же, как ОПИУ за месяц',ov.ok&&ov.title==='Обзор',ov);
   check('«Обзор»: часть месяца и всё время',ov.half!==undefined&&ov.allCols>=14,ov);
+  check('«Обзор»: 4 вкладки, каждая открывается без ошибок',ov.ntabs===4&&Object.values(ov.tabs).every(v=>v!=='bad'&&v>50),ov);
   // поиск по сделкам над таблицей
   const dq=await p.evaluate(()=>{goBase('clients');const i=document.getElementById('clQ');i.value='00011';renderClients();const n=document.querySelectorAll('#cList tbody tr').length;i.value='';renderClients();return n;});
   check('поиск сделки по номеру договора',dq===1,dq);
@@ -62,7 +64,7 @@ export default async function(){
   await p.fill('#gsQ','00011');await p.keyboard.press('Enter');await wait(p,300);
   check('Enter в поиске открывает найденную сделку',await p.evaluate(()=>S.curClient==='c10'&&pageOn('client')));
   // ОПИУ: заголовки разделов закреплены
-  check('заголовки разделов ОПИУ закреплены слева',await p.evaluate(()=>{goTo('finance');const s=document.querySelector('.fin-hs');return!!s&&getComputedStyle(s).position==='sticky';}));
+  check('заголовки разделов ОПИУ закреплены слева',await p.evaluate(()=>{S.finTab='opiu';goTo('finance');const s=document.querySelector('.fin-hs');return!!s&&getComputedStyle(s).position==='sticky';}));
   // переименование счёта: в старых операциях — новое название
   await p.evaluate(()=>{goTo('settings');renameWallet('w2');});await wait(p,200);await p.fill('#askIn','Т-Банк');await p.click('#askOk');await wait(p,1200);
   const wn=await p.evaluate(()=>{goTo('kassa');return{list:document.getElementById('kList').innerText.includes('Т-Банк'),old:[...document.querySelectorAll('#kList td')].some(td=>td.textContent.trim()==='Сбер')};});
