@@ -1006,7 +1006,7 @@ body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
 <table class="stbl"><thead><tr><th>&#8470;</th><th>Сумма</th><th>Дата</th></tr></thead><tbody id="schedBody"></tbody></table>
 <div class="mft"><button class="btn bgh" onclick="closeM('mClient')">Отмена</button><button class="btn bg" id="mCBtn" onclick="saveClient()">Сохранить</button></div></div></div>
 
-<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="mpPt"></select></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpNote">Комментарий к платежу</label><input class="inp" type="text" id="mpNote" maxlength="200" placeholder="Например: клиент внёс 28.10, записали позже"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
+<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="mpPt"></select></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpDate">Дата оплаты</label><input class="inp" type="date" id="mpDate"/><div class="ko-amt-hint" id="mpDateHint"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpNote">Комментарий к платежу</label><input class="inp" type="text" id="mpNote" maxlength="200" placeholder="Например: клиент внёс 28.10, записали позже"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
 
 <div class="mover" id="mDisc"><div class="modal msm"><div class="mtitle">Скидка</div><div style="font-size:14px;font-weight:700;margin-bottom:16px" id="mdName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mdAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Причина</label><input class="inp" type="text" id="mdReason"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mDisc')">Отмена</button><button class="btn by" onclick="confirmDisc()">Применить</button></div></div></div>
 
@@ -1241,7 +1241,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='01.11.2026 · 1';
+const CRM_VERSION='01.11.2026 · 2';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2157,11 +2157,11 @@ async function deleteComment(){const{db,doc,updateDoc}=window.DB;const c=S.clien
   catch(e){toast('Ошибка: '+e.message,'ter');}}
 
 // ---------- NEW / EDIT CLIENT ----------
-function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;_schedOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();openM('mClient');}
+function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();openM('mClient');}
 function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value=c.partner==='Сторонний'?(c.partnerPhone||''):'';_ppManual=i.value;}setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;partPhoneSync();if(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))document.getElementById('f_prepayPt').value=c.prepayWallet;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:11px;font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
 function addPh(id){const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" placeholder="89001234567"/><button class="ib ir" onclick="this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
-let _schedManual={size:false,dates:false};let _costOk=false;let _schedOk=false;
+let _schedManual={size:false,dates:false};let _costOk=false;
 const R2=n=>Math.round(((parseFloat(n)||0)+Number.EPSILON)*100)/100;
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const WINC=v=>({balance:window.DB.increment(R2(v))});
@@ -2454,8 +2454,8 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
   if(badDate){toast('В графике не заполнены даты или они идут не по порядку','ter');return;}
   if(Math.abs(d)>=0.005){
     schedWarn();
-    if(!_cid){toast('Сумма графика '+fmt(sum)+' ₽, а должна быть '+fmt(target)+' ₽. Нажмите «Пересчитать» в графике','ter');return;}
-    if(!_schedOk){showConfirm('График не сходится','Сумма графика <strong>'+fmt(sum)+' ₽</strong>, а долг клиента <strong>'+fmt(target)+' ₽</strong> (разница '+fmt(Math.abs(d))+' ₽).<br>Можно сохранить как есть или закрыть окно и нажать «Пересчитать».',()=>{_schedOk=true;saveClient();});return;}
+    // Сумма ежемесячных платежей + предоплата должны равняться цене — иначе договор не сохраняется
+    walletBlockT('График не сходится с ценой','Платежи по графику <strong>'+fmt(sum)+' ₽</strong> + предоплата должны давать цену договора, а нужно <strong>'+fmt(target)+' ₽</strong> по графику (разница '+fmt(Math.abs(d))+' ₽).<br>Нажмите «Пересчитать» в графике или поправьте суммы вручную.');return;
   }
 }_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{const dv=document.getElementById('f_date').value,ptVal=document.getElementById('f_prepayPt').value,ptW=walletByVal(ptVal),pt=ptW?ptW.name:'',payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',..._pp.data,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,partnerPhone:document.getElementById('f_partner').value==='Сторонний'?document.getElementById('f_partnerPhone').value.trim():'',cost,price,prepay:parseNum(document.getElementById('f_prepay').value),months:mo,payDay,prepayWallet:ptW?ptW.id:''};const lim=Math.max(12,mo,parseInt((S.clients.find(x=>x.id===_cid)||{}).months)||0);for(let m=0;m<lim;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseNum(rows[m].querySelector('.sz').value);const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(_cid){const old=S.clients.find(x=>x.id===_cid);
   const oldPrepay=R2(old&&old.prepay),newPrepay=R2(data.prepay);
@@ -2505,12 +2505,22 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
   await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
 
 // ---------- PAY / DISCOUNT ----------
-function openPay(id){_cid=id;{const n=document.getElementById('mpNote');if(n)n.value='';}const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mpName').innerHTML=esc(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mpAmt').value='';document.getElementById('mpAmt').max=s.balance;updPt('mpPt');openM('mPay');}
-function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Введите сумму числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const ptv=document.getElementById('mpPt').value;const wsel=walletByVal(ptv);if(!wsel){toast('Выберите кассу','ter');return;}const note=(document.getElementById('mpNote').value||'').trim();closeM('mPay');showConfirm('Подтвердить?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽ · '+esc(wsel.name)+(note?'<br><span style="color:var(--t2)">'+esc(note)+'</span>':''),()=>savePay(a,wsel.id,note));}
-async function savePay(a,pt,note){note=(note||'').trim();
+function openPay(id){_cid=id;{const n=document.getElementById('mpNote');if(n)n.value='';payDateSetup(id);}const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mpName').innerHTML=esc(c?.name||'')+'<div style="font-size:11px;color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mpAmt').value='';document.getElementById('mpAmt').max=s.balance;updPt('mpPt');openM('mPay');}
+// Самая ранняя дата оплаты: день договора и первый день первого месяца, ещё не закрытого у инвесторов
+function payDateMin(c){let m=dealDate(c)||null;if(S.invMonths&&S.invMonths.length){const M=invModel();if(M.lastClosed){const f=mStart(Number(M.lastClosed.slice(0,4)),Number(M.lastClosed.slice(5)));if(!m||f>m)m=f;}}return m;}
+function payDateSetup(id){const c=S.clients.find(x=>x.id===id),i=document.getElementById('mpDate');if(!i)return;const t=dayKey(new Date()),m=c?payDateMin(c):null;
+  i.value=t;i.max=t;i.min=m?dayKey(m):'';document.getElementById('mpDateHint').textContent='Можно поставить дату не раньше '+(m?fmtD(m):'дня договора')+' — закрытые у инвесторов месяцы не меняются';}
+function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Введите сумму числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const ptv=document.getElementById('mpPt').value;const wsel=walletByVal(ptv);if(!wsel){toast('Выберите кассу','ter');return;}const note=(document.getElementById('mpNote').value||'').trim(),dv=document.getElementById('mpDate').value||dayKey(new Date());
+  if(dv>dayKey(new Date())){toast('Дата оплаты не может быть в будущем','ter');return;}
+  {const m=payDateMin(c);if(m&&dv<dayKey(m)){toast('Дата оплаты не может быть раньше '+fmtD(m)+(closedMk(safeDateFromInput(dv))?': этот месяц уже закрыт у инвесторов':': это раньше дня договора'),'ter');return;}}
+  closeM('mPay');showConfirm('Подтвердить?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽ · '+esc(wsel.name)+(dv!==dayKey(new Date())?' · '+fmtD(safeDateFromInput(dv)):'')+(note?'<br><span style="color:var(--t2)">'+esc(note)+'</span>':''),()=>savePay(a,wsel.id,note,dv));}
+async function savePay(a,pt,note,dv){note=(note||'').trim();
   if(_saving)return;
   const{db,collection,doc,writeBatch}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;
-  const d=new Date();a=R2(a);
+  // сегодня — текущее время; другой день — полдень этого дня
+  let d=new Date();if(dv&&dv!==dayKey(d)){d=safeDateFromInput(dv);d.setHours(12,0,0,0);}a=R2(a);
+  if(d>new Date()){toast('Дата оплаты не может быть в будущем','ter');return;}
+  {const cm=closedMk(d);if(cm){toast(mkLabel(cm)+' уже закрыт у инвесторов — поставьте дату в открытом месяце, а настоящую дату напишите в комментарии','ter');return;}}
   const w=walletByVal(pt);
   if(!w){toast('Касса не найдена','ter');return;}
   const st=getStats(c);
@@ -2523,7 +2533,7 @@ async function savePay(a,pt,note){note=(note||'').trim();
     bt.set(kRef,{type:'payment_in',amount:a,wallet:w.id,walletName:w.name||'',desc:'Оплата от '+c.name+' (№'+c.contractId+')'+(note?' · '+note:''),date:d,dateStr:fmtD(d),auto:true,refType:'client',refId:_cid,paymentId:pRef.id,clientName:c.name,contractId:c.contractId});
     bt.update(doc(db,'wallets',w.id),WINC(a));
     await bt.commit({deal:{id:_cid,seq:c.paySeq||0}});
-    await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+w.name+')'+(note?' · '+note:''));
+    await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+w.name+')'+(dayKey(d)!==dayKey(new Date())?' от '+fmtD(d):'')+(note?' · '+note:''));
     toast('Оплата записана','tok');
   }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
   finally{_saving=false;}
