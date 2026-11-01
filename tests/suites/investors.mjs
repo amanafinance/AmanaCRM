@@ -23,9 +23,10 @@ export default async function(){
   // отмена закрытия невозможна после выплаты
   const ro=await A.p.evaluate(async mk=>{invReopenMonth(mk);await new Promise(r=>setTimeout(r,300));return{t:document.getElementById('toast').textContent,closed:!!invModel().closed[mk]};},mk);
   check('отмена закрытия после выплаты запрещена',ro.closed&&/выплаты/.test(ro.t),ro);
-  // изменение в закрытом месяце видно в «Проверке базы»
-  const ch=await A.p.evaluate(async mk=>{const pay=S.payments.find(x=>x.type==='payment'&&monthKey(dTs(x.date))===mk);await cancelPay(pay.id,pay.clientId,pay.amount,'payment');await new Promise(r=>setTimeout(r,1500));return integrityIssues().map(x=>x.t);},mk);
-  check('отмена платежа в закрытом месяце видна в «Проверке базы»',ch.some(t=>/^Инвесторы:/.test(t)),ch);
+  // закрытый месяц не трогается: отмену платежа CRM не даёт, расхождений нет
+  const ch=await A.p.evaluate(async mk=>{const pay=S.payments.find(x=>x.type==='payment'&&monthKey(dTs(x.date))===mk);document.getElementById('confirmLayer').innerHTML='';await cancelPay(pay.id,pay.clientId,pay.amount,'payment');await new Promise(r=>setTimeout(r,1500));
+    const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',still:S.payments.some(x=>x.id===pay.id),issues:integrityIssues().filter(x=>/^Инвесторы:/.test(x.t)).length};document.getElementById('confirmLayer').innerHTML='';return r;},mk);
+  check('платёж в закрытом месяце отменить нельзя — начисления инвесторам не расходятся',ch.title==='Месяц закрыт'&&ch.still&&ch.issues===0,ch);
   noErrors('инвесторы A',A.errs);noErrors('инвесторы B',B.errs);
   await A.ctx.close();await B.ctx.close();
 }
