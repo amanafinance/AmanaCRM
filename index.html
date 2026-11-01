@@ -1241,7 +1241,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='01.11.2026 · 2';
+const CRM_VERSION='02.11.2026 · 1';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2302,6 +2302,7 @@ function integrityIssues(){
     const s=getStats(c);
     if(s.overpaid>0.004)add(lbl(c)+': переплата '+fmt(s.overpaid)+' ₽',c.id);
     const price=parseFloat(c.price)||0,pre=parseFloat(c.prepay)||0,sum=R2(s.schedule.reduce((a,x)=>a+(parseFloat(c['размер'+x.month])||0),0));
+    if(pre>(parseFloat(c.cost)||0)+0.004&&(parseFloat(c.cost)||0)>0)add(lbl(c)+': предоплата '+fmt(pre)+' ₽ больше себестоимости '+fmt(c.cost)+' ₽ — часть наценки не попадёт в прибыль',c.id);
     if(price>0&&Math.abs(sum-R2(price-pre))>0.004)add(lbl(c)+': сумма графика '+fmt(sum)+' ₽, а цена минус предоплата '+fmt(R2(price-pre))+' ₽',c.id);
     if(!c.clientPid||!pMaps().byId.has(c.clientPid))add(lbl(c)+': нет карточки клиента',c.id);
     if(c.archived&&s.balance>0.004)add(lbl(c)+': в архиве с долгом '+fmt(s.balance)+' ₽',c.id);
@@ -2433,6 +2434,8 @@ async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateD
 const _pp=await dealPeopleData();if(_pp.err){toast(_pp.err,'ter');return;}
 if(!document.getElementById('f_product').value.trim()){toast('Укажите товар','ter');return;}
 if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}
+// Предоплата меньше себестоимости: она возвращает деньги за товар, а наценка распределяется по ежемесячным платежам
+if(parseNum(document.getElementById('f_prepay').value)>=cost-0.004){walletBlockT('Предоплата не меньше себестоимости','Предоплата <strong>'+fmt(parseNum(document.getElementById('f_prepay').value))+' ₽</strong> должна быть меньше себестоимости <strong>'+fmt(cost)+' ₽</strong>. Уменьшите предоплату или проверьте себестоимость.');return;}
 if(_cid){
   const oldC=S.clients.find(x=>x.id===_cid);
   if(oldC&&R2(oldC.cost)!==R2(cost)){
