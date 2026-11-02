@@ -32,6 +32,20 @@ export default async function(){
     const cells=[...document.querySelectorAll('#imBody tbody tr:not(.inv-subrow)')].map(tr=>tr.children[ci]&&tr.children[ci].textContent);closeM('mInvMonth');
     const want=d.rows.slice().sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||b.capEnd-a.capEnd).map(r=>fmt(r.capEnd||0)+' ₽');return{ci,cells,want};},mk);
   check('окно месяца показывает капитал участника на конец месяца в рублях',cap.ci===1&&cap.cells.length>0&&JSON.stringify(cap.cells)===JSON.stringify(cap.want),cap);
+  // итоги пула: суммы совпадают с балансами участников и закрытыми месяцами
+  const ps=await A.p.evaluate(()=>{S.invTab='list';goTo('investors');const M=invModel(),st=invPoolStats(M),R=x=>Math.round(x*100)/100;
+    const earned=R(S.inv.reduce((a,i)=>a+M.bal[i.id].earned,0)),net=R(M.months.filter(mk=>M.closed[mk]).reduce((a,mk)=>a+invMonthData(M,mk).net,0));
+    return{st:{earned:st.earned,net:st.net,closed:st.closedCount},earned,net,closed:Object.keys(M.closed).length,shown:!!document.getElementById('invPoolStats'),chart:/Рентабельность пула по месяцам/.test(document.getElementById('invContent').textContent)};});
+  check('«Итоги пула»: прибыль, начисления и число закрытых месяцев сходятся',ps.shown&&ps.chart&&ps.st.closed===ps.closed&&Math.abs(ps.st.earned-ps.earned)<0.01&&Math.abs(ps.st.net-ps.net)<0.01,ps);
+  // журнал по месяцам: каждая операция в своём месяце, итоги месяца равны сумме его операций
+  const jg=await A.p.evaluate(()=>{S.invTab='ops';S.invOpsTab='all';renderInvestors();const M=invModel(),bad=[];let n=0;
+    document.querySelectorAll('#invContent details.inv-jm').forEach(d=>{const mk=d.dataset.mk,ops=M.ops.filter(o=>monthKey(o._d)===mk);n+=ops.length;
+      const cnt=d.querySelectorAll('.inv-desk tbody tr').length;if(cnt!==ops.length)bad.push(mk+': строк '+cnt+' из '+ops.length);
+      const dep=ops.filter(o=>o.type==='deposit').reduce((a,o)=>a+o._a,0),chip=[...d.querySelectorAll('.inv-jchip')].find(c=>/Пополнения/.test(c.textContent));
+      if(dep>0&&(!chip||chip.querySelector('b').textContent!=='+'+fmt(invR(dep))+' ₽'))bad.push(mk+': пополнения');});
+    const open=[...document.querySelectorAll('#invContent details.inv-jm')].map(d=>d.open);
+    return{bad,n,total:M.ops.length,groups:open.length,open};});
+  check('журнал инвесторов разбит по месяцам, итоги месяцев верные',!jg.bad.length&&jg.n===jg.total&&jg.groups>=2&&jg.open[0]===true,jg);
   noErrors('инвесторы A',A.errs);noErrors('инвесторы B',B.errs);
   await A.ctx.close();await B.ctx.close();
 }
