@@ -178,6 +178,14 @@ body.light{--bg:#f5f7f4;--bg2:#ffffff;--bg3:#eef2eb;--card:#ffffff;--green:#6d94
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;touch-action:manipulation}
 *{-webkit-tap-highlight-color:transparent}
+/* Телефон: без самовольного увеличения текста и страницы (iPhone увеличивает страницу, если шрифт поля меньше 16px) */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media(pointer:coarse){input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:16px!important}}
+/* Открыта клавиатура: окно встаёт в видимую часть экрана над клавиатурой, нижнее меню прячется */
+html.kb-open .mover.on{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
+html.kb-open .modal,html.kb-open .mf-modal{max-height:calc(var(--vvh,100vh) - 8px)!important}
+html.kb-open .mf-body{max-height:calc(var(--vvh,100vh) - 150px)!important}
+html.kb-open .sidebar,html.kb-open .nb-sub{display:none!important}
 button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 #loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 50%,rgba(17,92,48,0.2),transparent 60%)}
 body.light #loginWrap{background:radial-gradient(ellipse at 30% 50%,rgba(149,193,31,0.15),transparent 60%)}
@@ -325,6 +333,8 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 .dsh-g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .dsh-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .dsh-2>.card,.dsh-g3>.card{margin-bottom:0}
+/* сетка карточек всегда отделена от следующего блока */
+.dsh-g4,.dsh-g3,.dsh-2{margin-bottom:14px}
 .sc.dsh-click{cursor:pointer;transition:border-color .2s}
 .sc.dsh-click:hover{border-color:var(--brd)}
 .dsh-d{font-size:10px;font-weight:700;margin-left:4px;white-space:nowrap}
@@ -382,12 +392,15 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 .dsh-lg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .dsh-note{font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
 @media(max-width:1100px){.dsh-g4{grid-template-columns:repeat(2,minmax(0,1fr))}.dsh-g3{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:768px){.dsh-2{grid-template-columns:minmax(0,1fr)}.dsh-g4{gap:8px}.dsh-h{margin:16px 0 8px}}
+@media(max-width:768px){.dsh-2{grid-template-columns:minmax(0,1fr)}.dsh-g4{gap:8px}.dsh-h{margin:16px 0 8px}.dsh-g4,.dsh-g3,.dsh-2{margin-bottom:10px}}
 .bwa{background:rgba(37,211,102,0.12);color:#25d366;border:1px solid rgba(37,211,102,0.25)}
 body.light .bwa{color:#128c4a}
 .rem-wa{font-size:10px;color:var(--t3);margin-top:3px}
 .k-recon summary::-webkit-details-marker{display:none}
 .k-recon{margin-bottom:14px}
+.k-recon>summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;user-select:none;-webkit-user-select:none;min-height:32px}
+.k-recon>summary::after{content:'Показать ▾';margin-left:auto;font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--t2);padding:6px 12px;border:1px solid var(--brd2);border-radius:999px;background:var(--bg3);white-space:nowrap}
+.k-recon[open]>summary::after{content:'Скрыть ▴'}
 .pick{position:relative}
 .pick-btns{display:flex;gap:8px;flex-wrap:wrap}.pick-btns .btn{flex:1;justify-content:center;padding:10px 12px;min-height:40px}
 .pick-box{display:none;position:relative}.pick.pick-has .pick-box{display:block}.pick.pick-has .pick-btns{display:none}
@@ -408,6 +421,7 @@ body.light .bwa{color:#128c4a}
 .ptbl tbody tr:hover td{background:var(--bg3)}
 .ppl-mob{display:none;padding:8px}
 @media(max-width:768px){.ppl-desk{display:none}.ppl-mob{display:block}}
+.ppl-mob .mcard+.mcard,.rem-mob .mcard+.mcard{margin-top:8px}
 .ko-hint{font-size:11px;line-height:1.5;color:var(--yellow);background:rgba(255,165,2,0.08);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:8px 10px;margin-top:8px}
 .rc-row{display:grid;grid-template-columns:1.3fr 1fr 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd2);font-size:12px}
 .rc-row:last-child{border-bottom:none}
@@ -536,7 +550,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .kcard-bot{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:var(--t3);gap:4px;flex-wrap:wrap}
 .kcard-bal{font-weight:700;color:var(--text)}
 /* Касса — кошельки мельче */
-#page-kassa > .card{padding:0!important;overflow:visible!important;background:transparent;border:none;min-height:200px}
+#page-kassa > .card:not(.k-recon){padding:0!important;overflow:visible!important;background:transparent;border:none;min-height:200px}
 #kWallets{gap:5px!important;grid-template-columns:1fr 1fr!important;margin-bottom:8px!important}
 #kWallets .sc{padding:7px 8px}
 #kWallets .sl{font-size:8px;margin-bottom:2px}
@@ -597,6 +611,10 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 #page-settings > div:nth-child(2){grid-template-columns:1fr!important}
 .sit{flex-direction:row;align-items:center;gap:8px;min-height:44px}
 .sit > div{min-width:0;flex:1}
+.sit{flex-wrap:wrap}
+.sit .part-ph{flex:1 1 100%!important;width:100%;order:2}
+.sit > .btn,.sit > div > .btn{flex:1 1 auto;justify-content:center}
+.sit > .btn{order:3}
 .sadd{flex-wrap:wrap}.sadd .inp{flex:1;min-width:0}
 /* Фильтр-табы свайпаются */
 .ftabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch}
@@ -1241,7 +1259,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='02.11.2026 · 1';
+const CRM_VERSION='02.11.2026 · 2';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -4523,6 +4541,28 @@ function blurInside(el){const a=document.activeElement;if(a&&a!==document.body&&
   if(window.visualViewport){let lastH=visualViewport.height;visualViewport.addEventListener('resize',()=>{const h=visualViewport.height;if(h>lastH+80)setTimeout(iosTouchFix,60);lastH=h;});}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(iosTouchFix,60);});
   window.addEventListener('orientationchange',()=>setTimeout(iosTouchFix,300));
+})();
+// ---------- Клавиатура на телефоне: поле, в котором пишешь, всегда на виду ----------
+// iPhone не уменьшает страницу под клавиатуру — окна снизу оказываются под ней. Подгоняем окно под видимую часть экрана
+// и прокручиваем выбранное поле в середину видимой области.
+(function(){
+  const vv=window.visualViewport;if(!vv)return;
+  const root=document.documentElement,isField=t=>t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)&&!/^(checkbox|radio|range|button|submit)$/.test(t.type||'');
+  let raf=0;
+  function reveal(){const a=document.activeElement;if(!isField(a)||!root.classList.contains('kb-open'))return;
+    const r=a.getBoundingClientRect(),top=vv.offsetTop+8,bot=vv.offsetTop+vv.height-8;
+    if(r.top<top||r.bottom>bot){try{a.scrollIntoView({block:'center',inline:'nearest'});}catch(e){a.scrollIntoView(false);}}}
+  function fit(){raf=0;
+    const layoutH=root.clientHeight||window.innerHeight,open=vv.scale<1.05&&layoutH-vv.height>120&&isField(document.activeElement);
+    root.classList.toggle('kb-open',open);
+    if(open){root.style.setProperty('--vvh',Math.round(vv.height)+'px');root.style.setProperty('--vvt',Math.round(vv.offsetTop)+'px');reveal();}
+    else{root.style.removeProperty('--vvh');root.style.removeProperty('--vvt');}
+  }
+  const sched=()=>{if(!raf)raf=requestAnimationFrame(fit);};
+  vv.addEventListener('resize',sched);vv.addEventListener('scroll',sched);
+  document.addEventListener('focusin',e=>{if(!isField(e.target))return;sched();setTimeout(sched,300);setTimeout(reveal,450);});
+  document.addEventListener('focusout',()=>setTimeout(sched,120));
+  window.__kbFit=fit;
 })();
 </script>
 
