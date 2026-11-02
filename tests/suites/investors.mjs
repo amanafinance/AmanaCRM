@@ -27,6 +27,11 @@ export default async function(){
   const ch=await A.p.evaluate(async mk=>{const pay=S.payments.find(x=>x.type==='payment'&&monthKey(dTs(x.date))===mk);document.getElementById('confirmLayer').innerHTML='';await cancelPay(pay.id,pay.clientId,pay.amount,'payment');await new Promise(r=>setTimeout(r,1500));
     const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',still:S.payments.some(x=>x.id===pay.id),issues:integrityIssues().filter(x=>/^Инвесторы:/.test(x.t)).length};document.getElementById('confirmLayer').innerHTML='';return r;},mk);
   check('платёж в закрытом месяце отменить нельзя — начисления инвесторам не расходятся',ch.title==='Месяц закрыт'&&ch.still&&ch.issues===0,ch);
+  // окно месяца: капитал каждого участника на конец месяца в рублях
+  const cap=await A.p.evaluate(mk=>{openInvMonth(mk);const d=invMonthData(invModel(),mk),hs=[...document.querySelectorAll('#imBody thead th')].map(t=>t.textContent),ci=hs.indexOf('Капитал на конец');
+    const cells=[...document.querySelectorAll('#imBody tbody tr:not(.inv-subrow)')].map(tr=>tr.children[ci]&&tr.children[ci].textContent);closeM('mInvMonth');
+    const want=d.rows.slice().sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||b.capEnd-a.capEnd).map(r=>fmt(r.capEnd||0)+' ₽');return{ci,cells,want};},mk);
+  check('окно месяца показывает капитал участника на конец месяца в рублях',cap.ci===1&&cap.cells.length>0&&JSON.stringify(cap.cells)===JSON.stringify(cap.want),cap);
   noErrors('инвесторы A',A.errs);noErrors('инвесторы B',B.errs);
   await A.ctx.close();await B.ctx.close();
 }
