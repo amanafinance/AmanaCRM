@@ -4,7 +4,7 @@ export default async function(){
   await reseed();
   const {p,errs,ctx}=await device();await login(p);
   await p.evaluate(()=>goBase('people'));await wait(p,300);
-  check('поиск по номеру клиента К-0007',await p.evaluate(()=>{document.getElementById('pplQ').value='к-0007';renderPeople();const n=document.querySelectorAll('.ptbl tbody tr').length;document.getElementById('pplQ').value='';return n===1;}));
+  check('поиск по номеру клиента: «к-0007», «к-7» и «К-00007» находят одного клиента К-0007',await p.evaluate(()=>['к-0007','к-7','К-00007'].every(q=>{document.getElementById('pplQ').value=q;renderPeople();const r=[...document.querySelectorAll('.ptbl tbody tr')];document.getElementById('pplQ').value='';return r.length===1&&/К-0007/.test(r[0].textContent);})));
   await p.evaluate(()=>openPersonForm(null,'Клиент 5'));await p.fill('#pfPhones input','89990000005');await p.evaluate(()=>savePerson());await wait(p,300);
   check('при тёзке CRM переспрашивает',/Уже есть клиент с таким ФИО/.test(await p.$eval('#pfWarn',e=>e.textContent)));
   await p.evaluate(()=>savePerson());await wait(p,1500);

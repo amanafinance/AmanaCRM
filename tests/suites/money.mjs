@@ -58,19 +58,30 @@ export default async function(){
 
   // Новый договор: выбор клиента двумя кнопками, срок 18 месяцев, номер удалённого договора возвращается
   const nd=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const r={};
-    const make=async()=>{openNew();await sl(200);
+    const make=async(date)=>{openNew();await sl(200);if(date){document.getElementById('f_date').value=date;}
       r.btns=[...document.querySelectorAll('#pk_client .pick-btns button')].map(b=>b.textContent);r.boxHidden=getComputedStyle(document.querySelector('#pk_client .pick-box')).display==='none';
       const k=[...personIndex().values()].find(x=>x.no==='К-0001').key;pickSet('f_name',encodeURIComponent(k));
       document.getElementById('f_product').value='Телефон';document.getElementById('f_price').value='90 000';document.getElementById('f_cost').value='60 000';document.getElementById('f_prepay').value='0';
       document.getElementById('f_months').value='18';monthsInput(true);await sl(100);r.rows=document.querySelectorAll('#schedBody tr').length;
-      await saveClient();await sl(1500);return S.clients.filter(c=>c.product==='Телефон').sort((a,b)=>b.contractId.localeCompare(a.contractId))[0];};
-    const max=()=>S.clients.reduce((a,c)=>Math.max(a,parseInt(c.contractId)||0),0);
-    const before=max();const c1=await make();r.no1=c1&&c1.contractId;r.months=c1&&c1.months;r.sched=c1&&getStats(c1).schedule.length;r.exp=String(before+1).padStart(5,'0');
+      await saveClient();await sl(1500);return S.clients.filter(c=>c.product==='Телефон').sort((a,b)=>(b.createdAt&&b.createdAt.toDate?b.createdAt.toDate():new Date(b.createdAt||0))-(a.createdAt&&a.createdAt.toDate?a.createdAt.toDate():new Date(a.createdAt||0)))[0];};
+    const yy=String(new Date().getFullYear()).slice(-2);
+    const max=y=>S.clients.reduce((a,c)=>{const m=String(c.contractId||'').match(/^(\d{2})-(\d+)$/);return m&&m[1]===y?Math.max(a,parseInt(m[2],10)):a;},0);
+    const before=max(yy);const c1=await make();r.no1=c1&&c1.contractId;r.months=c1&&c1.months;r.sched=c1&&getStats(c1).schedule.length;r.exp=yy+'-'+String(before+1).padStart(4,'0');
     delClient(c1.id);await sl(1500);r.gone=!S.clients.some(x=>x.id===c1.id);
-    const c2=await make();r.no2=c2&&c2.contractId;return r;});
+    const c2=await make();r.no2=c2&&c2.contractId;
+    const c3=await make();r.no3=c3&&c3.contractId;r.exp3=yy+'-'+String(before+2).padStart(4,'0');
+    // договор с датой прошлого года — номер из счётчика того года
+    const py=String(new Date().getFullYear()-1).slice(-2);const c4=await make((new Date().getFullYear()-1)+'-12-20');r.no4=c4&&c4.contractId;r.exp4=py+'-'+String(max(py)).padStart(4,'0');
+    // сортировка: новые номера выше старых 00001…; поиск «ГГ-N» находит договор
+    goBase('clients');renderClients();await sl(200);r.top=dealSortKey(c3.contractId)>dealSortKey('00200')&&dealSortKey(c3.contractId)>dealSortKey(c4.contractId);
+    r.find=S.clients.filter(c=>dealMatch(c,yy+'-'+(before+2))).map(c=>c.contractId);
+    r.findOld=S.clients.filter(c=>dealMatch(c,'00007')).map(c=>c.contractId);
+    return r;});
   check('в форме сделки две кнопки: «Выбрать существующего» и «Новый клиент»',nd.boxHidden&&nd.btns[0]==='Выбрать существующего'&&/Новый клиент/.test(nd.btns[1]),nd);
   check('договор на 18 месяцев: график из 18 платежей',nd.rows===18&&String(nd.months)==='18'&&nd.sched===18,nd);
-  check('номер удалённого договора достаётся следующему',nd.no1===nd.exp&&nd.gone&&nd.no2===nd.exp,nd);
+  check('номер договора вида ГГ-NNNN, номер удалённого последнего договора достаётся следующему',/^\d{2}-\d{4}$/.test(nd.no1)&&nd.no1===nd.exp&&nd.gone&&nd.no2===nd.exp&&nd.no3===nd.exp3,nd);
+  check('договор с датой прошлого года получает номер того года, нумерация по годам своя',nd.no4===nd.exp4&&/-0001$/.test(nd.no4),nd);
+  check('сортировка и поиск понимают новые (ГГ-NNNN) и старые (00007) номера договоров',nd.top&&nd.find.length===1&&nd.find[0]===nd.exp3&&nd.findOld.includes('00007'),nd);
 
   // Закупка частями: пока не оплачена вся себестоимость
   const pu=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const{db,doc,setDoc}=window.DB;

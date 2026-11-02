@@ -992,7 +992,7 @@ body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
 <div id="page-people" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div>
 <div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="pplCount"></div></div><div class="pa" style="position:relative"><button class="btn bgh" onclick="openView('pcols')">Колонки</button><button class="btn bg" onclick="openPersonForm(null,'',()=>renderPeople())">+ Клиент</button></div></div>
 <div class="ppl-bar">
-<input class="inp" type="search" id="pplQ" placeholder="Поиск по ФИО, телефону или № клиента (К-0007)" oninput="renderPeople()" aria-label="Поиск клиента"/>
+<input class="inp" type="search" id="pplQ" placeholder="Поиск по ФИО, телефону или № клиента (К-00007)" oninput="renderPeople()" aria-label="Поиск клиента"/>
 </div>
 <div class="ftabs" id="pplTabs"><button class="ft on" onclick="setPplTab('all',this)">Все</button><button class="ft" onclick="setPplTab('debt',this)">С долгом</button><button class="ft" onclick="setPplTab('over',this)">С просрочкой</button><button class="ft" onclick="setPplTab('clear',this)">Без долга</button><button class="ft" onclick="setPplTab('repeat',this)">Повторные</button><button class="ft" onclick="setPplTab('guar',this)">Поручители</button></div>
 <div class="card" style="padding:0;overflow:auto"><div id="pplList"></div></div>
@@ -1268,7 +1268,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='03.11.2026 · 2';
+const CRM_VERSION='03.11.2026 · 3';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1854,7 +1854,7 @@ function renderClientsPaged(){
   let list=S.clients.filter(c=>S.tab==='archive'?c.archived:!c.archived).map(c=>{const s=getStats(c),st=effStatus(c,s),mi=getMonthlyInfo(c);return{...c,_st:st,_bal:s.balance,_over:s.overdue,_mi:mi,_s:s};});
   // Сортировка по номеру договора (новые сверху)
   list.sort((a,b)=>{
-    const na=parseInt(a.contractId)||0,nb=parseInt(b.contractId)||0;
+    const na=dealSortKey(a.contractId),nb=dealSortKey(b.contractId);
     if(na!==nb)return nb-na;
     // Если номера одинаковые (или оба 0) — по дате создания
     const da=a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
@@ -2258,17 +2258,20 @@ async function saveWaTpl(){
 function resetWaTpl(){S.wa={...WA_DEF};renderWaTpl();toast('Нажмите «Сохранить», чтобы применить','tok');}
 
 // ---------- ОБЩИЙ ПОИСК ----------
-// По клиентам (ФИО, телефон, номер К-0001) и сделкам (№ договора, ФИО, товар, телефон). Клавиша «/» на компьютере.
-// Правило поиска: до 5 цифр — № договора, от 6 цифр — телефон (клиента или поручителя), «К-7» — № клиента, иначе — ФИО или товар
+// По клиентам (ФИО, телефон, номер К-00001) и сделкам (№ договора, ФИО, товар, телефон). Клавиша «/» на компьютере.
+// Правило поиска: «26-42» — № договора 26-0042, до 5 цифр — часть № договора, от 6 цифр — телефон (клиента или поручителя), «К-7» — № клиента, иначе — ФИО или товар
 function searchKind(q){const s=q.replace(/[\s()+-]/g,'');const mNo=q.match(/^к-?\s*(\d+)$/i);
-  if(mNo)return{no:pNo(parseInt(mNo[1],10)).toLowerCase()};if(/^\d+$/.test(s))return s.length<=5?{contract:s}:{phone:s};return{text:q};}
+  if(mNo)return{no:parseInt(mNo[1],10)};
+  const mD=q.trim().match(/^(\d{2})\s*-\s*(\d{1,5})$/);if(mD)return{deal:dealNo(mD[1],parseInt(mD[2],10))};
+  if(/^\d+$/.test(s))return s.length<=5?{contract:s}:{phone:s};return{text:q};}
 function dealMatch(c,q){const k=searchKind(q);
-  if(k.no){const p=pMaps().byId.get(c.clientPid);return!!p&&(p.no||'').toLowerCase()===k.no;}
+  if(k.no){const p=pMaps().byId.get(c.clientPid);return!!p&&noNum(p.no)===k.no;}
+  if(k.deal)return c.contractId===k.deal;
   if(k.contract)return(c.contractId||'').includes(k.contract);
   if(k.phone)return[...(c.phones||[]),...dealGuarantorRefs(c).flatMap(g=>(pMaps().byId.get(g.pid)||{}).phones||[])].some(p=>String(p).replace(/\D/g,'').includes(k.phone));
   return(c.name||'').toLowerCase().includes(k.text)||(c.product||'').toLowerCase().includes(k.text);}
 function personMatch(p,q){const k=searchKind(q);
-  if(k.no)return(p.no||'').toLowerCase()===k.no;if(k.contract)return false;
+  if(k.no)return noNum(p.no)===k.no;if(k.contract||k.deal)return false;
   if(k.phone)return p.phones.some(x=>String(x).replace(/\D/g,'').includes(k.phone));
   return personKey(p.name).includes(k.text);}
 function openSearch(){const i=document.getElementById('gsQ');i.value='';gsRender();openM('mSearch');setTimeout(()=>i.focus(),50);}
@@ -2523,7 +2526,8 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
   data.createdAt=new Date();data.createdBy=curUser();
   // Номер, договор, предоплата, операция кассы и баланс счёта пишутся одной транзакцией: либо всё, либо ничего
   const ref=doc(collection(db,'clients')),now=new Date();
-  try{await window.DB.counterTx('counter',(bt,last)=>{const n=last+1;data.contractId=String(n).padStart(5,'0');
+  const yy=dealYY(dv);
+  try{await window.DB.counterTx('counter-'+yy,(bt,last)=>{const n=last+1;data.contractId=dealNo(yy,n);
   bt.set(ref,data);
   if(data.prepay>0){
     const pRef=doc(collection(db,'payments')),kRef=doc(collection(db,'kassaOps')),pp=R2(data.prepay);
@@ -2618,10 +2622,12 @@ function delClient(id){
   {const cm=disc.map(p=>closedMk(dTs(p.date))).find(Boolean);if(cm){walletBlockT('Удалить нельзя','По договору есть скидка в месяце <strong>'+mkLabel(cm)+'</strong>, уже закрытом у инвесторов. Договор можно отправить в архив.');return;}}
   showConfirm('Удалить договор?','<strong>№'+esc(c.contractId||'')+' · '+esc(c.name)+'</strong><br>Платежей, предоплаты и закупок нет'+(R2(st.balance)>0.004?', долг '+fmt(st.balance)+' ₽ удалится вместе с договором':'')+'. Копия останется в корзине Firebase.',async()=>{
     try{
-      const{db,doc,counterTx}=window.DB,no=parseInt(c.contractId,10);
-      // если это последний выданный номер — следующий договор получит его снова
-      const maxLeft=S.clients.filter(x=>x.id!==id).reduce((a,x)=>Math.max(a,parseInt(x.contractId,10)||0),0);
-      await counterTx('counter',(bt,last)=>{
+      const{db,doc,counterTx}=window.DB,m=String(c.contractId||'').match(dealNoRe);
+      // если это последний выданный номер (в своём году) — следующий договор получит его снова
+      const same=x=>{const k=String(x.contractId||'').match(dealNoRe);return m?(k&&k[1]===m[1]):!k;};
+      const no=m?parseInt(m[2],10):parseInt(c.contractId,10);
+      const maxLeft=S.clients.filter(x=>x.id!==id&&same(x)).reduce((a,x)=>{const k=String(x.contractId||'').match(dealNoRe);return Math.max(a,(k?parseInt(k[2],10):parseInt(x.contractId,10))||0);},0);
+      await counterTx(m?'counter-'+m[1]:'counter',(bt,last)=>{
         disc.forEach(p=>{trashPut(bt,'payments',p.id,p);bt.delete(doc(db,'payments',p.id));});
         trashPut(bt,'clients',id,c);bt.delete(doc(db,'clients',id));
         return no===last?Math.max(maxLeft,0):last;});
@@ -2776,12 +2782,21 @@ function syncBaseNav(p){
 }
 
 // ---------- Клиенты ----------
-// Клиент — карточка в коллекции persons со своим номером (К-0001). ФИО может повторяться:
+// Клиент — карточка в коллекции persons со своим номером (К-00001). ФИО может повторяться:
 // сделка привязана к карточке полем clientPid, поручители — guarantors[{name,pid}].
 let _pplTab='all';
 function personKey(name){return String(name||'').trim().replace(/\s+/g,' ').toLowerCase();}
 function cleanName(name){return String(name||'').trim().replace(/\s+/g,' ');}
-const pNo=n=>'К-'+String(n).padStart(4,'0');
+// Нумерация (не меняется после выдачи):
+//  клиент  — К-00123: сквозной номер навсегда (счётчик settings/pcounter);
+//  договор — ГГ-NNNN, например 26-0042: год даты договора и номер внутри года (счётчик settings/counter-ГГ, с 1 января снова 0001).
+// Старые номера договоров (00042) и клиентов (К-0007) остаются как есть, поиск и сортировка понимают оба вида.
+const pNo=n=>'К-'+String(n).padStart(5,'0');
+const noNum=x=>{const d=String(x||'').replace(/\D/g,'');return d?parseInt(d,10):0;};
+const dealNoRe=/^(\d{2})-(\d+)$/;
+const dealNo=(yy,n)=>yy+'-'+String(n).padStart(4,'0');
+const dealYY=iso=>String(iso&&/^\d{4}/.test(iso)?iso.slice(0,4):new Date().getFullYear()).slice(-2);
+const dealSortKey=id=>{const m=String(id||'').match(dealNoRe);return m?(parseInt(m[1],10)+1)*1e6+parseInt(m[2],10):(parseInt(id,10)||0);};
 // Быстрый доступ к карточкам (пересчитывается, когда меняется список карточек)
 let _pm={src:null,byId:new Map(),byName:new Map()};
 function pMaps(){
@@ -2861,7 +2876,7 @@ function renderPeople(more){
   const q=(document.getElementById('pplQ').value||'').trim().toLowerCase();
   if(q){
     const mNo=q.match(/^к-?\s*(\d+)$/i);
-    if(mNo){const want=pNo(parseInt(mNo[1],10)).toLowerCase();list=list.filter(g=>(g.no||'').toLowerCase()===want);} // поиск по номеру клиента
+    if(mNo){const want=parseInt(mNo[1],10);list=list.filter(g=>noNum(g.no)===want);} // поиск по номеру клиента: К-7, К-0007 и К-00007 — один клиент
     else{const qd=q.replace(/\D/g,'');list=list.filter(g=>personKey(g.name).includes(q)||(qd.length>=3&&g.phones.some(ph=>String(ph).replace(/\D/g,'').includes(qd))));}
   }
   if(_pplTab==='debt')list=list.filter(g=>g.debt>0.004);
