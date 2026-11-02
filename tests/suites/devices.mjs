@@ -61,7 +61,7 @@ export default async function(){
   check('удаление поставщика спрашивает подтверждение',rp.asked==='Удалить поставщика?'&&rp.still,rp);
   const np=await A.p.evaluate(async()=>{const before=Math.max(...S.persons.map(p=>parseInt(String(p.no||'').replace(/\D/g,''))||0));openPersonForm(null,'');await new Promise(r=>setTimeout(r,150));
     document.getElementById('pf_name').value='Новиков Новый';await savePerson();await new Promise(r=>setTimeout(r,1200));const p=S.persons.find(x=>x.name==='Новиков Новый');return{before,no:p&&p.no};});
-  check('новый клиент получает следующий номер',np.no&&parseInt(np.no.replace(/\D/g,''))===np.before+1,np);
+  check('новый клиент получает следующий номер в формате К-00000',np.no&&/^К-\d{5}$/.test(np.no)&&parseInt(np.no.replace(/\D/g,''))===np.before+1,np);
 
   // --- настройки с двух устройств
   await A.p.evaluate(async()=>{document.getElementById('newPart').value='Поставщик-ПК';document.getElementById('newPartPh').value='89000000001';await addPart();});
