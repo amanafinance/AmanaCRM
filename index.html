@@ -688,6 +688,15 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .inv-bm{font-size:12px;color:var(--t2);margin-top:5px;font-weight:600}
 .inv-year-sum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--brd2);font-size:13px;color:var(--t2)}
 .inv-year-sum b{color:var(--text)}
+.inv-jm{margin-bottom:12px}
+.inv-jm>summary{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;cursor:pointer;list-style:none;padding:10px 12px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--brd2);margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.inv-jm>summary::-webkit-details-marker{display:none}
+.inv-jm>summary::before{content:'▸';color:var(--t3);font-size:12px;transition:transform .15s}
+.inv-jm[open]>summary::before{transform:rotate(90deg)}
+.inv-jm-t{font-weight:800;font-size:14px}
+.inv-jm-c{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.inv-jchip{font-size:11px;color:var(--t2);background:var(--card);border:1px solid var(--brd2);border-radius:999px;padding:3px 9px;white-space:nowrap}
+@media(max-width:768px){.inv-jm-c{margin-left:0;width:100%}}
 .inv-dep{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--brd2)}
 .inv-dep:first-of-type{border-top:none}
 .inv-dep.gone{opacity:.55}
@@ -1259,7 +1268,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='03.11.2026 · 1';
+const CRM_VERSION='03.11.2026 · 2';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -3619,6 +3628,18 @@ function invOpsHtml(M,invId){
   const tab=S.invOpsTab;const f=types[tab];if(f)ops=ops.filter(o=>f.includes(o.type));
   const tabs='<div class="ftabs">'+Object.keys(labels).map(k=>'<button class="ft'+(k===tab?' on':'')+'" onclick="S.invOpsTab=\''+k+'\';'+(invId?'renderInvDetail()':'renderInvestors()')+'">'+labels[k]+'</button>').join('')+'</div>';
   if(!ops.length)return tabs+'<div class="card"><div class="empty">Операций нет</div></div>';
+  // по месяцам: заголовок с итогами месяца, старые месяцы свёрнуты (раскрытие запоминается)
+  const groups=[];ops.forEach(o=>{const mk=monthKey(o._d);let g=groups[groups.length-1];if(!g||g.mk!==mk){g={mk,ops:[]};groups.push(g);}g.ops.push(o);});
+  S.invJOpen=S.invJOpen||{};
+  const SUMS=[['deposit','Пополнения','cg',1],['withdraw','Выводы','cr',-1],['profit','Прибыль','cg',1],['loss','Минус','cr',-1],['reinvest','Реинвест','cb',1],['payout','Выплаты','cy',-1]];
+  return tabs+groups.map((g,gi)=>{
+    const tot={};g.ops.forEach(o=>{tot[o.type]=(tot[o.type]||0)+o._a;});
+    const chips=SUMS.filter(x=>tot[x[0]]>0.004).map(x=>'<span class="inv-jchip"><span>'+x[1]+'</span> <b class="'+x[2]+'">'+(x[3]>0?'+':'−')+fmt(invR(tot[x[0]]))+' ₽</b></span>').join('');
+    const key=(invId||'all')+':'+g.mk,open=S.invJOpen[key]!==undefined?S.invJOpen[key]:gi<2;
+    return'<details class="inv-jm" data-k="'+key+'" data-mk="'+g.mk+'"'+(open?' open':'')+' ontoggle="S.invJOpen[this.dataset.k]=this.open"><summary><span class="inv-jm-t">'+mkLabel(g.mk)+'</span><span class="inv-muted">'+g.ops.length+' '+invPlural(g.ops.length,'операция','операции','операций')+'</span><span class="inv-jm-c">'+chips+'</span></summary>'+invOpsRows(M,invId,g.ops)+'</details>';
+  }).join('');
+}
+function invOpsRows(M,invId,ops){
   let rows='',cards='';
   ops.forEach(o=>{
     const m=INV_OP[o.type]||{name:o.type,sign:1,cls:'',badge:'brp'};
@@ -3637,7 +3658,7 @@ function invOpsHtml(M,invId){
     rows+='<tr><td style="color:var(--t2)">'+(o.dateStr||fmtD(o._d))+'</td>'+(invId?'':'<td><span class="inv-person" onclick="openInv(\''+o.invId+'\')">'+invEsc(nm)+'</span></td>')+'<td><span class="badge '+m.badge+'">'+m.name+'</span></td><td class="num"><span class="amt '+m.cls+'">'+amt+'</span></td><td style="font-size:11px;color:var(--t2)">'+invEsc(o.walletName||'')+'</td><td style="font-size:11px;white-space:normal;min-width:160px">'+desc+'</td><td style="width:34px">'+del+'</td></tr>';
     cards+='<div class="kcard"><div class="kcard-top"><span class="badge '+m.badge+'">'+m.name+'</span><span class="kcard-amount '+m.cls+'">'+amt+'</span></div><div class="kcard-desc">'+(invId?'':'<b>'+invEsc(nm)+'</b> ')+desc+'</div><div class="kcard-bot"><span>'+(o.dateStr||fmtD(o._d))+(o.walletName?' · '+invEsc(o.walletName):'')+'</span>'+del+'</div></div>';
   });
-  return tabs+'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Дата</th>'+(invId?'':'<th class="plain">Участник</th>')+'<th class="plain">Операция</th><th class="plain num">Сумма</th><th class="plain">Кошелёк</th><th class="plain">Комментарий</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob">'+cards+'</div>';
+  return'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Дата</th>'+(invId?'':'<th class="plain">Участник</th>')+'<th class="plain">Операция</th><th class="plain num">Сумма</th><th class="plain">Кошелёк</th><th class="plain">Комментарий</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob">'+cards+'</div>';
 }
 
 // ---------- КАРТОЧКА УЧАСТНИКА ----------
@@ -3920,14 +3941,37 @@ function invListHtml(M){
       '<div class="mcard-row"><span class="mcard-label">Доля пула</span><span class="mcard-val">'+invPctFmt(share)+'</span></div>'+
       '<div class="mcard-row"><span class="mcard-label">Этот месяц</span><span class="mcard-val '+(mon<0?'cr':'')+'">'+invMoney(mon,true)+'</span></div>'+
       (rm?'<div class="mcard-row"><span class="mcard-label">Рентабельность, '+mkLabel(rm).toLowerCase()+'</span><span class="mcard-val">'+rent+'</span></div>':'')+
+      '<div class="mcard-row"><span class="mcard-label">Заработано всего</span><span class="mcard-val '+(b.earned<0?'cr':'cg')+'">'+invMoney(b.earned)+'</span></div>'+
       '<div class="mcard-row"><span class="mcard-label">К выплате</span><span class="mcard-val cy">'+fmt(b.payable)+' ₽</span></div></div>';
   });
+  const stats=S.invShowArch?'':invPoolStatsHtml(M);
   const archLink=arch.length?'<div style="margin-top:10px"><button class="ft'+(S.invShowArch?' on':'')+'" onclick="S.invShowArch=!S.invShowArch;renderInvestors()">'+(S.invShowArch?'← Активные':'Архив ('+arch.length+')')+'</button></div>':'';
   if(!list.length)return'<div class="card"><div class="inv-empty">В архиве пусто.</div></div>'+archLink;
-  return'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain">Условия, инв./комп.</th><th class="plain num">Капитал</th><th class="plain num">Доля пула</th><th class="plain num">'+mkLabel(M.curMk)+'</th><th class="plain num">Рент. '+(rm?mkLabel(rm).split(' ')[0].toLowerCase():'')+'</th><th class="plain num">К выплате</th></tr></thead><tbody>'+rows+
+  return stats+'<div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain">Условия, инв./комп.</th><th class="plain num">Капитал</th><th class="plain num">Доля пула</th><th class="plain num">'+mkLabel(M.curMk)+'</th><th class="plain num">Рент. '+(rm?mkLabel(rm).split(' ')[0].toLowerCase():'')+'</th><th class="plain num">К выплате</th></tr></thead><tbody>'+rows+
     '<tr class="sum-row"><td colspan="2" style="font-weight:700">Итого</td><td class="num"><span class="amt">'+fmt(invR(sCap))+' ₽</span></td><td></td><td class="num"><span class="amt">'+invMoney(sMon,true)+'</span></td><td class="num">'+(rmData?invRentFmt(rmData.poolRent):'—')+'</td><td class="num"><span class="amt">'+fmt(invR(sPay))+' ₽</span></td></tr></tbody></table></div></div>'+
     '<div class="inv-mob">'+cards+'</div>'+
     '<div class="inv-muted" style="margin-top:8px">«'+mkLabel(M.curMk)+'» — предварительный итог текущего месяца. «Рент.» — рентабельность последнего закрытого месяца: прибыль участника / его работающий капитал на конец месяца; в строке «Итого» — по всему пулу.</div>'+archLink;
+}
+// Итоги пула за всё время: прибыль закрытых месяцев, средняя рентабельность, начисления участникам и их движение
+function invPoolStats(M){
+  const months=M.months.map(mk=>{const d=invMonthData(M,mk);return{mk,total:d.net,base:d.poolCap||0,rent:d.poolRent,closed:!!M.closed[mk]};});
+  const closed=months.filter(m=>m.closed);const withRent=closed.filter(m=>m.rent!==null&&m.rent!==undefined);
+  const sum=k=>invR(S.inv.reduce((a,i)=>a+(M.bal[i.id]?M.bal[i.id][k]:0),0));
+  const best=withRent.slice().sort((a,b)=>b.rent-a.rent)[0]||null;
+  return{months,closedCount:closed.length,net:invR(closed.reduce((a,m)=>a+m.total,0)),avg:withRent.length?withRent.reduce((a,m)=>a+m.rent,0)/withRent.length:null,best,
+    earned:sum('earned'),paid:sum('paid'),reinvested:sum('reinvested'),deposited:sum('deposited'),withdrawn:sum('withdrawn')};
+}
+function invPoolStatsHtml(M){
+  if(!M.months.length)return'';
+  const st=invPoolStats(M);
+  const sc=(l,v,sub,cls)=>'<div class="sc"><div class="sl">'+l+'</div><div class="sv'+(cls?' '+cls:'')+'">'+v+'</div><div class="ss">'+sub+'</div></div>';
+  const cards=
+    sc('Прибыль пула',invMoney(st.net),st.closedCount?'за '+st.closedCount+' '+invPlural(st.closedCount,'закрытый месяц','закрытых месяца','закрытых месяцев'):'закрытых месяцев пока нет',st.net<0?'cr':'cg')+
+    sc('Рентабельность в месяц',invRentFmt(st.avg),st.avg!==null?'в среднем · ≈ '+invRentFmt(st.avg*12)+' в год'+(st.best?' · лучший '+mkLabel(st.best.mk).toLowerCase()+' '+invRentFmt(st.best.rent):''):'появится после закрытия месяца')+
+    sc('Начислено участникам',invMoney(st.earned),'выплачено '+fmt(st.paid)+' ₽ · реинвест '+fmt(st.reinvested)+' ₽',st.earned<0?'cr':'')+
+    sc('Вложено всего',fmt(st.deposited)+' ₽','выведено '+fmt(st.withdrawn)+' ₽');
+  return'<div class="dsh-h"><div class="dsh-ht">Итоги пула за всё время</div></div><div class="dsh-g4" id="invPoolStats">'+cards+'</div>'+invChartHtml(M,{months:st.months},true)+
+    '<div class="dsh-h"><div class="dsh-ht">Участники</div></div>';
 }
 function invMonthsHtml(M){
   if(!M.months.length)return'<div class="card"><div class="inv-empty">Месяцы появятся после первого пополнения капитала.</div></div>';
@@ -4201,27 +4245,27 @@ function invPersonStats(M,invId){
   }
   return{months,avg,all,prelim,closedCount:closed.length};
 }
-function setInvYear(y){S.invYear=y;renderInvDetail();}
-function invChartHtml(M,st){
+function setInvYear(y,pool){if(pool){S.invPoolYear=y;renderInvestors();}else{S.invYear=y;renderInvDetail();}}
+function invChartHtml(M,st,pool){
   const ms=st.months.filter(m=>m.base>0||m.total);
   if(!ms.length)return'<div class="card" style="margin-bottom:14px"><div class="ct">Рентабельность по месяцам</div><div class="empty">Появится после первого месяца работы вкладов</div></div>';
   const years=[...new Set(ms.map(m=>m.mk.slice(0,4)))].sort();
-  let y=S.invYear;if(!y||!years.includes(y))y=years[years.length-1];
+  let y=pool?S.invPoolYear:S.invYear;if(!y||!years.includes(y))y=years[years.length-1];
   const cur=ms.filter(m=>m.mk.slice(0,4)===y);
-  const tabs=years.length>1?'<div class="ftabs" style="margin-bottom:12px">'+years.slice().reverse().map(yy=>'<button class="ft'+(yy===y?' on':'')+'" onclick="setInvYear(\''+yy+'\')">'+yy+'</button>').join('')+'</div>':'';
+  const tabs=years.length>1?'<div class="ftabs" style="margin-bottom:12px">'+years.slice().reverse().map(yy=>'<button class="ft'+(yy===y?' on':'')+'" onclick="setInvYear(\''+yy+'\''+(pool?',1':'')+')">'+yy+'</button>').join('')+'</div>':'';
   const max=Math.max(...cur.map(m=>Math.abs(m.rent||0)),0.0001);
   const MN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
   const cols=cur.map(m=>{
     const mo=Number(m.mk.slice(5,7));const h=m.rent===null?0:Math.max(3,Math.round(Math.abs(m.rent)/max*110));
     const neg=(m.rent||0)<0;const cls='inv-bv'+(neg?' neg':'')+(m.closed?'':' pre');
-    const tip=mkLabel(m.mk)+': '+invMoney(m.total,true)+', капитал '+fmt(m.base)+' ₽'+(m.closed?'':' (месяц идёт)');
+    const tip=mkLabel(m.mk)+': '+invMoney(m.total,true)+', капитал '+(pool?'пула ':'')+fmt(m.base)+' ₽'+(m.closed?'':' (месяц идёт)');
     return'<div class="inv-bc" onclick="openInvMonth(\''+m.mk+'\')" title="'+tip+'"><div class="inv-bl'+(neg?' cr':'')+'">'+invRentFmt(m.rent)+'</div><div class="'+cls+'" style="height:'+h+'px"></div><div class="inv-bm">'+MN[mo-1]+'</div></div>';
   }).join('');
   const closed=cur.filter(m=>m.closed&&m.rent!==null);
   const sum=cur.filter(m=>m.closed).reduce((a,m)=>a+m.total,0);
   const avg=closed.length?closed.reduce((a,m)=>a+m.rent,0)/closed.length:null;
   const foot='<div class="inv-year-sum"><span>Итог '+y+'</span><span><b class="'+(sum<0?'cr':'cg')+'">'+invMoney(sum,true)+'</b> · в среднем <b>'+invRentFmt(avg)+'</b> в мес.'+(closed.length?' по '+closed.length+' '+invPlural(closed.length,'месяцу','месяцам','месяцам'):'')+'</span></div>';
-  return'<div class="card" style="margin-bottom:14px"><div class="inv-chart-hd"><div class="ct" style="margin:0">Рентабельность по месяцам</div><div class="inv-muted">нажми на месяц — подробности</div></div>'+tabs+'<div class="inv-chart"><div class="inv-bars">'+cols+'</div></div>'+foot+(cur.some(m=>!m.closed)?'<div class="inv-muted" style="margin-top:6px">Светлый столбик — месяц ещё идёт, цифра предварительная.</div>':'')+'</div>';
+  return'<div class="card" style="margin-bottom:14px"><div class="inv-chart-hd"><div class="ct" style="margin:0">'+(pool?'Рентабельность пула по месяцам':'Рентабельность по месяцам')+'</div><div class="inv-muted">нажми на месяц — подробности</div></div>'+tabs+'<div class="inv-chart"><div class="inv-bars">'+cols+'</div></div>'+foot+(cur.some(m=>!m.closed)?'<div class="inv-muted" style="margin-top:6px">Светлый столбик — месяц ещё идёт, цифра предварительная.</div>':'')+'</div>';
 }
 function invDepsHtml(M,i){
   const isF=i.role==='founder';
