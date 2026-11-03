@@ -1228,6 +1228,69 @@ body.light .ba,body.light .brp{color:#496510}body.light .bd{color:#2a55ad}body.l
   .chx-x.many span:nth-child(even){visibility:hidden}
   .chx-col{gap:1px}
 }
+/* ===================================================================================
+   ВЫРАЗИТЕЛЬНОСТЬ (последний слой): объёмные кнопки, цвет по смыслу, графики со свечением,
+   градиентами и штриховкой. Удобство из дизайн-системы (44 px, контраст, шкала) сохраняется.
+   =================================================================================== */
+:root{--glow:drop-shadow(0 0 6px rgba(149,193,31,0.45));--glow-b:drop-shadow(0 0 6px rgba(91,143,249,0.4));--glow-y:drop-shadow(0 0 6px rgba(255,165,2,0.4));--glow-r:drop-shadow(0 0 6px rgba(255,71,87,0.45))}
+body.light{--glow:drop-shadow(0 2px 4px rgba(85,117,16,0.28));--glow-b:drop-shadow(0 2px 4px rgba(47,95,192,0.25));--glow-y:drop-shadow(0 2px 4px rgba(154,91,0,0.25));--glow-r:drop-shadow(0 2px 4px rgba(192,39,54,0.25))}
+
+/* ---------- Кнопки: объём, свечение у главной, цвет по смыслу, отклик на нажатие ---------- */
+.btn{transition:transform .12s ease,box-shadow .2s ease,filter .2s ease,background-color .2s ease,border-color .2s ease}
+.btn:active{transform:scale(.97)}
+.bg{background:linear-gradient(180deg,#b2df2c 0%,#95c11f 100%);border:1px solid rgba(255,255,255,0.08);box-shadow:0 6px 18px -8px rgba(149,193,31,0.7),inset 0 1px 0 rgba(255,255,255,0.35)}
+body.light .bg{background:linear-gradient(180deg,#668c16 0%,#557510 100%);box-shadow:0 6px 16px -8px rgba(85,117,16,0.6),inset 0 1px 0 rgba(255,255,255,0.22)}
+.bgh{background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015)),var(--bg3);border:1px solid rgba(149,193,31,0.16);color:var(--text);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04)}
+body.light .bgh{background:linear-gradient(180deg,#ffffff,#f4f7f1);border-color:rgba(85,117,16,0.22);box-shadow:0 1px 2px rgba(20,45,25,0.06),inset 0 1px 0 #fff}
+.by,.bb,.bgt,.bwa,.br{box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)}
+.by{background:rgba(255,165,2,0.12);border:1px solid rgba(255,165,2,0.32);color:var(--yellow)}
+.bb{background:rgba(91,143,249,0.12);border:1px solid rgba(91,143,249,0.32);color:var(--blue)}
+.bgt{background:rgba(149,193,31,0.12);border:1px solid rgba(149,193,31,0.32);color:var(--green)}
+.bwa,body.light .bwa{background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.32);color:#25d366}
+body.light .bwa{color:#0f7a3f}
+.bwa svg,body.light .bwa svg{color:inherit}
+.br{background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);color:var(--red)}
+@media(hover:hover){
+  .bg:hover{filter:brightness(1.06);box-shadow:0 8px 22px -8px rgba(149,193,31,0.85),inset 0 1px 0 rgba(255,255,255,0.35)}
+  .by:hover{background:rgba(255,165,2,0.2)}.bb:hover{background:rgba(91,143,249,0.2)}.bgt:hover,.bwa:hover{background:rgba(149,193,31,0.2)}.br:hover{background:rgba(255,71,87,0.18)}
+}
+/* активный фильтр и вкладка — с лёгким свечением */
+.ft.on{background:linear-gradient(180deg,#a9d62a,#95c11f);box-shadow:0 4px 12px -6px rgba(149,193,31,0.7)}
+body.light .ft.on{background:linear-gradient(180deg,#628712,#557510)}
+
+/* ---------- Графики: свечение, градиенты, штриховка прогноза ---------- */
+.dsh-area svg .ln,.dsh-sp,.dsh-ring svg,.dsh-mb i.cur{filter:var(--glow)}
+.kt-vis.red .dsh-sp,.kt-vis.red .dsh-ring svg{filter:var(--glow-r)}
+.dsh-mb i{opacity:.45}.dsh-mb i.cur{opacity:1}
+/* «Динамика»: точка со свечением, перекрестие и подсказка видны сразу (последний месяц) */
+.dsh-dot{width:12px;height:12px;margin:-6px 0 0 -6px;box-shadow:0 0 0 3px var(--card),0 0 14px rgba(149,193,31,0.7)}
+.dsh-cur{border-left:1px dashed var(--green);opacity:.6}
+.dsh-tip{opacity:1;visibility:visible}
+.dsh-tip .v{color:var(--green);font-size:var(--fs-xl)}
+.dsh-area.act .dsh-cur{opacity:.9}
+/* столбики: объём градиентом и свечение */
+.chx{--bw:16px}
+.chx-inv{--bw:44px}
+.chx-col.cur{background:linear-gradient(180deg,rgba(149,193,31,0.10),rgba(149,193,31,0.02))}
+.chx-b{border-radius:5px 5px 0 0}
+.chx-b.neg{border-radius:0 0 5px 5px}
+.b-fact{background:linear-gradient(180deg,#c6ef4f 0%,#95c11f 60%,#7aa214 100%)!important;filter:var(--glow)}
+body.light .b-fact{background:linear-gradient(180deg,#7fa52a 0%,#557510 100%)!important}
+.b-net{background:linear-gradient(180deg,#ffc24d 0%,#ffa502 100%)!important;filter:var(--glow-y)}
+body.light .b-net{background:linear-gradient(180deg,#c9861a 0%,#9a5b00 100%)!important}
+.b-fc{background:linear-gradient(180deg,#8fb2ff 0%,#5b8ff9 100%)!important;filter:var(--glow-b)}
+body.light .b-fc{background:linear-gradient(180deg,#5a86dd 0%,#2f5fc0 100%)!important}
+.b-plan{background:linear-gradient(180deg,rgba(163,184,169,0.55),rgba(163,184,169,0.3))!important;opacity:1}
+body.light .b-plan{background:linear-gradient(180deg,rgba(70,90,76,0.35),rgba(70,90,76,0.2))!important}
+.chx-b.neg{background:linear-gradient(0deg,#ff7a86 0%,#ff4757 100%)!important;filter:var(--glow-r)}
+body.light .chx-b.neg{background:linear-gradient(0deg,#d9505d 0%,#c02736 100%)!important}
+/* прогноз и незакрытый месяц — со штриховкой */
+.b-est{opacity:.75}
+.chx-b.b-est::after,.chx-leg i.b-est::after{content:'';position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.3) 0 3px,transparent 3px 7px)}
+body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:repeating-linear-gradient(45deg,rgba(255,255,255,0.5) 0 3px,transparent 3px 7px)}
+.chx-leg i{position:relative;width:12px;height:12px;border-radius:4px}
+.chx-vl{font-weight:700}
+@media(max-width:768px){.chx{--bw:8px}.chx-inv{--bw:30px}}
 </style>
 
 </head>
@@ -1830,8 +1893,8 @@ function dSpark(vals){
   const n=vals.length;if(n<2)return'';
   const mx=Math.max(...vals,0),mn=Math.min(...vals,0),rg=mx-mn||1,id='dg'+(++_gid);
   const pts=vals.map((v,i)=>(i*100/(n-1)).toFixed(2)+','+(38-(v-mn)/rg*34).toFixed(2)),d='M'+pts.join('L');
-  return'<svg class="dsh-sp" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">'+
-    '<path d="'+d+'L100,40L0,40Z" fill="currentColor" fill-opacity=".1"/><path d="'+d+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+  return'<svg class="dsh-sp" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".38"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+d+'L100,40L0,40Z" fill="url(#'+id+')"/><path d="'+d+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
 }
 // Столбики по месяцам; последний — текущий месяц
 function dMiniBars(vals,labels){
@@ -1881,10 +1944,10 @@ function dshChart(ctx){
   const tk=v=>typ==='p'?Math.round(v*100)+'%':typ==='i'?String(Math.round(v)):dNum(v);
   const path=a=>'M'+a.map((v,i)=>X(i).toFixed(2)+','+Y(v).toFixed(2)).join('L');
   const id='dg'+(++_gid),base=Y(Math.max(lo,Math.min(0,hi)));
-  const svg='<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+
-    (n>1?'<path d="'+path(vals)+'L100,'+base+'L0,'+base+'Z" fill="var(--green)" fill-opacity=".1"/>':'')+
-    (plan&&n>1?'<path d="'+path(plan)+'" fill="none" stroke="var(--t3)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>':'')+
-    (n>1?'<path class="ln" d="'+path(vals)+'" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>':'')+'</svg>';
+  const svg='<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--green)" stop-opacity=".38"/><stop offset="1" stop-color="var(--green)" stop-opacity="0"/></linearGradient></defs>'+
+    (n>1?'<path d="'+path(vals)+'L100,'+base+'L0,'+base+'Z" fill="url(#'+id+')"/>':'')+
+    (plan&&n>1?'<path d="'+path(plan)+'" fill="none" stroke="var(--green)" stroke-opacity=".6" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>':'')+
+    (n>1?'<path class="ln" d="'+path(vals)+'" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>':'')+'</svg>';
   const every=Math.max(1,Math.ceil(n/12));
   S.dsh.pts={us,vals,X,Y,key,typ};
   let h='<div class="card dsh-ch"><div class="dsh-ch-h"><div class="dsh-ch-t">Динамика</div><div class="dsh-ctl"><select class="inp sel per-sel" aria-label="Показатель" onchange="setDsh(\'metric\',this.value)">'+
@@ -1959,7 +2022,7 @@ function renderDash(){
   const ws=S.wallets.map(w=>({n:w.name,b:parseFloat(w.balance)||0})).sort((a,b)=>b.b-a.b),wmx=Math.max(...ws.map(w=>w.b),1);
   h+=dTile({label:'Деньги в кассах',value:dMoney(cash),sub:S.wallets.length+' '+invPlural(S.wallets.length,'счёт','счёта','счетов'),onclick:"goTo('kassa')",
     vis:'<div class="dsh-wl">'+ws.slice(0,3).map(w=>'<div><span>'+esc(w.n)+'</span><b>'+dMoney(w.b)+'</b>'+dBar(w.b/wmx)+'</div>').join('')+'</div>'});
-  h+=dTile({label:'Ожидаемая прибыль в портфеле',value:dMoney(M.profLeft||0),cls:'cb',sub:'ещё не получена',vis:'<span style="width:100%">'+dMiniBars(lastD.map(m=>m.grossNet),lastL)+'</span>',foot:'<span>получено наценки по месяцам</span>'});
+  h+=dTile({label:'Ожидаемая прибыль в портфеле',value:dMoney(M.profLeft||0),cls:'cb',sub:'ещё не получена',vis:'<span style="color:var(--blue);width:100%">'+dMiniBars(lastD.map(m=>m.grossNet),lastL)+'</span>',foot:'<span>получено наценки по месяцам</span>'});
   h+='</div><div class="dsh-h"><div class="dsh-ht">Показатели · '+esc(PD.label)+'</div><div class="dsh-ctl">'+perHtml('perDash','renderDash')+'<button class="btn bgh bsm" onclick="goTo(\'finance\')">Обзор →</button></div></div><div class="dsh-g4">';
   h+=dTile({label:'Собрано денег',value:dMoney(cur.received),cls:'cg',sub:cur.payCnt+' '+invPlural(cur.payCnt,'платёж','платежа','платежей')+(cur.prepay?' + предоплаты '+dMoney(cur.prepay):''),vis:dSpark(cum),empty:cur.received?'':'За этот период платежей пока нет',foot:dFoot(cur.received,prev.received,pl)});
   h+=dTile({label:'Собираемость по графику',value:dPct(cur.rate),cls:rateCls,sub:'пришло '+dMoney(cur.planPaid)+' из '+dMoney(cur.planDue),
@@ -2074,12 +2137,12 @@ function renderFinance(){
   h+='<div class="dsh-h"><div class="dsh-ht">Отчёт о прибылях и убытках</div></div>'+t;
 
   const P2=h.length;
-  // ===== График года: план (серый), поступило (зелёный), чистая прибыль (синий); текущий месяц и прогноз — бледнее =====
-  const bc=cols.map((c,i)=>{const fut=c.kind==='fut',v=fut?estD[i]:c.d,rv=fut?v.pay:v.received,lt=c.kind!=='past'?' b-est':'';
+  // ===== График года: план (серый), поступило (зелёный), чистая прибыль (оранжевый), прогноз (синий, со штриховкой) =====
+  const bc=cols.map((c,i)=>{const fut=c.kind==='fut',v=fut?estD[i]:c.d,rv=fut?v.pay:v.received,lt=fut?' b-est':'';
     return{label:c.label,cur:c.kind==='cur',tip:[c.label+(c.kind==='cur'?' · идёт':fut?' · прогноз':''),'План по графику: '+dMoney(c.f.plan),(fut?'Ожидается: ':'Поступило: ')+dMoney(rv),'Чистая прибыль'+(fut?' (прогноз)':'')+': '+dMoney(v.net)],
-      bars:[{v:c.f.plan,cls:'b-plan'},{v:rv,cls:'b-fact'+lt},{v:v.net,cls:'b-net'+lt}]};});
+      bars:[{v:c.f.plan,cls:'b-plan'},{v:rv,cls:fut?'b-fc b-est':'b-fact'},{v:v.net,cls:'b-net'+lt}]};});
   h+='<div class="card dsh-ch"><div class="dsh-ch-h"><div class="dsh-ch-t">План и факт поступлений</div></div><div class="dsh-sub">'+esc(P.label)+' · '+(g==='y'?'по годам':'по месяцам')+'</div>'+
-    chBars(bc,{legend:[['b-plan','План по графику'],['b-fact','Поступило'],['b-net','Чистая прибыль']].concat(cols.some(c=>c.kind!=='past')?[['b-fact b-est','Текущий месяц и прогноз']]:[])})+'</div>';
+    chBars(bc,{legend:[['b-plan','План по графику'],['b-fact','Поступило'],['b-net','Чистая прибыль']].concat(cols.some(c=>c.kind==='fut')?[['b-fc','Прогноз']]:[])})+'</div>';
 
   const P3=h.length;
   // ===== Прогноз и просрочка =====
@@ -2359,7 +2422,7 @@ function renderDetail(c){
   const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0,mg=pr-co;
   const hc=c.comment&&c.comment.trim();
   // Верхняя строка с именем и действиями
-  const header='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap"><div><div style="font-family:Manrope,sans-serif;font-size:var(--fs-xl);font-weight:700;letter-spacing:-0.015em;margin-bottom:6px;display:flex;align-items:center;gap:8px">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:var(--fs-xs);color:var(--t2)">'+ph+' · №'+esc(c.contractId||'—')+(c.oldContractId&&c.oldContractId!==c.contractId?' <span style="color:var(--t3)">(было '+esc(c.oldContractId)+')</span>':'')+' · '+esc(c.date||'—')+' '+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button>'+waBtn(c.id)+'<button class="btn bgh" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bgh" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh" onclick="openEdit(\''+c.id+'\')">Изменить</button><details class="cd-more"><summary class="btn bgh" aria-label="Ещё действия">⋯ Ещё</summary><div class="cd-menu" role="menu">'+cdDelBtn(c)+'</div></details></div></div>';
+  const header='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap"><div><div style="font-family:Manrope,sans-serif;font-size:var(--fs-xl);font-weight:700;letter-spacing:-0.015em;margin-bottom:6px;display:flex;align-items:center;gap:8px">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:var(--fs-xs);color:var(--t2)">'+ph+' · №'+esc(c.contractId||'—')+(c.oldContractId&&c.oldContractId!==c.contractId?' <span style="color:var(--t3)">(было '+esc(c.oldContractId)+')</span>':'')+' · '+esc(c.date||'—')+' '+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button>'+waBtn(c.id)+'<button class="btn by" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bb" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh" onclick="openEdit(\''+c.id+'\')">Изменить</button><details class="cd-more"><summary class="btn bgh" aria-label="Ещё действия">⋯ Ещё</summary><div class="cd-menu" role="menu">'+cdDelBtn(c)+'</div></details></div></div>';
   const dupsBlock=dups.length?'<div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:10px 14px;margin-bottom:14px;font-size:var(--fs-xs)"><div style="color:var(--yellow);font-weight:700;margin-bottom:6px">Другие договора:</div>'+dups.map(d=>'<div class="cd-dup" role="button" tabindex="0" onclick="openC(\''+d.id+'\')">№'+esc(d.contractId||'—')+' — '+esc(d.product||'—')+' ('+effStatus(d)+')</div>').join('')+'</div>':'';
   // Данные клиента и поручителя
   const _pi=personIndex(),_pl=(n,k)=>'<a href="#" class="plink" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
@@ -3419,7 +3482,7 @@ let _df={cid:null,m:null};
 function deferCell(p,c){
   if(!c||p.st==='paid'||R2(p.size-p.paid)<=0.004)return '';
   const df=deferOf(c,p.month);
-  return '<div class="pr-df">'+(df?'<span class="rem-mark rem-df">отсрочка до '+fmtD(safeDateFromInput(df.date))+'</span>':'')+'<button class="btn bgh bsm" onclick="openDefer(\''+c.id+'\','+p.month+')">'+(df?'Изменить':'Отсрочить')+'</button></div>';
+  return '<div class="pr-df">'+(df?'<span class="rem-mark rem-df">отсрочка до '+fmtD(safeDateFromInput(df.date))+'</span>':'')+'<button class="btn bb bsm" onclick="openDefer(\''+c.id+'\','+p.month+')">'+(df?'Изменить':'Отсрочить')+'</button></div>';
 }
 function deferOf(c,m){const d=(c.defer||{})[m];return d&&d.date?d:null;}
 function openDefer(cid,m){
@@ -3503,7 +3566,7 @@ function renderReminders(more){
     if(r.c.lastRemind&&r.c.lastRemind.date)b+='<div class="rem-wa">WhatsApp: '+esc(r.c.lastRemind.date)+'</div>';
     return b;
   };
-  const btns=r=>waBtn(r.c.id,r.month,true)+' <button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">Принять оплату</button> <button class="btn bgh bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>';
+  const btns=r=>waBtn(r.c.id,r.month,true)+' <button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">Принять оплату</button> <button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>';
   const view=list.slice(0,_remShown);
   const rowsH=view.map(r=>'<tr class="'+(r.partial?'rem-partial':'')+'"><td class="crow" onclick="openC(\''+r.c.id+'\')" style="white-space:nowrap">'+(r.df?'<div>'+fmtD(r.eff)+'</div><div class="inv-muted" style="text-decoration:line-through">'+esc(r.date)+'</div>':esc(r.date))+'</td>'+
     '<td class="crow" onclick="openC(\''+r.c.id+'\')"><div style="font-weight:600">'+esc(r.c.name)+'</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+esc(fmtPhone((r.c.phones||[])[0]))+'</div></td>'+
@@ -3513,7 +3576,7 @@ function renderReminders(more){
     '<td style="font-size:var(--fs-xs);color:var(--t2);white-space:normal;max-width:200px">'+(r.c.comment?esc(r.c.comment):'<span style="color:var(--t3)">—</span>')+'</td>'+
     '<td style="text-align:right;white-space:nowrap">'+btns(r)+'</td></tr>').join('');
   const cards=view.map(r=>'<div class="mcard'+(r.partial?' rem-partial':'')+'" style="cursor:default"><div class="mcard-top" onclick="openC(\''+r.c.id+'\')"><div class="mcard-name">'+esc(r.c.name)+'</div><div class="mcard-id">№'+esc(r.c.contractId||'—')+'</div></div>'+
-    (()=>{const ph=(r.c.phones||[]).find(Boolean),t=ph&&waPhone(ph);return t?'<div class="rem-call"><span>'+esc(fmtPhone(ph))+'</span><a class="btn bgh bsm" href="tel:+'+t+'" onclick="event.stopPropagation()">Позвонить</a></div>':'';})()+
+    (()=>{const ph=(r.c.phones||[]).find(Boolean),t=ph&&waPhone(ph);return t?'<div class="rem-call"><span>'+esc(fmtPhone(ph))+'</span><a class="btn bgt bsm" href="tel:+'+t+'" onclick="event.stopPropagation()">Позвонить</a></div>':'';})()+
     '<div class="mcard-row"><span class="mcard-label">Платёж '+r.month+' из '+(r.c.months||'—')+'</span><span class="mcard-val '+(r.over?'cr':'')+'">'+fmt(r.left)+' ₽</span></div>'+
     '<div class="mcard-row"><span class="mcard-label">Дата</span><span class="mcard-val">'+(r.df?fmtD(r.eff)+' <span class="inv-muted" style="text-decoration:line-through">'+esc(r.date)+'</span>':esc(r.date))+'</span></div>'+
     '<div class="mcard-row"><span class="mcard-label">Статус</span><span style="text-align:right">'+due(r)+'</span></div>'+
@@ -4620,7 +4683,7 @@ function invChartHtml(M,st,pool){
   // столбики в общем виде графиков: закрытый месяц — зелёный, идущий — бледнее, минус — красным вниз от нуля
   const pctT=v=>String(Math.round(v*1000)/10).replace('.',',')+'%';
   const bc=cur.map(m=>{const mo=Number(m.mk.slice(5,7));
-    return{label:MN3[mo-1].replace(/^./,c=>c.toUpperCase()),cur:!m.closed,onclick:"openInvMonth('"+m.mk+"')",
+    return{label:MN3[mo-1].replace(/^./,c=>c.toUpperCase()),cur:m.mk===monthKey(new Date()),onclick:"openInvMonth('"+m.mk+"')",
       tip:[mkLabel(m.mk)+(m.closed?'':' · не закрыт'),'Рентабельность: '+invRentFmt(m.rent),'Итог: '+invMoney(m.total,true),'Капитал'+(pool?' пула':'')+': '+fmt(m.base)+' ₽'],
       bars:[{v:m.rent||0,cls:'b-fact'+(m.closed?'':' b-est'),lbl:invRentFmt(m.rent)}]};});
   const chart=chBars(bc,{tick:pctT,labels:true,cls:'chx-inv',legend:cur.some(m=>!m.closed)?[['b-fact','Месяц закрыт'],['b-fact b-est','Не закрыт — цифра предварительная']]:null});
@@ -4654,7 +4717,7 @@ function renderInvDetail(){
   const M=invModel(),b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0;
   const st=invPersonStats(M,i.id);const id=i.id;
   let h='<div class="inv-hd"><div><div class="inv-name">'+invEsc(i.name)+invRoleBadge(i)+(i.archived?'<span class="badge by2">Архив</span>':'')+'</div><div class="inv-sub">'+invTermsText(i,M)+'</div></div>'+
-    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgh" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bgh" onclick="openInvOp(\'reinvest\',\''+id+'\')">Реинвест</button><button class="btn bgh" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
+    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgt" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bb" onclick="openInvOp(\'reinvest\',\''+id+'\')">Реинвест</button><button class="btn by" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
   const pre=st.prelim?' (предв.)':'';
   h+='<div class="sg4">'+
     '<div class="sc"><div class="sl">Капитал</div><div class="sv">'+fmt(b.capital)+' ₽</div><div class="ss">доля пула '+invPctFmt(share)+'</div></div>'+
