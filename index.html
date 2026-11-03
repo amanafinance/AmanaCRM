@@ -1153,6 +1153,81 @@ body.light .ba,body.light .brp{color:#496510}body.light .bd{color:#2a55ad}body.l
 .k-recon>summary{flex-wrap:nowrap;gap:var(--sp-2)}
 .k-recon>summary .badge{margin-left:0!important;white-space:nowrap}
 @media(max-width:768px){.k-recon{padding:var(--sp-3) var(--sp-4)}.k-recon>summary{letter-spacing:.03em}.k-recon>summary::after{padding:var(--sp-1) var(--sp-3)}}
+/* ===================================================================================
+   ГРАФИКИ — один вид для Дашборда, Обзора и Инвесторов
+   Без свечения. Ось слева (3–4 подписи), тонкая сплошная сетка, легенда под графиком.
+   Факт — зелёный, план — серый (пунктир у линии), чистая прибыль — синий, минус — красный вниз от нуля,
+   текущий месяц и прогноз — бледнее. Подписи — цветом текста, не цветом графика. Подсказка — по наведению или нажатию.
+   =================================================================================== */
+:root,body.light{--glow:none}
+.dsh-area svg .ln,.dsh-sp,.dsh-ring svg,.dsh-mb i.cur{filter:none}
+/* оси, сетка, подписи */
+.dsh-y,.dsh-x,.chx-y,.chx-x{font-size:var(--fs-xs);color:var(--t2);font-variant-numeric:tabular-nums}
+.dsh-grid,.chx-grid{border-top:1px solid var(--line)}
+.dsh-grid.zero,.chx-grid.zero{border-top-color:var(--t3)}
+/* легенда — под графиком, ключ рядом с подписью */
+.dsh-leg,.chx-leg{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:var(--sp-2) var(--sp-4);margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--t2)}
+.dsh-leg span,.chx-leg span{display:inline-flex;align-items:center;gap:var(--sp-2)}
+.dsh-leg i{width:18px;border-top:2px solid var(--green)}
+.dsh-leg i.dash{border-top:2px dashed var(--t3);opacity:1}
+.chx-leg i{width:10px;height:10px;border-radius:3px;background:var(--green)}
+/* линия «Динамика»: точка с кольцом, подсказка только при наведении или нажатии */
+.dsh-dot{width:10px;height:10px;margin:-5px 0 0 -5px;box-shadow:0 0 0 2px var(--card)}
+.dsh-cur{border-left:1px solid var(--t3);opacity:0}
+.dsh-tip{opacity:0;visibility:hidden;transition:opacity .12s}
+.dsh-area.act .dsh-cur{opacity:.8}
+.dsh-area.act .dsh-tip{opacity:1;visibility:visible}
+.dsh-tip,.chx-tip{background:var(--card);border:1px solid var(--field-brd);border-radius:var(--rad-m);box-shadow:var(--sh);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-xs);color:var(--t2);line-height:1.5;min-width:150px}
+.dsh-tip .v{font-family:var(--fd);font-size:var(--fs-lg);color:var(--text);margin:2px 0}
+.dsh-tip .v.neg{color:var(--red)}
+.dsh-ch-t{font-size:var(--fs-lg)}
+.dsh-sub{font-size:var(--fs-xs);color:var(--t2);margin:calc(-1*var(--sp-2)) 0 var(--sp-3)}
+/* столбики */
+.chx{position:relative}
+.chx-plot{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:200px auto;column-gap:var(--sp-2)}
+.chx-inv .chx-plot{grid-template-rows:170px auto}
+.chx-y{position:relative;min-width:40px;text-align:right}
+.chx-y span{position:absolute;right:0;transform:translateY(-50%);white-space:nowrap}
+.chx-area{position:relative}
+.chx-grid{position:absolute;left:0;right:0;height:0}
+.chx-cols{position:absolute;inset:0;display:flex}
+.chx-col{flex:1 1 0;min-width:0;height:100%;display:flex;justify-content:center;gap:2px;border-radius:var(--rad-s);cursor:pointer;outline:none}
+.chx-col.on,.chx-col:focus-visible{background:var(--bg3)}
+.chx-col:focus-visible{box-shadow:inset 0 0 0 2px var(--green)}
+.chx-bw{position:relative;flex:0 1 var(--bw,14px);min-width:3px;height:100%}
+.chx-inv{--bw:28px}
+.chx-b{position:absolute;left:0;right:0;border-radius:4px 4px 0 0;background:var(--green)}
+.chx-b.neg{border-radius:0 0 4px 4px}
+.chx-vl{position:absolute;left:50%;transform:translateX(-50%);font-size:var(--fs-xs);font-weight:600;color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
+.chx-x{grid-column:2;display:flex;margin-top:var(--sp-2)}
+.chx-x span{flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;overflow:visible}
+.chx-x span.hid{visibility:hidden}
+/* цвета рядов — одни и те же на всех графиках */
+.b-plan{background:var(--t3)!important;opacity:.55}
+.b-fact{background:var(--green)!important}
+.b-net{background:var(--blue)!important}
+.chx-b.neg{background:var(--red)!important}
+.b-est{opacity:.45}
+.chx-leg i.b-plan{opacity:.55}
+/* общая подсказка столбиков */
+.chx-tip{position:fixed;z-index:9000;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .12s}
+.chx-tip.on{opacity:1;visibility:visible}
+.chx-tip .t{font-weight:700;color:var(--text);margin-bottom:2px}
+/* плитки дашборда: одинаковые мини-графики; при нуле — короткая подпись вместо пустого места */
+.dsh-mb i{border-radius:3px 3px 0 0;opacity:.4}
+.dsh-mb i.cur{opacity:1}
+.kt-empty{min-height:0}
+.kt-empty .kt-vis{flex:0 0 auto;min-height:0;margin:var(--sp-3) 0;justify-content:flex-start}
+.kt-msg{font-size:var(--fs-sm);color:var(--t2);line-height:1.4}
+@media(max-width:768px){
+  .chx-plot{grid-template-rows:170px auto;column-gap:var(--sp-1)}
+  .chx-inv .chx-plot{grid-template-rows:150px auto}
+  .chx-y{min-width:34px}
+  .chx{--bw:8px}
+  .chx-inv{--bw:24px}
+  .chx-x.many span:nth-child(even){visibility:hidden}
+  .chx-col{gap:1px}
+}
 </style>
 
 </head>
@@ -1575,6 +1650,22 @@ const dPct=x=>x===null||x===undefined||!isFinite(x)?'—':String(Math.round(x*10
 const dMoney=n=>fmt(Math.round(parseFloat(n)||0))+' ₽'; // в плитках — до рубля; копейки — в таблице ОПИУ
 function dDelta(cur,prev,inverse){if(!prev||Math.abs(prev)<0.01)return'';const d=(cur-prev)/Math.abs(prev);if(!isFinite(d)||Math.abs(d)<0.0005)return'';const good=inverse?d<0:d>0;return'<span class="dsh-d '+(good?'up':'dn')+'" title="к прошлому месяцу">'+(d>0?'▲':'▼')+' '+dPct(Math.abs(d))+'</span>';}
 function dCard(label,value,sub,cls,onclick){return'<div class="sc'+(onclick?' dsh-click':'')+'"'+(onclick?' onclick="'+onclick+'"':'')+'><div class="sl">'+label+'</div><div class="sv'+(cls?' '+cls:'')+'">'+value+'</div>'+(sub?'<div class="ss">'+sub+'</div>':'')+'</div>';}
+// ---------- Графики: один вид везде — ось слева, тонкая сетка, легенда под графиком, подсказка по наведению или нажатию ----------
+function chTicks(mn,mx,n){n=n||4;if(mx===mn)mx=mn+1;const raw=(mx-mn)/n,mag=Math.pow(10,Math.floor(Math.log10(raw))),step=[1,2,2.5,5,10].map(k=>k*mag).find(k=>k>=raw);
+  const lo=Math.floor(mn/step-1e-9)*step,hi=Math.ceil(mx/step-1e-9)*step,ticks=[];for(let v=hi;v>=lo-step/2;v-=step)ticks.push(Math.abs(v)<step*1e-6?0:v);return{lo,hi,step,ticks};}
+function chLegend(items){return'<div class="chx-leg">'+items.map(([cls,l])=>'<span><i class="'+cls+'"></i>'+l+'</span>').join('')+'</div>';}
+// Столбики по периодам. cols: [{label, tip:[заголовок, строки…], onclick, bars:[{v, cls, lbl}]}]; отрицательные — вниз от нуля
+function chBars(cols,o){o=o||{};
+  const all=cols.flatMap(c=>c.bars.map(b=>b.v||0)),head=o.labels?1.18:1;
+  const T=chTicks(Math.min(0,...all)*head,Math.max(0,...all)*head,o.n||4),Y=v=>(T.hi-v)/(T.hi-T.lo)*100,base=Y(0),tk=o.tick||dNum,n=cols.length,every=Math.max(1,Math.ceil(n/12));
+  const bar=b=>{const v=b.v||0,h=Math.abs(Y(v)-base),pos=v<0?'top:'+base.toFixed(2)+'%':'bottom:'+(100-base).toFixed(2)+'%';
+    return'<span class="chx-bw"><i class="chx-b '+b.cls+(v<0?' neg':'')+'" style="'+pos+';height:'+(v?Math.max(0.8,h):0).toFixed(2)+'%"></i>'+
+      (b.lbl!==undefined?'<b class="chx-vl" style="'+(v<0?'top:calc('+(base+h).toFixed(2)+'% + 4px)':'bottom:calc('+(100-base+h).toFixed(2)+'% + 4px)')+'">'+b.lbl+'</b>':'')+'</span>';};
+  return'<div class="chx'+(o.cls?' '+o.cls:'')+'"><div class="chx-plot"><div class="chx-y" aria-hidden="true">'+T.ticks.map(v=>'<span style="top:'+Y(v).toFixed(2)+'%">'+tk(v)+'</span>').join('')+'</div>'+
+    '<div class="chx-area">'+T.ticks.map(v=>'<div class="chx-grid'+(v===0?' zero':'')+'" style="top:'+Y(v).toFixed(2)+'%"></div>').join('')+
+    '<div class="chx-cols">'+cols.map(c=>'<div class="chx-col'+(c.cur?' cur':'')+'" tabindex="0" role="button" aria-label="'+esc(c.tip.join(', '))+'" data-tip="'+esc(c.tip.join('\n'))+'"'+(c.onclick?' onclick="'+c.onclick+'"':'')+'>'+c.bars.map(bar).join('')+'</div>').join('')+'</div></div>'+
+    '<div class="chx-x'+(n>6?' many':'')+'">'+cols.map((c,i)=>'<span'+(i%every&&i!==n-1?' class="hid"':'')+'>'+c.label+'</span>').join('')+'</div></div>'+(o.legend?chLegend(o.legend):'')+'</div>';
+}
 function dBar(x,cls){return'<div class="dsh-bar'+(cls?' '+cls:'')+'"><i style="width:'+Math.round(Math.max(0,Math.min(1,x||0))*100)+'%"></i></div>';}
 function dKv(k,v){return'<div class="dsh-kv"><span>'+k+'</span><b>'+v+'</b></div>';}
 function dealDate(c){return parseD(c.date)||dTs(c.createdAt);}
@@ -1739,8 +1830,8 @@ function dSpark(vals){
   const n=vals.length;if(n<2)return'';
   const mx=Math.max(...vals,0),mn=Math.min(...vals,0),rg=mx-mn||1,id='dg'+(++_gid);
   const pts=vals.map((v,i)=>(i*100/(n-1)).toFixed(2)+','+(38-(v-mn)/rg*34).toFixed(2)),d='M'+pts.join('L');
-  return'<svg class="dsh-sp" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>'+
-    '<path d="'+d+'L100,40L0,40Z" fill="url(#'+id+')"/><path d="'+d+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+  return'<svg class="dsh-sp" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">'+
+    '<path d="'+d+'L100,40L0,40Z" fill="currentColor" fill-opacity=".1"/><path d="'+d+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
 }
 // Столбики по месяцам; последний — текущий месяц
 function dMiniBars(vals,labels){
@@ -1754,7 +1845,8 @@ function dRing(x){
     '<circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+(c*v).toFixed(1)+' '+c.toFixed(1)+'"/></svg><b>'+dPct(x)+'</b></div>';
 }
 function dTile(o){
-  return'<div class="sc kt'+(o.onclick?' dsh-click':'')+'"'+(o.onclick?' onclick="'+o.onclick+'"':'')+'><div class="sl">'+o.label+'</div><div class="sv'+(o.cls?' '+o.cls:'')+'">'+o.value+'</div>'+(o.sub?'<div class="ss">'+o.sub+'</div>':'')+
+  if(o.empty){o.vis='<div class="kt-msg">'+o.empty+'</div>';o.visStyle='';}
+  return'<div class="sc kt'+(o.empty?' kt-empty':'')+(o.onclick?' dsh-click':'')+'"'+(o.onclick?' onclick="'+o.onclick+'"':'')+'><div class="sl">'+o.label+'</div><div class="sv'+(o.cls?' '+o.cls:'')+'">'+o.value+'</div>'+(o.sub?'<div class="ss">'+o.sub+'</div>':'')+
     '<div class="kt-vis'+(o.red?' red':'')+'"'+(o.visStyle?' style="'+o.visStyle+'"':'')+'>'+(o.vis||'')+'</div><div class="kt-f">'+(o.foot||'')+'</div></div>';
 }
 const dFoot=(cur,prev,lbl)=>{lbl=lbl||'к прошлому месяцу';const d=dDelta(cur,prev);return d?d+'<span>'+lbl+'</span>':'<span>'+lbl.replace(/^к /,'')+': '+dMoney(prev)+'</span>';};
@@ -1789,10 +1881,10 @@ function dshChart(ctx){
   const tk=v=>typ==='p'?Math.round(v*100)+'%':typ==='i'?String(Math.round(v)):dNum(v);
   const path=a=>'M'+a.map((v,i)=>X(i).toFixed(2)+','+Y(v).toFixed(2)).join('L');
   const id='dg'+(++_gid),base=Y(Math.max(lo,Math.min(0,hi)));
-  const svg='<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--green)" stop-opacity=".32"/><stop offset="1" stop-color="var(--green)" stop-opacity="0"/></linearGradient></defs>'+
-    (n>1?'<path d="'+path(vals)+'L100,'+base+'L0,'+base+'Z" fill="url(#'+id+')"/>':'')+
-    (plan&&n>1?'<path d="'+path(plan)+'" fill="none" stroke="var(--green)" stroke-opacity=".6" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>':'')+
-    (n>1?'<path class="ln" d="'+path(vals)+'" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>':'')+'</svg>';
+  const svg='<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+
+    (n>1?'<path d="'+path(vals)+'L100,'+base+'L0,'+base+'Z" fill="var(--green)" fill-opacity=".1"/>':'')+
+    (plan&&n>1?'<path d="'+path(plan)+'" fill="none" stroke="var(--t3)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>':'')+
+    (n>1?'<path class="ln" d="'+path(vals)+'" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>':'')+'</svg>';
   const every=Math.max(1,Math.ceil(n/12));
   S.dsh.pts={us,vals,X,Y,key,typ};
   let h='<div class="card dsh-ch"><div class="dsh-ch-h"><div class="dsh-ch-t">Динамика</div><div class="dsh-ctl"><select class="inp sel per-sel" aria-label="Показатель" onchange="setDsh(\'metric\',this.value)">'+
@@ -1820,12 +1912,15 @@ function dshPoint(i){
   if(x>55){tip.style.left='';tip.style.right=(100-x)+'%';tip.style.marginRight='14px';tip.style.marginLeft='';}
   else{tip.style.right='';tip.style.left=x+'%';tip.style.marginLeft='14px';tip.style.marginRight='';}
 }
+document.addEventListener('pointerdown',e=>{const a=document.getElementById('dshArea');if(a&&a.classList.contains('act')&&!a.contains(e.target)){a.classList.remove('act');}});
 function dshBind(){
   const a=document.getElementById('dshArea'),P=S.dsh.pts;if(!a||!P)return;
   const n=P.vals.length,pick=e=>{const r=a.getBoundingClientRect();dshPoint(Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left)/r.width*(n-1)))));};
   // по умолчанию — последний прошедший день/месяц периода
   let def=n-1;while(def>0&&P.us[def].fut)def--;
-  a.onpointermove=pick;a.onpointerdown=pick;a.onpointerleave=()=>dshPoint(def);
+  const act=e=>{a.classList.add('act');pick(e);};
+  a.onpointermove=e=>{if(e.pointerType!=='touch'||a.classList.contains('act'))act(e);};a.onpointerdown=act;
+  a.onpointerleave=e=>{if(e.pointerType!=='touch'){a.classList.remove('act');dshPoint(def);}};
   dshPoint(def);
 }
 // Портфель по поставщикам
@@ -1864,13 +1959,13 @@ function renderDash(){
   const ws=S.wallets.map(w=>({n:w.name,b:parseFloat(w.balance)||0})).sort((a,b)=>b.b-a.b),wmx=Math.max(...ws.map(w=>w.b),1);
   h+=dTile({label:'Деньги в кассах',value:dMoney(cash),sub:S.wallets.length+' '+invPlural(S.wallets.length,'счёт','счёта','счетов'),onclick:"goTo('kassa')",
     vis:'<div class="dsh-wl">'+ws.slice(0,3).map(w=>'<div><span>'+esc(w.n)+'</span><b>'+dMoney(w.b)+'</b>'+dBar(w.b/wmx)+'</div>').join('')+'</div>'});
-  h+=dTile({label:'Ожидаемая прибыль в портфеле',value:dMoney(M.profLeft||0),cls:'cb',sub:'ещё не получена',vis:'<span style="color:var(--blue);width:100%">'+dMiniBars(lastD.map(m=>m.grossNet),lastL)+'</span>',foot:'<span>получено наценки по месяцам</span>'});
+  h+=dTile({label:'Ожидаемая прибыль в портфеле',value:dMoney(M.profLeft||0),cls:'cb',sub:'ещё не получена',vis:'<span style="width:100%">'+dMiniBars(lastD.map(m=>m.grossNet),lastL)+'</span>',foot:'<span>получено наценки по месяцам</span>'});
   h+='</div><div class="dsh-h"><div class="dsh-ht">Показатели · '+esc(PD.label)+'</div><div class="dsh-ctl">'+perHtml('perDash','renderDash')+'<button class="btn bgh bsm" onclick="goTo(\'finance\')">Обзор →</button></div></div><div class="dsh-g4">';
-  h+=dTile({label:'Собрано денег',value:dMoney(cur.received),cls:'cg',sub:cur.payCnt+' '+invPlural(cur.payCnt,'платёж','платежа','платежей')+(cur.prepay?' + предоплаты '+dMoney(cur.prepay):''),vis:dSpark(cum),foot:dFoot(cur.received,prev.received,pl)});
+  h+=dTile({label:'Собрано денег',value:dMoney(cur.received),cls:'cg',sub:cur.payCnt+' '+invPlural(cur.payCnt,'платёж','платежа','платежей')+(cur.prepay?' + предоплаты '+dMoney(cur.prepay):''),vis:dSpark(cum),empty:cur.received?'':'За этот период платежей пока нет',foot:dFoot(cur.received,prev.received,pl)});
   h+=dTile({label:'Собираемость по графику',value:dPct(cur.rate),cls:rateCls,sub:'пришло '+dMoney(cur.planPaid)+' из '+dMoney(cur.planDue),
-    vis:'<span style="color:var(--'+(rateCls==='cr'?'red':rateCls==='cy'?'yellow':'green')+')">'+dRing(cur.rate)+'</span>',foot:'<span>с наступившим сроком</span>'});
-  h+=dTile({label:'Продажи',value:dMoney(cur.sales),sub:cur.deals+' '+invPlural(cur.deals,'договор','договора','договоров'),vis:dMiniBars(ser.map(u=>u.d.sales),serL),foot:dFoot(cur.sales,prev.sales,pl)});
-  h+=dTile({label:'Чистая прибыль',value:dMoney(cur.net),cls:cur.net<0?'cr':'cg',sub:'наценка в платежах − расходы',red:cur.net<0,vis:dSpark(ser.map(u=>u.d.net)),foot:dFoot(cur.net,prev.net,pl)});
+    vis:'<span style="color:var(--'+(rateCls==='cr'?'red':rateCls==='cy'?'yellow':'green')+')">'+dRing(cur.rate)+'</span>',empty:cur.planDue?'':'Платежей по графику в этом периоде ещё не было',foot:'<span>с наступившим сроком</span>'});
+  h+=dTile({label:'Продажи',value:dMoney(cur.sales),sub:cur.deals+' '+invPlural(cur.deals,'договор','договора','договоров'),vis:dMiniBars(ser.map(u=>u.d.sales),serL),empty:cur.deals?'':'Новых договоров пока нет',foot:dFoot(cur.sales,prev.sales,pl)});
+  h+=dTile({label:'Чистая прибыль',value:dMoney(cur.net),cls:cur.net<0?'cr':'cg',sub:'наценка в платежах − расходы',red:cur.net<0,vis:dSpark(ser.map(u=>u.d.net)),empty:cur.grossNet||cur.exp?'':'Платежей и расходов пока нет',foot:dFoot(cur.net,prev.net,pl)});
   h+='</div>';
   h+=dshChart(ctx)+dshPartners(ctx);
   el.innerHTML=h;dshBind();
@@ -1979,13 +2074,12 @@ function renderFinance(){
   h+='<div class="dsh-h"><div class="dsh-ht">Отчёт о прибылях и убытках</div></div>'+t;
 
   const P2=h.length;
-  // ===== График года =====
-  const mx=Math.max(1,...cols.map((c,i)=>{const v=c.kind==='fut'?estD[i]:c.d;return Math.max(c.f.plan,v.received||v.pay||0,Math.abs(v.net||0));}));
-  const hh=v=>Math.max(1,Math.round(Math.abs(v||0)/mx*140));
-  h+='<div class="card"><div class="ct">План и факт поступлений · '+esc(P.label)+'</div><div class="dsh-lg" style="margin-bottom:10px"><span><i style="background:var(--t3)"></i>План по графику</span><span><i style="background:var(--green)"></i>Поступило</span><span><i style="background:var(--yellow)"></i>Чистая прибыль</span><span><i style="background:var(--blue)"></i>Прогноз</span></div><div class="dsh-chart"><div class="dsh-bars">'+
-    cols.map((c,i)=>{const v=c.kind==='fut'?estD[i]:c.d,fut=c.kind==='fut';
-      return'<div class="dsh-col'+(c.kind==='cur'?' on':'')+'" title="'+c.label+'\nПлан: '+dMoney(c.f.plan)+'\n'+(fut?'Ожидается: ':'Поступило: ')+dMoney(fut?v.pay:v.received)+'\nЧистая прибыль'+(fut?' (прогноз)':'')+': '+dMoney(v.net)+'"><div class="dsh-bx"><i class="s0" style="height:'+hh(c.f.plan)+'px"></i><i class="'+(fut?'s2':'s1')+'" style="height:'+hh(fut?v.pay:v.received)+'px"></i><i class="s3'+(v.net<0?' neg':'')+(fut?' est':'')+'" style="height:'+hh(v.net)+'px"></i></div><div class="dsh-bm">'+c.label+'</div></div>';}).join('')+
-    '</div></div></div>';
+  // ===== График года: план (серый), поступило (зелёный), чистая прибыль (синий); текущий месяц и прогноз — бледнее =====
+  const bc=cols.map((c,i)=>{const fut=c.kind==='fut',v=fut?estD[i]:c.d,rv=fut?v.pay:v.received,lt=c.kind!=='past'?' b-est':'';
+    return{label:c.label,cur:c.kind==='cur',tip:[c.label+(c.kind==='cur'?' · идёт':fut?' · прогноз':''),'План по графику: '+dMoney(c.f.plan),(fut?'Ожидается: ':'Поступило: ')+dMoney(rv),'Чистая прибыль'+(fut?' (прогноз)':'')+': '+dMoney(v.net)],
+      bars:[{v:c.f.plan,cls:'b-plan'},{v:rv,cls:'b-fact'+lt},{v:v.net,cls:'b-net'+lt}]};});
+  h+='<div class="card dsh-ch"><div class="dsh-ch-h"><div class="dsh-ch-t">План и факт поступлений</div></div><div class="dsh-sub">'+esc(P.label)+' · '+(g==='y'?'по годам':'по месяцам')+'</div>'+
+    chBars(bc,{legend:[['b-plan','План по графику'],['b-fact','Поступило'],['b-net','Чистая прибыль']].concat(cols.some(c=>c.kind!=='past')?[['b-fact b-est','Текущий месяц и прогноз']]:[])})+'</div>';
 
   const P3=h.length;
   // ===== Прогноз и просрочка =====
@@ -4523,19 +4617,18 @@ function invChartHtml(M,st,pool){
   let y=pool?S.invPoolYear:S.invYear;if(!y||!years.includes(y))y=years[years.length-1];
   const cur=ms.filter(m=>m.mk.slice(0,4)===y);
   const tabs=years.length>1?'<div class="ftabs" style="margin-bottom:12px">'+years.slice().reverse().map(yy=>'<button class="ft'+(yy===y?' on':'')+'" onclick="setInvYear(\''+yy+'\''+(pool?',1':'')+')">'+yy+'</button>').join('')+'</div>':'';
-  const max=Math.max(...cur.map(m=>Math.abs(m.rent||0)),0.0001);
-  const MN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-  const cols=cur.map(m=>{
-    const mo=Number(m.mk.slice(5,7));const h=m.rent===null?0:Math.max(3,Math.round(Math.abs(m.rent)/max*110));
-    const neg=(m.rent||0)<0;const cls='inv-bv'+(neg?' neg':'')+(m.closed?'':' pre');
-    const tip=mkLabel(m.mk)+': '+invMoney(m.total,true)+', капитал '+(pool?'пула ':'')+fmt(m.base)+' ₽'+(m.closed?'':' (месяц идёт)');
-    return'<div class="inv-bc" onclick="openInvMonth(\''+m.mk+'\')" title="'+tip+'"><div class="inv-bl'+(neg?' cr':'')+'">'+invRentFmt(m.rent)+'</div><div class="'+cls+'" style="height:'+h+'px"></div><div class="inv-bm">'+MN[mo-1]+'</div></div>';
-  }).join('');
+  // столбики в общем виде графиков: закрытый месяц — зелёный, идущий — бледнее, минус — красным вниз от нуля
+  const pctT=v=>String(Math.round(v*1000)/10).replace('.',',')+'%';
+  const bc=cur.map(m=>{const mo=Number(m.mk.slice(5,7));
+    return{label:MN3[mo-1].replace(/^./,c=>c.toUpperCase()),cur:!m.closed,onclick:"openInvMonth('"+m.mk+"')",
+      tip:[mkLabel(m.mk)+(m.closed?'':' · не закрыт'),'Рентабельность: '+invRentFmt(m.rent),'Итог: '+invMoney(m.total,true),'Капитал'+(pool?' пула':'')+': '+fmt(m.base)+' ₽'],
+      bars:[{v:m.rent||0,cls:'b-fact'+(m.closed?'':' b-est'),lbl:invRentFmt(m.rent)}]};});
+  const chart=chBars(bc,{tick:pctT,labels:true,cls:'chx-inv',legend:cur.some(m=>!m.closed)?[['b-fact','Месяц закрыт'],['b-fact b-est','Не закрыт — цифра предварительная']]:null});
   const closed=cur.filter(m=>m.closed&&m.rent!==null);
   const sum=cur.filter(m=>m.closed).reduce((a,m)=>a+m.total,0);
   const avg=closed.length?closed.reduce((a,m)=>a+m.rent,0)/closed.length:null;
   const foot='<div class="inv-year-sum"><span>Итог '+y+'</span><span><b class="'+(sum<0?'cr':'cg')+'">'+invMoney(sum,true)+'</b> · в среднем <b>'+invRentFmt(avg)+'</b> в мес.'+(closed.length?' по '+closed.length+' '+invPlural(closed.length,'месяцу','месяцам','месяцам'):'')+'</span></div>';
-  return'<div class="card" style="margin-bottom:14px"><div class="inv-chart-hd"><div class="ct" style="margin:0">'+(pool?'Рентабельность пула по месяцам':'Рентабельность по месяцам')+'</div><div class="inv-muted">нажми на месяц — подробности</div></div>'+tabs+'<div class="inv-chart"><div class="inv-bars">'+cols+'</div></div>'+foot+(cur.some(m=>!m.closed)?'<div class="inv-muted" style="margin-top:6px">Светлый столбик — месяц ещё идёт, цифра предварительная.</div>':'')+'</div>';
+  return'<div class="card" style="margin-bottom:14px"><div class="inv-chart-hd"><div class="ct" style="margin:0">'+(pool?'Рентабельность пула по месяцам':'Рентабельность по месяцам')+'</div><div class="inv-muted">нажми на месяц — подробности</div></div>'+tabs+chart+foot+'</div>';
 }
 function invDepsHtml(M,i){
   const isF=i.role==='founder';
@@ -4836,6 +4929,29 @@ async function vwSave(){
 }
 
 
+// ---------- Подсказка у столбиков графиков: мышью — по наведению, на телефоне — по нажатию ----------
+(function(){
+  const tip=document.createElement('div');tip.id='chxTip';tip.className='chx-tip';tip.setAttribute('role','tooltip');document.body.appendChild(tip);
+  let cur=null;
+  const hide=()=>{cur=null;tip.classList.remove('on');document.querySelectorAll('.chx-col.on').forEach(c=>c.classList.remove('on'));};
+  let shownAt=0;
+  const show=el=>{cur=el;shownAt=Date.now();const L=(el.dataset.tip||'').split('\n');
+    tip.innerHTML='<div class="t">'+esc(L[0])+'</div>'+L.slice(1).map(x=>'<div>'+esc(x)+'</div>').join('');tip.classList.add('on');
+    document.querySelectorAll('.chx-col.on').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+    const r=el.getBoundingClientRect(),tw=tip.offsetWidth,th=tip.offsetHeight;
+    let x=r.left+r.width/2-tw/2;x=Math.max(8,Math.min(innerWidth-tw-8,x));let y=r.top-th-8;if(y<8)y=Math.min(innerHeight-th-8,r.bottom+8);
+    tip.style.left=Math.round(x)+'px';tip.style.top=Math.round(y)+'px';};
+  document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse')return;const c=e.target.closest&&e.target.closest('.chx-col[data-tip]');if(c){if(c!==cur)show(c);}else if(cur)hide();});
+  document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('.chx-col[data-tip]');
+    if(c&&!c.hasAttribute('onclick')){if(cur===c&&e.pointerType!=='mouse')hide();else show(c);}else if(!c||c.hasAttribute('onclick'))hide();},true);
+  // фокус показывает подсказку только с клавиатуры (при нажатии пальцем её показывает само нажатие)
+  let downAt=0;document.addEventListener('pointerdown',()=>{downAt=Date.now();},true);
+  document.addEventListener('focusin',e=>{const c=e.target.closest&&e.target.closest('.chx-col[data-tip]');if(c&&Date.now()-downAt>600)show(c);});
+  document.addEventListener('focusout',e=>{if(e.target.closest&&e.target.closest('.chx-col'))hide();});
+  // прокрутка прячет подсказку (кроме мелкого сдвига сразу после нажатия — браузер подтягивает столбик в фокус)
+  window.addEventListener('scroll',()=>{if(cur&&Date.now()-shownAt>400)hide();},true);window.addEventListener('resize',()=>{if(cur)hide();});
+  window.chxHide=hide;
+})();
 // ---------- iPhone (иконка «Домой»): касания не должны пропадать после окон и клавиатуры ----------
 // Шапка окна: заголовок и крестик «закрыть» в одной строке, закреплена сверху при прокрутке длинной формы
 document.querySelectorAll('.mover').forEach(m=>{const t=m.querySelector('.modal>.mtitle');if(!t||!m.id)return;
