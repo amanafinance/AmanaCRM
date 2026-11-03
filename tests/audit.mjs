@@ -36,7 +36,7 @@ const SHOTS=[
  ['28-m-invop','Окно: вклад',()=>{openInv('INV1');openInvOp('deposit','INV1');},'modal'],
  ['29-m-invmonth','Окно: месяц инвесторов',()=>{goTo('investors');openInvMonth(invModel().months[0]);},'modal'],
  ['30-m-view','Окно: вид таблицы',()=>{goBase('clients');openView(window.innerWidth<=768?'card':'cols');},'modal'],
- ['31-m-search','Окно: поиск',()=>{openSearch();document.getElementById('gsQ').value='Ал';gsRender();},'modal'],
+ ['31-m-pfilter','Окно: фильтры клиентов',()=>{goBase('people');openPplFilter();},'modal'],
  ['32-m-confirm','Окно: подтверждение',()=>{showConfirm('Удалить операцию?','Операция будет удалена, деньги вернутся на счёт.',()=>{});},'modal'],
 ];
 const MOBILE_ONLY=[

@@ -87,13 +87,12 @@ export default async function(){
   check('окно: «Отмена / Сохранить» закреплены внизу и видны без прокрутки до конца',md.foot==='sticky'&&md.saveVisible&&Math.abs(md.footBottom)<=1,md);
 
   const cd=await p.evaluate(async()=>{openC('c0');await new Promise(r=>setTimeout(r,250));const a=document.querySelector('#cDetail .cd-acts');
-    const vis=[...a.querySelectorAll('.btn')].filter(b=>b.offsetParent&&!b.closest('.cd-menu'));const more=a.querySelector('details.cd-more');
-    const colored=vis.filter(b=>b.matches('.by,.bb,.bwa'));
-    const menuText=more?more.querySelector('.cd-menu').textContent:'';more.open=true;await new Promise(r=>setTimeout(r,50));const mi=more.querySelector('.cd-mi').getBoundingClientRect();
-    document.body.click();await new Promise(r=>setTimeout(r,50));
-    return{main:vis.filter(b=>b.classList.contains('bg')).length,colored:colored.length,menu:/В архив|Вернуть/.test(menuText),delOutside:vis.some(b=>/Удалить|В архив/.test(b.textContent)),miH:Math.round(mi.height),closed:!more.open};});
-  check('карточка сделки: одна главная кнопка, цветные по смыслу (скидка, комментарий, WhatsApp), «В архив» и «Удалить» — в меню «Ещё»',cd.main===1&&cd.colored===3&&cd.menu&&!cd.delOutside,cd);
-  check('меню «Ещё» открывается, пункты 44 px, закрывается нажатием мимо',cd.miH>=44&&cd.closed,cd);
+    const vis=[...a.querySelectorAll('.btn')].filter(b=>b.offsetParent);
+    const colored=vis.filter(b=>b.matches('.by,.bb,.bwa'));const arch=vis.find(b=>/^В архив$/.test(b.textContent.trim()));
+    return{main:vis.filter(b=>b.classList.contains('bg')).length,colored:colored.length,arch:!!arch,archH:arch?Math.round(arch.getBoundingClientRect().height):0,more:!!a.querySelector('details.cd-more'),
+      del:vis.some(b=>/Удалить/.test(b.textContent)),hasMoney:clientHasMoney('c0')};});
+  check('карточка сделки: одна главная кнопка, цветные по смыслу (скидка, комментарий, WhatsApp), вместо «Ещё» — кнопка «В архив»',cd.main===1&&cd.colored===3&&cd.arch&&!cd.more,cd);
+  check('«Удалить» видна, только если договор можно удалить; кнопки не ниже 36 px',cd.del===!cd.hasMoney&&cd.archH>=36,cd);
 
   const nav=await p.evaluate(()=>{const css=[...document.styleSheets].flatMap(s=>{try{return[...s.cssRules];}catch(e){return[];}});
     const txt=css.map(r=>r.cssText).join('\n');const nb=document.querySelector('.sidebar .nb');
@@ -150,7 +149,7 @@ export default async function(){
     const t=document.getElementById('chxTip');out.finTip=t.classList.contains('on')&&/План по графику/.test(t.textContent)&&getComputedStyle(t).visibility==='visible';
     document.body.dispatchEvent(new PointerEvent('pointerover',{pointerType:'mouse',bubbles:true}));await sl(150);out.finTipHide=!t.classList.contains('on');
     // Инвесторы
-    goTo('investors');setInvTab('list',document.querySelector('#invTabs .ft'));await sl(250);const iv=document.querySelector('.chx-inv');
+    goTo('investors');setInvTab('months',document.querySelectorAll('#invTabs .ft')[1]);await sl(250);const iv=document.querySelector('.chx-inv');
     out.inv=!!iv&&iv.querySelectorAll('.chx-y span').length>=3&&!!iv.querySelector('.chx-vl')&&/openInvMonth/.test(iv.querySelector('.chx-col').getAttribute('onclick')||'');
     out.invColor=iv&&getComputedStyle(iv.querySelector('.chx-b.b-fact')).backgroundImage;
     out.oldStyles=!!document.querySelector('.inv-bars,.dsh-bars');
