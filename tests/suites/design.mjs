@@ -88,11 +88,11 @@ export default async function(){
 
   const cd=await p.evaluate(async()=>{openC('c0');await new Promise(r=>setTimeout(r,250));const a=document.querySelector('#cDetail .cd-acts');
     const vis=[...a.querySelectorAll('.btn')].filter(b=>b.offsetParent&&!b.closest('.cd-menu'));const more=a.querySelector('details.cd-more');
-    const colored=vis.filter(b=>b.matches('.by,.br')||/91, ?143, ?249/.test(b.getAttribute('style')||''));
+    const colored=vis.filter(b=>b.matches('.by,.bb,.bwa'));
     const menuText=more?more.querySelector('.cd-menu').textContent:'';more.open=true;await new Promise(r=>setTimeout(r,50));const mi=more.querySelector('.cd-mi').getBoundingClientRect();
     document.body.click();await new Promise(r=>setTimeout(r,50));
     return{main:vis.filter(b=>b.classList.contains('bg')).length,colored:colored.length,menu:/В архив|Вернуть/.test(menuText),delOutside:vis.some(b=>/Удалить|В архив/.test(b.textContent)),miH:Math.round(mi.height),closed:!more.open};});
-  check('карточка сделки: одна главная кнопка, без цветных, «В архив» и «Удалить» — в меню «Ещё»',cd.main===1&&!cd.colored&&cd.menu&&!cd.delOutside,cd);
+  check('карточка сделки: одна главная кнопка, цветные по смыслу (скидка, комментарий, WhatsApp), «В архив» и «Удалить» — в меню «Ещё»',cd.main===1&&cd.colored===3&&cd.menu&&!cd.delOutside,cd);
   check('меню «Ещё» открывается, пункты 44 px, закрывается нажатием мимо',cd.miH>=44&&cd.closed,cd);
 
   const nav=await p.evaluate(()=>{const css=[...document.styleSheets].flatMap(s=>{try{return[...s.cssRules];}catch(e){return[];}});
@@ -143,7 +143,7 @@ export default async function(){
     out.finTicks=c.querySelectorAll('.chx-y span').length;out.finLegBelow=c.querySelector('.chx-leg').getBoundingClientRect().top>=c.querySelector('.chx-area').getBoundingClientRect().bottom;
     out.finBarW=Math.max(...[...c.querySelectorAll('.chx-b')].map(b=>b.getBoundingClientRect().width));
     const g=c.querySelector('.chx-grid'),gs=getComputedStyle(g);out.grid=gs.borderTopWidth+' '+gs.borderTopStyle;
-    out.colors=['b-plan','b-fact','b-net'].map(k=>getComputedStyle(c.querySelector('.chx-b.'+k)).backgroundColor);
+    out.colors=['b-plan','b-fact','b-net'].map(k=>getComputedStyle(c.querySelector('.chx-b.'+k)).backgroundImage);
     out.negDown=[...c.querySelectorAll('.chx-b.neg')].every(b=>b.style.top&&!b.style.bottom);
     const col=c.querySelectorAll('.chx-col')[2],cr=col.getBoundingClientRect();
     col.dispatchEvent(new PointerEvent('pointerover',{pointerType:'mouse',clientX:cr.left+2,clientY:cr.top+50,bubbles:true}));await sl(150);
@@ -152,12 +152,12 @@ export default async function(){
     // Инвесторы
     goTo('investors');setInvTab('list',document.querySelector('#invTabs .ft'));await sl(250);const iv=document.querySelector('.chx-inv');
     out.inv=!!iv&&iv.querySelectorAll('.chx-y span').length>=3&&!!iv.querySelector('.chx-vl')&&/openInvMonth/.test(iv.querySelector('.chx-col').getAttribute('onclick')||'');
-    out.invColor=iv&&getComputedStyle(iv.querySelector('.chx-b.b-fact')).backgroundColor;
+    out.invColor=iv&&getComputedStyle(iv.querySelector('.chx-b.b-fact')).backgroundImage;
     out.oldStyles=!!document.querySelector('.inv-bars,.dsh-bars');
     return out;});
-  check('Дашборд: подсказка графика появляется по наведению и прячется, без свечения',ch.dashRest==='hidden'&&ch.dashTxt&&ch.dashHover==='visible'&&ch.dashLeave==='hidden'&&ch.glow==='none',ch);
+  check('Дашборд: подсказка графика видна сразу и следует за курсором, линия со свечением',ch.dashRest==='visible'&&ch.dashTxt&&ch.dashHover==='visible'&&ch.dashLeave==='visible'&&/drop-shadow/.test(ch.glow),ch);
   check('графики: легенда под графиком, ось с подписями, тонкая сплошная сетка',ch.dashLegBelow&&ch.finLegBelow&&ch.finTicks>=3&&ch.grid==='1px solid',ch);
-  check('графики: столбики не толще 24 px, минус — вниз от нуля, цвета рядов разные',ch.finBarW<=24&&ch.negDown&&new Set(ch.colors).size===3,ch);
+  check('графики: столбики не толще 24 px, минус — вниз от нуля, цвета рядов разные',ch.finBarW<=24&&ch.negDown&&new Set(ch.colors).size===3&&ch.colors.every(c=>/gradient/.test(c)),ch);
   check('Обзор: подсказка у столбиков по наведению',ch.finTip&&ch.finTipHide,ch);
   check('Инвесторы: график в том же стиле — ось, подписи, нажатие открывает месяц, тот же зелёный',ch.inv&&ch.invColor===ch.colors[1]&&!ch.oldStyles,ch);
   check('Дашборд: пустые плитки с подписью вместо пустого места',ch.empty.length>=1&&ch.empty.every(x=>x.length>10),ch.empty);
