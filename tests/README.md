@@ -21,4 +21,15 @@ npm test
 Один набор: запустите эмулятор (`npx firebase emulators:start --only firestore,auth --project amana-crm-16033`)
 и в другом окне `node run.mjs money`.
 
-Наборы: `pages`, `money`, `investors`, `sync`, `people`, `numbers`, `security`, `ui`, `interface`, `devices`, `speed` (папка `suites/`).
+Наборы: `pages`, `money`, `investors`, `sync`, `people`, `numbers`, `security`, `ui`, `interface`, `devices`, `design`, `speed` (папка `suites/`).
+
+`design` проверяет дизайн-систему на всех страницах и окнах, на телефоне и компьютере, в обеих темах:
+на телефоне всё нажимаемое не меньше 44 px, текст не мельче 12 px, контраст текста по норме,
+размеры шрифтов только из шкалы 12 · 14 · 16 · 20 · 24 · 32, фильтры в одну строку, окна с закреплённой шапкой и кнопками.
+
+## Скриншоты всех экранов
+
+`npx firebase emulators:exec --only firestore,auth --project amana-crm-16033 "node audit.mjs audit-out"` —
+снимки всех страниц и окон (телефон 390×844 и компьютер 1280×850, обе темы) и `report.json` с замерами
+в папке `tests/audit-out`. Чтобы снимки были с настоящими шрифтами, положите их локальную копию в папку
+и укажите её в `FONTS_DIR` (без неё шрифт будет запасной).
