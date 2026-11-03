@@ -16,7 +16,7 @@ const MEASURE=({phone})=>{
   if(phone)root.querySelectorAll('button,a[href],input:not([type=hidden]),select,textarea,summary,[onclick],[role=button]').forEach(e=>{
     if(!vis(e)||/^(TR|TD|TBODY|TABLE)$/.test(e.tagName))return;
     // крупные карточки и строки — сами по себе большие зоны нажатия
-    if(e.matches('.mcard,.kcard,.deal-card,.crow,.pr,.cphhdr,.inv-end-row,.gs-it,.sc,.card,.dsh-col,.inv-bc,.im-card,.mover,.modal'))return;
+    if(e.matches('.mcard,.kcard,.deal-card,.crow,.pr,.cphhdr,.inv-end-row,.gs-it,.sc,.card,.dsh-col,.inv-bc,.chx-col,.im-card,.mover,.modal'))return;
     const r=e.getBoundingClientRect();if(r.height>=43.5&&r.width>=43.5)return;
     // галочка внутри большой подписи-строки: нажимается вся строка
     const l=e.closest('label');if(l&&l.getBoundingClientRect().height>=43.5)return;
@@ -128,5 +128,49 @@ export default async function(){
   check('есть иконка для экрана «Домой» (PNG 180×180) и цвет верхней полосы',ic.ok&&ic.type==='image/png'&&pc.theme,{pc,ic});
   const tc=await D.p.evaluate(()=>{applyTheme('light');const l=document.querySelector('meta[name="theme-color"]').content;applyTheme('dark');return[l,document.querySelector('meta[name="theme-color"]').content];});
   check('цвет верхней полосы меняется вместе с темой',tc[0]!==tc[1],tc);
+
+  // --- графики: один вид на Дашборде, в Обзоре и у Инвесторов
+  const ch=await D.p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms)),out={};
+    goTo('dashboard');await sl(200);const a=document.getElementById('dshArea'),tip=document.getElementById('dshTip');
+    out.dashRest=getComputedStyle(tip).visibility;out.dashTxt=!!tip.textContent;out.glow=getComputedStyle(a.querySelector('svg .ln')).filter;
+    const r=a.getBoundingClientRect();a.dispatchEvent(new PointerEvent('pointermove',{pointerType:'mouse',clientX:r.left+r.width/2,clientY:r.top+40,bubbles:true}));await sl(200);
+    out.dashHover=getComputedStyle(tip).visibility;a.dispatchEvent(new PointerEvent('pointerleave',{pointerType:'mouse',bubbles:false}));await sl(200);out.dashLeave=getComputedStyle(tip).visibility;
+    out.dashLegBelow=document.querySelector('.dsh-leg').getBoundingClientRect().top>=a.getBoundingClientRect().bottom;
+    // пустые плитки: подпись вместо пустого места
+    out.empty=[...document.querySelectorAll('#dStats .kt-empty .kt-msg')].map(x=>x.textContent);
+    // Обзор
+    S.finTab='sum';goTo('finance');await sl(250);const c=document.querySelector('#finBody .chx');
+    out.finTicks=c.querySelectorAll('.chx-y span').length;out.finLegBelow=c.querySelector('.chx-leg').getBoundingClientRect().top>=c.querySelector('.chx-area').getBoundingClientRect().bottom;
+    out.finBarW=Math.max(...[...c.querySelectorAll('.chx-b')].map(b=>b.getBoundingClientRect().width));
+    const g=c.querySelector('.chx-grid'),gs=getComputedStyle(g);out.grid=gs.borderTopWidth+' '+gs.borderTopStyle;
+    out.colors=['b-plan','b-fact','b-net'].map(k=>getComputedStyle(c.querySelector('.chx-b.'+k)).backgroundColor);
+    out.negDown=[...c.querySelectorAll('.chx-b.neg')].every(b=>b.style.top&&!b.style.bottom);
+    const col=c.querySelectorAll('.chx-col')[2],cr=col.getBoundingClientRect();
+    col.dispatchEvent(new PointerEvent('pointerover',{pointerType:'mouse',clientX:cr.left+2,clientY:cr.top+50,bubbles:true}));await sl(150);
+    const t=document.getElementById('chxTip');out.finTip=t.classList.contains('on')&&/План по графику/.test(t.textContent)&&getComputedStyle(t).visibility==='visible';
+    document.body.dispatchEvent(new PointerEvent('pointerover',{pointerType:'mouse',bubbles:true}));await sl(150);out.finTipHide=!t.classList.contains('on');
+    // Инвесторы
+    goTo('investors');setInvTab('list',document.querySelector('#invTabs .ft'));await sl(250);const iv=document.querySelector('.chx-inv');
+    out.inv=!!iv&&iv.querySelectorAll('.chx-y span').length>=3&&!!iv.querySelector('.chx-vl')&&/openInvMonth/.test(iv.querySelector('.chx-col').getAttribute('onclick')||'');
+    out.invColor=iv&&getComputedStyle(iv.querySelector('.chx-b.b-fact')).backgroundColor;
+    out.oldStyles=!!document.querySelector('.inv-bars,.dsh-bars');
+    return out;});
+  check('Дашборд: подсказка графика появляется по наведению и прячется, без свечения',ch.dashRest==='hidden'&&ch.dashTxt&&ch.dashHover==='visible'&&ch.dashLeave==='hidden'&&ch.glow==='none',ch);
+  check('графики: легенда под графиком, ось с подписями, тонкая сплошная сетка',ch.dashLegBelow&&ch.finLegBelow&&ch.finTicks>=3&&ch.grid==='1px solid',ch);
+  check('графики: столбики не толще 24 px, минус — вниз от нуля, цвета рядов разные',ch.finBarW<=24&&ch.negDown&&new Set(ch.colors).size===3,ch);
+  check('Обзор: подсказка у столбиков по наведению',ch.finTip&&ch.finTipHide,ch);
+  check('Инвесторы: график в том же стиле — ось, подписи, нажатие открывает месяц, тот же зелёный',ch.inv&&ch.invColor===ch.colors[1]&&!ch.oldStyles,ch);
+  check('Дашборд: пустые плитки с подписью вместо пустого места',ch.empty.length>=1&&ch.empty.every(x=>x.length>10),ch.empty);
   noErrors('дизайн, компьютер',D.errs);await D.ctx.close();
+
+  // --- телефон: подсказка по нажатию, график не шире экрана
+  const T=await device({vp:{width:390,height:844},mobile:true});await login(T.p);
+  await T.p.evaluate(async()=>{S.finTab='sum';goTo('finance');await new Promise(r=>setTimeout(r,250));document.querySelector('#finBody .chx').scrollIntoView();});await wait(T.p,200);
+  const box=await T.p.evaluate(()=>{const c=document.querySelectorAll('#finBody .chx-col')[3].getBoundingClientRect();return{x:c.left+c.width/2,y:c.top+c.height/2};});
+  await T.p.touchscreen.tap(box.x,box.y);await wait(T.p,200);
+  const tp1=await T.p.evaluate(()=>({on:document.getElementById('chxTip').classList.contains('on'),r:document.getElementById('chxTip').getBoundingClientRect().right,w:innerWidth,wide:document.documentElement.scrollWidth}));
+  await T.p.touchscreen.tap(20,20);await wait(T.p,200);
+  const tp2=await T.p.evaluate(()=>document.getElementById('chxTip').classList.contains('on'));
+  check('телефон: подсказка у столбиков по нажатию, в пределах экрана, прячется нажатием мимо',tp1.on&&tp1.r<=tp1.w&&tp1.wide<=tp1.w&&!tp2,{tp1,tp2});
+  noErrors('дизайн, телефон: графики',T.errs);await T.ctx.close();
 }
