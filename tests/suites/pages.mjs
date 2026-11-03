@@ -1,6 +1,6 @@
 // Все страницы и окна открываются без ошибок и не вылезают за экран (ПК и телефон, обе темы)
 import {reseed,device,login,check,noErrors,wait} from '../lib.mjs';
-const PAGES=[
+export const PAGES=[
  ['Дашборд',()=>goTo('dashboard')],['Показатели',()=>goTo('finance')],['Клиенты',()=>goBase('people')],['Карточка клиента',()=>openPerson('p:P0')],
  ['Сделки',()=>{goBase('clients');renderClients();}],['Карточка сделки',()=>openC('c0')],['Контроль платежей',()=>goBase('reminders')],['Касса',()=>goTo('kassa')],
  ['Инвесторы',()=>goTo('investors')],['Инвестор',()=>openInv('INV1')],['История',()=>goTo('journal')],['Настройки',()=>{if(!S.partners.includes('Иса кирпич строймаркет')){S.partners.push('Иса кирпич строймаркет');S.partnerPhones['Иса кирпич строймаркет']='89290000034';}goTo('settings');}],
