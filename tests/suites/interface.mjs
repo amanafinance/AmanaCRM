@@ -9,15 +9,14 @@ export default async function(){
     const link=document.querySelector('#cDetail .plink');return{oneCol:getComputedStyle(g).gridTemplateColumns.split(' ').length===1,sideTop:side.getBoundingClientRect().top<main.getBoundingClientRect().top,
       schedFirst:main.firstElementChild&&main.firstElementChild.querySelector('[id^="schedb_"]')!==null,schedOpen:document.getElementById('schedb_c0').classList.contains('on'),linkColor:getComputedStyle(link).color};});
   check('карточка сделки на телефоне в одну колонку, остаток сверху',card.oneCol&&card.sideTop,card);
-  check('график платежей первым и сразу развёрнут',card.schedFirst&&card.schedOpen,card);
+  check('график платежей первым и по умолчанию свёрнут',card.schedFirst&&!card.schedOpen,card);
   check('ссылки ФИО не стандартного синего цвета',card.linkColor!=='rgb(0, 0, 238)',card.linkColor);
   await M.p.evaluate(()=>goBase('reminders'));await wait(M.p,300);
   check('в контроле платежей на телефоне есть номер и «Позвонить»',await M.p.evaluate(()=>{const a=document.querySelector('.rem-mob .rem-call a');return!!a&&/^tel:\+7\d{10}$/.test(a.getAttribute('href'));}));
   await M.p.evaluate(()=>openNew());await wait(M.p,200);
   const x=await M.p.$('#mClient .m-x');check('в окне есть крестик «Закрыть»',!!x);
   if(x){await x.click();await wait(M.p,200);check('крестик закрывает окно',!(await M.p.evaluate(()=>document.getElementById('mClient').classList.contains('on'))));}
-  await M.p.click('.sidebar .gs-nb');await wait(M.p,200);
-  check('на телефоне поиск есть в нижнем меню',await M.p.evaluate(()=>document.getElementById('mSearch').classList.contains('on')));
+  check('в нижнем меню нет отдельного «Поиска» — поиск через фильтры',await M.p.evaluate(()=>!document.querySelector('.sidebar .gs-nb')&&!document.getElementById('mSearch')&&!document.getElementById('pplQ')&&!document.getElementById('clQ')));
   check('дашборд и окно договора на телефоне не шире экрана',await M.p.evaluate(async()=>{goTo('dashboard');await new Promise(r=>setTimeout(r,200));const a=innerWidth===390&&document.documentElement.scrollWidth<=390;openNew();await new Promise(r=>setTimeout(r,200));const b=document.querySelector('#mClient .modal').getBoundingClientRect().right<=390;closeM('mClient');return a&&b;}));
   noErrors('интерфейс, телефон',M.errs);await M.ctx.close();
 
@@ -54,15 +53,9 @@ export default async function(){
   check('«Обзор»: свой период считается так же, как ОПИУ за месяц',ov.ok&&ov.title==='Обзор',ov);
   check('«Обзор»: часть месяца и всё время',ov.half!==undefined&&ov.allCols>=14,ov);
   check('«Обзор»: 4 вкладки, каждая открывается без ошибок',ov.ntabs===4&&Object.values(ov.tabs).every(v=>v!=='bad'&&v>50),ov);
-  // поиск по сделкам над таблицей
-  const dq=await p.evaluate(()=>{goBase('clients');const i=document.getElementById('clQ');i.value='00011';renderClients();const n=document.querySelectorAll('#cList tbody tr').length;i.value='';renderClients();return n;});
-  check('поиск сделки по номеру договора',dq===1,dq);
-  // общий поиск
-  await p.keyboard.press('/');await wait(p,200);await p.fill('#gsQ','к-0007');await wait(p,100);
-  const gs=await p.evaluate(()=>[...document.querySelectorAll('#gsRes .gs-it b')].map(b=>b.textContent));
-  check('общий поиск по номеру К-0007: клиент и только его сделки',/^Клиент 6 К-0007$/.test(gs[0])&&gs.length>1&&gs.slice(1).every(t=>/Клиент 6$/.test(t)),gs);
-  await p.fill('#gsQ','00011');await p.keyboard.press('Enter');await wait(p,300);
-  check('Enter в поиске открывает найденную сделку',await p.evaluate(()=>S.curClient==='c10'&&pageOn('client')));
+  // поиск сделки — фильтром по столбцу «№»: старый номер, новый «26-42» и часть номера
+  const dq=await p.evaluate(()=>{goBase('clients');const n=q=>{S.CF.id=q;renderClients();const r=document.querySelectorAll('#cList tbody tr').length;S.CF.id='';renderClients();return r;};return{old:n('00011'),part:n('0011')};});
+  check('поиск сделки по номеру договора — фильтр столбца «№»',dq.old===1&&dq.part>=1,dq);
   // ОПИУ: заголовки разделов закреплены
   check('заголовки разделов ОПИУ закреплены слева',await p.evaluate(()=>{S.finTab='opiu';goTo('finance');const s=document.querySelector('.fin-hs');return!!s&&getComputedStyle(s).position==='sticky';}));
   // переименование счёта: в старых операциях — новое название

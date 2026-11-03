@@ -4,7 +4,12 @@ export default async function(){
   await reseed();
   const {p,errs,ctx}=await device();await login(p);
   await p.evaluate(()=>goBase('people'));await wait(p,300);
-  check('поиск по номеру клиента: «к-0007», «к-7» и «К-00007» находят одного клиента К-0007',await p.evaluate(()=>['к-0007','к-7','К-00007'].every(q=>{document.getElementById('pplQ').value=q;renderPeople();const r=[...document.querySelectorAll('.ptbl tbody tr')];document.getElementById('pplQ').value='';return r.length===1&&/К-0007/.test(r[0].textContent);})));
+  check('фильтр «№ клиента»: «к-0007», «7» и «К-00007» находят одного клиента К-0007',await p.evaluate(()=>['к-0007','7','К-00007'].every(q=>{S.PF={no:{q}};renderPeople();const r=[...document.querySelectorAll('.ptbl tbody tr')];S.PF={};return r.length===1&&/К-0007/.test(r[0].textContent);})));
+  const pf=await p.evaluate(()=>{S.PF={};_pplSort={k:'no',dir:-1};renderPeople();const nos=[...document.querySelectorAll('.ptbl tbody tr')].map(tr=>noNum(tr.textContent.match(/К-\d+/)[0]));
+    S.PF={name:{q:'клиент 1'}};renderPeople();const byName=[...document.querySelectorAll('.ptbl tbody tr')].every(tr=>/Клиент 1/.test(tr.textContent));
+    S.PF={phone:{q:'8 928 100 00 05'}};renderPeople();const byPhone=document.querySelectorAll('.ptbl tbody tr').length;S.PF={};renderPeople();
+    return{desc:nos.every((n,i)=>!i||nos[i-1]>=n),first:nos[0],byName,byPhone};});
+  check('клиенты по умолчанию — новые номера сверху; фильтры по ФИО и телефону работают',pf.desc&&pf.byName&&pf.byPhone>=1,pf);
   await p.evaluate(()=>openPersonForm(null,'Клиент 5'));await p.fill('#pfPhones input','89990000005');await p.evaluate(()=>savePerson());await wait(p,300);
   check('при тёзке CRM переспрашивает',/Уже есть клиент с таким ФИО/.test(await p.$eval('#pfWarn',e=>e.textContent)));
   await p.evaluate(()=>savePerson());await wait(p,1500);
@@ -26,5 +31,10 @@ export default async function(){
   check('переименование меняет ФИО только в сделках этого клиента',rn.old.length&&rn.old.every(n=>n==='Пятов Пятый')&&rn.nw.every(n=>n==='Клиент 5'),rn);
   await p.evaluate(()=>openC(S.clients.find(x=>x.name==='Клиент 5').id));await wait(p,300);
   check('карточка сделки открывается',/ДАННЫЕ КЛИЕНТА/i.test(await p.$eval('#cDetail',e=>e.innerText)));
+  // поручители: у каждого свой телефон в столбце «Поручитель», в столбце «Клиент» — только телефоны клиента
+  const gc=await p.evaluate(()=>{const P=S.persons.slice(0,3),c={...S.clients.find(x=>x.id==='c0'),clientPid:P[0].id,phones:P[0].phones,guarantors:[{name:P[1].name,pid:P[1].id},{name:P[2].name,pid:P[2].id}]};
+    c._st='активный';const g=CL_COLS.gname.td(c),n=CL_COLS.name.td(c),d=x=>String(x||'').replace(/\D/g,''),txt=h=>{const e=document.createElement('div');e.innerHTML=h;return d(e.textContent);};
+    const p1=d(P[1].phones[0]),p2=d(P[2].phones[0]);return{both:txt(g).includes(p1)&&txt(g).includes(p2),clientClean:!txt(n).includes(p1)&&!txt(n).includes(p2),card:CARD_F.gname.v(c)};});
+  check('у каждого поручителя виден свой номер, в столбце «Клиент» номеров поручителей нет',gc.both&&gc.clientClean,gc);
   noErrors('клиенты',errs);await ctx.close();
 }
