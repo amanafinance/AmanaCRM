@@ -1020,6 +1020,7 @@ body.light .dsh-tip{box-shadow:0 8px 28px rgba(20,45,25,0.12)}
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div class="pt">Настройки</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 <div class="card"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
 <div class="card"><div class="ct">Способы оплаты</div><div style="font-size:11px;color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
+<div class="card" id="renumCard" style="display:none"><div class="ct">Номера в новом формате</div><div id="renumBody"></div></div>
 <div class="card"><div class="ct">Шаблоны WhatsApp</div><div style="font-size:11px;color:var(--t3);margin-bottom:8px">Подстановки: {имя} {фио} {договор} {сумма} {дата} {дней} {просрочено} {остаток} {товар}</div><label class="lbl">Ближайшие 5 дней</label><textarea class="inp" id="waSoon" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Сегодня</label><textarea class="inp" id="waToday" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Просрочка</label><textarea class="inp" id="waOverdue" rows="4" style="resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn bg bsm" onclick="saveWaTpl()">Сохранить</button><button class="btn bgh bsm" onclick="resetWaTpl()">По умолчанию</button></div></div>
 </div></div>
 </main></div>
@@ -1268,7 +1269,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='03.11.2026 · 3';
+const CRM_VERSION='03.11.2026 · 4';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2062,7 +2063,7 @@ function renderDetail(c){
   const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0,mg=pr-co;
   const hc=c.comment&&c.comment.trim();
   // Верхняя строка с именем и действиями
-  const header='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap"><div><div style="font-family:Manrope,sans-serif;font-size:21px;font-weight:700;letter-spacing:-0.015em;margin-bottom:6px;display:flex;align-items:center;gap:8px">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:11px;color:var(--t2)">'+ph+' · №'+esc(c.contractId||'—')+' · '+esc(c.date||'—')+' '+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts" style="display:flex;gap:7px;flex-wrap:wrap">'+(st!=='завершён'?waBtn(c.id):'')+(st!=='завершён'?'<button class="btn bg bsm cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button><button class="btn by bsm" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bsm" style="background:rgba(91,143,249,0.1);color:var(--blue);border:1px solid rgba(91,143,249,0.2)" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh bsm" onclick="openEdit(\''+c.id+'\')">Изменить</button>'+cdDelBtn(c)+'</div></div>';
+  const header='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap"><div><div style="font-family:Manrope,sans-serif;font-size:21px;font-weight:700;letter-spacing:-0.015em;margin-bottom:6px;display:flex;align-items:center;gap:8px">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:11px;color:var(--t2)">'+ph+' · №'+esc(c.contractId||'—')+(c.oldContractId&&c.oldContractId!==c.contractId?' <span style="color:var(--t3)">(было '+esc(c.oldContractId)+')</span>':'')+' · '+esc(c.date||'—')+' '+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts" style="display:flex;gap:7px;flex-wrap:wrap">'+(st!=='завершён'?waBtn(c.id):'')+(st!=='завершён'?'<button class="btn bg bsm cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button><button class="btn by bsm" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bsm" style="background:rgba(91,143,249,0.1);color:var(--blue);border:1px solid rgba(91,143,249,0.2)" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh bsm" onclick="openEdit(\''+c.id+'\')">Изменить</button>'+cdDelBtn(c)+'</div></div>';
   const dupsBlock=dups.length?'<div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:10px 14px;margin-bottom:14px;font-size:12px"><div style="color:var(--yellow);font-weight:700;margin-bottom:6px">Другие договора:</div>'+dups.map(d=>'<div style="color:var(--t2);margin-bottom:3px;cursor:pointer" onclick="openC(\''+d.id+'\')">· №'+esc(d.contractId||'—')+' — '+esc(d.product||'—')+' ('+effStatus(d)+')</div>').join('')+'</div>':'';
   // Данные клиента и поручителя
   const _pi=personIndex(),_pl=(n,k)=>'<a href="#" class="plink" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
@@ -2266,8 +2267,8 @@ function searchKind(q){const s=q.replace(/[\s()+-]/g,'');const mNo=q.match(/^к-
   if(/^\d+$/.test(s))return s.length<=5?{contract:s}:{phone:s};return{text:q};}
 function dealMatch(c,q){const k=searchKind(q);
   if(k.no){const p=pMaps().byId.get(c.clientPid);return!!p&&noNum(p.no)===k.no;}
-  if(k.deal)return c.contractId===k.deal;
-  if(k.contract)return(c.contractId||'').includes(k.contract);
+  if(k.deal)return c.contractId===k.deal||c.oldContractId===k.deal;
+  if(k.contract)return(c.contractId||'').includes(k.contract)||(c.oldContractId||'').includes(k.contract);
   if(k.phone)return[...(c.phones||[]),...dealGuarantorRefs(c).flatMap(g=>(pMaps().byId.get(g.pid)||{}).phones||[])].some(p=>String(p).replace(/\D/g,'').includes(k.phone));
   return(c.name||'').toLowerCase().includes(k.text)||(c.product||'').toLowerCase().includes(k.text);}
 function personMatch(p,q){const k=searchKind(q);
@@ -2668,7 +2669,7 @@ async function ensureCashWallet(){
   }
 }
 function renderSettings(){
-  renderRecon();renderWaTpl();
+  renderRecon();renderWaTpl();renderRenum();
   document.getElementById('partList').innerHTML=S.partners.map((p,i)=>{
     const locked=p==='Сторонний';
     return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:13px;font-weight:600">'+esc(p)+(locked?' <span style="font-size:9px;color:var(--t3);font-weight:500;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(S.partnerPhones[p]||'')+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
@@ -2677,6 +2678,52 @@ function renderSettings(){
     const locked=w.isDefault||(w.name==='Наличные'&&w.type==='cash');
     return'<div class="sit'+(locked?' locked':'')+'"><div><div style="font-size:13px;font-weight:600">'+esc(w.name)+(locked?' <span style="font-size:9px;color:var(--t3);font-weight:500;margin-left:4px">(стандартный)</span>':'')+'</div><div style="font-size:10px;color:var(--t3)">'+(w.type==='cash'?'Наличные':'Карта / Счёт')+' · '+fmt(w.balance||0)+' ₽</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="renameWallet(\''+w.id+'\')">Переименовать</button>'+(locked?'':'<button class="btn br bsm" onclick="removeWallet(\''+w.id+'\','+((w.balance||0))+')">Удалить</button>')+'</div></div>';
   }).join('');
+}
+// ---------- ПЕРЕНУМЕРАЦИЯ В НОВЫЙ ФОРМАТ (разово) ----------
+// Клиенты — К-00001… по порядку старых номеров; договоры — ГГ-0001… по году и дате договора.
+// Порядок считается не по текущим номерам, а по датам и сохранённому старому номеру, поэтому
+// прерванную перенумерацию можно просто запустить ещё раз — результат будет тем же.
+const isNewPNo=x=>/^К-\d{5}$/.test(x||'');
+function renumLegacy(){return{d:S.clients.filter(c=>!dealNoRe.test(c.contractId||'')).length,p:(S.persons||[]).filter(p=>!isNewPNo(p.no)).length};}
+function renumPlan(){
+  const dateOf=c=>parseD(c.date)||dTs(c.createdAt)||new Date(0),cr=x=>(dTs(x.createdAt)||new Date(0)).getTime();
+  const deals=S.clients.slice().sort((a,b)=>dateOf(a)-dateOf(b)||cr(a)-cr(b)||dealSortKey(a.oldContractId||a.contractId)-dealSortKey(b.oldContractId||b.contractId)||String(a.id).localeCompare(String(b.id)));
+  const cnt={},dmap={};deals.forEach(c=>{const yy=String(dateOf(c).getFullYear()).slice(-2);cnt[yy]=(cnt[yy]||0)+1;dmap[c.id]=dealNo(yy,cnt[yy]);});
+  const ps=(S.persons||[]).slice().sort((a,b)=>(noNum(a.oldNo||a.no)||1e9)-(noNum(b.oldNo||b.no)||1e9)||cr(a)-cr(b)||String(a.id).localeCompare(String(b.id)));
+  const pmap={};ps.forEach((p,i)=>pmap[p.id]=pNo(i+1));
+  return{dmap,pmap,cnt,pcount:ps.length,deals,ps};
+}
+function renderRenum(){
+  const card=document.getElementById('renumCard');if(!card)return;const L=renumLegacy();
+  card.style.display=(L.d||L.p)?'':'none';if(!L.d&&!L.p)return;
+  document.getElementById('renumBody').innerHTML='<div style="font-size:12px;color:var(--t2);line-height:1.55;margin-bottom:10px">В старом формате: <b>'+L.d+'</b> '+invPlural(L.d,'договор','договора','договоров')+' и <b>'+L.p+'</b> '+invPlural(L.p,'клиент','клиента','клиентов')+'.<br>Перевод присвоит всем новые номера: клиентам — К-00001, К-00002… по порядку, договорам — ГГ-0001… по году и дате договора. Номера обновятся и в платежах, и в операциях кассы; суммы не меняются. Старый номер останется в карточке («было …»), по нему работает поиск. В истории действий записи остаются как были.<br><b>Запускайте, когда в CRM больше никто не работает.</b></div><button class="btn bg" id="renumBtn" onclick="renumberAsk()">Перевести номера</button>';
+}
+function renumberAsk(){
+  const P=renumPlan(),ex=P.deals.filter(c=>c.contractId!==P.dmap[c.id]).slice(0,3).map(c=>esc(c.contractId||'—')+' → <b>'+P.dmap[c.id]+'</b>'),
+    exP=P.ps.filter(p=>p.no!==P.pmap[p.id]).slice(0,3).map(p=>esc(p.no||'—')+' → <b>'+P.pmap[p.id]+'</b>');
+  showConfirm('Перевести номера?','Договоры: '+(ex.join(', ')||'без изменений')+(ex.length>=3?'…':'')+'<br>Клиенты: '+(exP.join(', ')||'без изменений')+(exP.length>=3?'…':'')+'<br>Это делается один раз, отменить нельзя.',()=>renumberAll());
+}
+async function renumberAll(){
+  if(_saving)return;const P=renumPlan(),ops=[];
+  S.clients.forEach(c=>{const n=P.dmap[c.id];if(n&&n!==c.contractId)ops.push(['clients',c.id,{contractId:n,oldContractId:c.oldContractId||c.contractId||''}]);});
+  (S.persons||[]).forEach(p=>{const n=P.pmap[p.id];if(n&&n!==p.no)ops.push(['persons',p.id,{no:n,oldNo:p.oldNo||p.no||''}]);});
+  S.payments.forEach(p=>{const n=P.dmap[p.clientId];if(n&&p.contractId!==n)ops.push(['payments',p.id,{contractId:n}]);});
+  S.kassaOps.forEach(k=>{const n=k.refType==='client'?P.dmap[k.refId]:null;if(!n)return;const u={};
+    if(k.contractId!==undefined&&k.contractId!==n)u.contractId=n;
+    if(k.auto&&typeof k.desc==='string'){const d=k.desc.replace(/\(№[^)]*\)/,'(№'+n+')');if(d!==k.desc)u.desc=d;}
+    if(Object.keys(u).length)ops.push(['kassaOps',k.id,u]);});
+  const nd=ops.filter(o=>o[0]==='clients').length,np=ops.filter(o=>o[0]==='persons').length;
+  _saving=true;const btn=document.getElementById('renumBtn');if(btn){btn.disabled=true;btn.textContent='Перевожу…';}
+  try{
+    const{db,doc,writeBatch}=window.DB;
+    for(let i=0;i<ops.length;i+=400){const bt=writeBatch(db);ops.slice(i,i+400).forEach(([c,id,d])=>bt.update(doc(db,c,id),d));await bt.commit();if(ops.length>400)toast('Перевод номеров: '+Math.min(i+400,ops.length)+' из '+ops.length,'tok');}
+    // счётчики: следующий договор каждого года и следующий клиент продолжат новую нумерацию
+    const bt=writeBatch(db);Object.entries(P.cnt).forEach(([yy,n])=>bt.set(doc(db,'settings','counter-'+yy),{lastId:n},{merge:true}));
+    bt.set(doc(db,'settings','pcounter'),{lastId:P.pcount},{merge:true});await bt.commit();
+    await logA('Перевод номеров в новый формат','договоров: '+nd+', клиентов: '+np);
+    toast('Готово: договоров '+nd+', клиентов '+np,'tok');
+  }catch(e){toast('Ошибка: '+e.message+'. Нажмите «Перевести номера» ещё раз — продолжит с того же места','ter');}
+  finally{_saving=false;renderRenum();}
 }
 // Поставщики и их телефоны: settings/partners {list:[названия], phones:{название:телефон}}
 // Меняем по одному поставщику (добавить / удалить / телефон), а не весь список — так правки с двух устройств не затирают друг друга
@@ -2815,7 +2862,7 @@ function guarPhone(c){const g=dealGuarantorRefs(c)[0],p=g&&g.pid&&pMaps().byId.g
 // Все клиенты (карточки)
 function personIndex(){
   const m=new Map();
-  (S.persons||[]).forEach(d=>m.set('p:'+d.id,{key:'p:'+d.id,id:d.id,no:d.no||'',name:cleanName(d.name),phones:(d.phones||[]).filter(Boolean),addr:d.addr||'',note:d.note||''}));
+  (S.persons||[]).forEach(d=>m.set('p:'+d.id,{key:'p:'+d.id,id:d.id,no:d.no||'',oldNo:d.oldNo||'',name:cleanName(d.name),phones:(d.phones||[]).filter(Boolean),addr:d.addr||'',note:d.note||''}));
   return m;
 }
 const pLabel=p=>(p.no?p.no+' · ':'')+p.name;
@@ -2844,7 +2891,7 @@ function setPplTab(t,btn){_pplTab=t;document.querySelectorAll('#pplTabs .ft').fo
 
 // Колонки таблицы клиентов (выбор — в окне «Настройка вида»)
 const PCOLS={
-  no:{n:'№ клиента',v:g=>g.no||'—',s:g=>g.no||''},
+  no:{n:'№ клиента',v:g=>g.no||'—',s:g=>noNum(g.no)},
   phone:{n:'Телефон',v:g=>g.phones[0]?fmtPhone(g.phones[0]):'—',s:g=>g.phones[0]||''},
   addr:{n:'Адрес',v:g=>esc(g.addr||'—'),s:g=>g.addr||''},
   deals:{n:'Сделок',v:g=>g.deals.length,s:g=>g.deals.length,num:1},
@@ -2912,7 +2959,7 @@ function renderPerson(){
   const phones=g.phones.map(ph=>esc(fmtPhone(ph))).join(', ')||'—';
   const K=encodeURIComponent(g.key);
   let h='<button class="btn bgh bsm" style="margin-bottom:12px" onclick="goBase(\'people\')">← Все клиенты</button>'+
-    '<div class="ph"><div><div class="pt">'+esc(g.name)+(g.no?' <span class="badge bd" style="vertical-align:middle">'+g.no+'</span>':'')+'</div><div class="ps">'+phones+(g.addr?' · '+esc(g.addr):'')+'</div>'+(g.note?'<div class="ps" style="color:var(--t2)">'+esc(g.note)+'</div>':'')+'</div>'+
+    '<div class="ph"><div><div class="pt">'+esc(g.name)+(g.no?' <span class="badge bd" style="vertical-align:middle">'+g.no+'</span>':'')+(g.oldNo&&g.oldNo!==g.no?' <span class="inv-muted" style="font-size:12px;font-weight:500">было '+esc(g.oldNo)+'</span>':'')+'</div><div class="ps">'+phones+(g.addr?' · '+esc(g.addr):'')+'</div>'+(g.note?'<div class="ps" style="color:var(--t2)">'+esc(g.note)+'</div>':'')+'</div>'+
     '<div class="pa">'+(!g.deals.length&&!g.guar.length&&g.id?'<button class="btn br" onclick="delPerson(\''+g.id+'\')">Удалить</button>':'')+'<button class="btn bgh" onclick="openPersonForm(decodeURIComponent(\''+K+'\'))">Изменить</button><button class="btn bg" onclick="openNew(decodeURIComponent(\''+K+'\'))">+ Сделка</button></div></div>'+
     '<div class="sg4">'+
       '<div class="sc"><div class="sl">Сделок</div><div class="sv">'+g.deals.length+'</div><div class="ss">активных '+g.active+' · завершённых '+g.done+'</div></div>'+
