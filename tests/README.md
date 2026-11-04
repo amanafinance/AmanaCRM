@@ -21,7 +21,7 @@ npm test
 Один набор: запустите эмулятор (`npx firebase emulators:start --only firestore,auth --project amana-crm-16033`)
 и в другом окне `node run.mjs money`.
 
-Наборы: `pages`, `money`, `investors`, `sync`, `people`, `numbers`, `security`, `ui`, `interface`, `devices`, `design`, `speed` (папка `suites/`).
+Наборы: `pages`, `money`, `investors`, `sync`, `people`, `numbers`, `backup`, `security`, `ui`, `interface`, `devices`, `design`, `speed` (папка `suites/`).
 
 `design` проверяет дизайн-систему на всех страницах и окнах, на телефоне и компьютере, в обеих темах:
 на телефоне всё нажимаемое не меньше 44 px, текст не мельче 12 px, контраст текста по норме,
