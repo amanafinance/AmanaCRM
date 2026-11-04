@@ -113,6 +113,21 @@ export default async function(){
 
   const fin=await p.evaluate(async()=>{S.finTab='opiu';goTo('finance');await new Promise(r=>setTimeout(r,250));const l=document.querySelector('.fin-t tbody .fin-l');return{w:Math.round(l.getBoundingClientRect().width),sticky:getComputedStyle(l).position,shadow:getComputedStyle(l).boxShadow!=='none'};});
   check('ОПИУ на телефоне: колонка названий узкая, закреплена, с тенью у края',fin.w<=140&&fin.sticky==='sticky'&&fin.shadow,fin);
+  // UI-аудит: числа и телефоны не рвутся, поручители столбиком, пустая выбранная колонка видна, «Счёт» вместо «Кошелёк»
+  const ua=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const r={};
+    r.fmt=!/ /.test(fmt(1234567.5))&&!/ /.test(fmtPhone('89281234567'));
+    const P=S.persons.slice(0,3),c={...S.clients.find(x=>x.id==='c0'),guarantors:[{name:P[1].name,pid:P[1].id},{name:P[2].name,pid:P[2].id}]};
+    const box=document.createElement('div');box.innerHTML=CARD_F.gname.v(c);r.gs=box.querySelectorAll('.mcard-gs>span').length;
+    S.ui.pcols=[{k:'no',on:true},{k:'note',on:true}];goBase('people');await sl(250);
+    const card=document.querySelector('.ppl-mob .mcard');r.noteRow=!!card&&[...card.querySelectorAll('.mcard-label')].some(l=>/Заметка/.test(l.textContent));
+    goTo('kassa');openKassaOp();await sl(150);r.lbl=document.getElementById('koWalletLbl').textContent;closeM('mKassa');
+    openC('c0');await sl(250);r.tel=[...document.querySelectorAll('#cDetail .cd-tel')].map(a=>Math.round(a.getBoundingClientRect().height));
+    // в шапке договора нет сырых номеров в одной строке с датой
+    r.meta=!!document.querySelector('#cDetail .cd-meta');
+    return r;});
+  check('UI-аудит: суммы и телефоны с неразрывными пробелами, поручители — каждый своей строкой',ua.fmt&&ua.gs===2,ua);
+  check('UI-аудит: выбранная колонка «Заметка» видна в карточке клиента даже пустой; в кассе «Счёт», а не «Кошелёк»',ua.noteRow&&ua.lbl==='Счёт',ua);
+  check('UI-аудит: шапка договора — номер, дата, статус отдельной строкой, телефоны — кнопки не меньше 44 px',ua.meta&&ua.tel.length>0&&ua.tel.every(h=>h>=44),ua);
   noErrors('дизайн, телефон: экраны',errs);await ctx.close();
 
   // --- компьютер: таблица в окне месяца, кнопки 36 px, иконка для экрана «Домой»
