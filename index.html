@@ -1627,7 +1627,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 1';
+const CRM_VERSION='05.11.2026 · 2';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2081,8 +2081,13 @@ function renderFinance(){
   const cols=perUnits(P.from,P.to,g).map(u=>{const r=finPeriod(u.from,u.to,ctx,avg);
     return{u,label:unitLabel(u,g,multiY),kind:r.kind,f:r.f,d:finDerive(r.f),est:r.kind==='past'?{}:r.est};});
   const fact=finDerive(finSum([finFactF('',ctx,new Date(0),new Date(0)),...cols.filter(c=>c.kind!=='fut').map(c=>c.f)]));
-  const fc=finDerive(finSum([finFactF('',ctx,new Date(0),new Date(0)),...cols.map(c=>c.f),...cols.map(c=>c.est)]));
-  fc.plan=fact.plan+cols.filter(c=>c.kind==='fut').reduce((a,c)=>a+c.f.plan,0);
+  // «За всё время»: прогноз — до последнего платежа по графику всех договоров, а не до конца текущего месяца
+  let fEnd=P.to;
+  if(P.v==='all'){const last=ctx.rem.reduce((a,r)=>r.eff instanceof Date&&!isNaN(r.eff)&&r.eff>a?r.eff:a,new Date(0));if(last>=P.to)fEnd=mStart(last.getFullYear(),last.getMonth()+1);}
+  const extra=fEnd>P.to?perUnits(P.to,fEnd,'m').map(u=>finPeriod(u.from,u.to,ctx,avg)):[];
+  const fc=finDerive(finSum([finFactF('',ctx,new Date(0),new Date(0)),...cols.map(c=>c.f),...cols.map(c=>c.est),...extra.map(e=>e.f),...extra.map(e=>e.est)]));
+  fc.plan=fact.plan+cols.filter(c=>c.kind==='fut').reduce((a,c)=>a+c.f.plan,0)+extra.reduce((a,e)=>a+e.f.plan,0);
+  const fLast=fmtD(new Date(fEnd.getTime()-864e5));
   const overTotal=ctx.rem.filter(r=>r.over).reduce((a,r)=>a+r.left,0);
   let h='<div class="fin-per">'+perHtml('perFin','renderFinance')+'<span class="fin-per-l">'+esc(P.label)+'</span></div>';
 
@@ -2096,10 +2101,10 @@ function renderFinance(){
   h+=dCard(S.inv.length?'Прибыль компании':'Расходы',S.inv.length?dMoney(fact.company):dMoney(fact.exp),S.inv.length?'после доли инвесторов '+dMoney(fact.invShare):'зарплата '+dMoney(fact.salary)+' · прочие '+dMoney(fact.opex+fact.otherExp),S.inv.length?(fact.company<0?'cr':'cg'):'cr');
   h+='</div>';
   if(hasFut){
-    h+='<div class="dsh-h"><div class="dsh-ht">Прогноз до конца периода</div></div><div class="dsh-g4">';
+    h+='<div class="dsh-h"><div class="dsh-ht" id="finFcTitle">'+(extra.length?'Прогноз до конца всех договоров · до '+fLast:'Прогноз до '+fLast)+'</div></div><div class="dsh-g4">';
     h+=dCard('Поступления',dMoney(fc.pay+fc.prepay),'ещё ожидается '+dMoney(fc.pay-fact.pay)+' по графику','cb');
     h+=dCard('Валовая прибыль',dMoney(fc.grossNet),'ещё ожидается '+dMoney(fc.grossNet-fact.grossNet),'cb');
-    h+=dCard('Чистая прибыль',dMoney(fc.net),'расходы в прогнозе — средние за 3 мес.',fc.net<0?'cr':'cb');
+    h+=dCard('Чистая прибыль',dMoney(fc.net),'расходы в прогнозе — средние за 3 мес.'+(extra.length?', каждый месяц до '+fLast:''),fc.net<0?'cr':'cb');
     h+=dCard('Просрочка к взысканию',dMoney(overTotal),'в прогноз не входит — это доп. деньги','cr');
     h+='</div>';
   }

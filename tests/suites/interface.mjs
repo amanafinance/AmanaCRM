@@ -64,6 +64,17 @@ export default async function(){
   const pk=await p.evaluate(async()=>{const [a,b]=document.querySelectorAll('#finBody .per-d input');b.value='2025-12-31';b.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,200));
     const after=S.perFin.to;const a2=document.querySelector('#finBody .per-d input');a2.value='0002-01-01';a2.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,200));return{after,from:S.perFin.from};});
   check('«Свой период»: выбор в календаре применяется сразу, год вроде 0002 не принимается',pk.after==='2025-12-31'&&/^20/.test(pk.from),pk);
+  // «За всё время»: прогноз — до последнего платежа всех договоров; в заголовке настоящая дата
+  const fa=await p.evaluate(async()=>{S.finTab='sum';S.perFin={v:'all'};goTo('finance');await new Promise(r=>setTimeout(r,300));
+    const rem=remRows().filter(r=>!r.over),left=Math.round(rem.reduce((a,r)=>a+r.left,0)),last=rem.reduce((a,r)=>r.eff>a?r.eff:a,new Date(0));
+    const lastM=new Date(last.getFullYear(),last.getMonth()+1,0);
+    const t=document.getElementById('finFcTitle').textContent,card=[...document.querySelectorAll('#finBody .sc')].find(x=>/Поступления/.test(x.textContent));
+    const exp=card?Number((card.textContent.match(/ещё ожидается ([\d\s\u00a0]+)/)||[])[1].replace(/\D/g,'')):-1;
+    S.perFin={v:'m0'};renderFinance();await new Promise(r=>setTimeout(r,200));const t0=document.getElementById('finFcTitle').textContent;
+    const n=new Date(),eom=fmtD(new Date(n.getFullYear(),n.getMonth()+1,0));
+    return{t,left,exp,want:fmtD(lastM),t0,eom};});
+  check('«За всё время»: прогноз до конца всех договоров — ожидается весь оставшийся график, в заголовке дата последнего месяца',fa.t.includes('всех договоров')&&fa.t.includes(fa.want)&&Math.abs(fa.exp-fa.left)<=1,fa);
+  check('«Этот месяц»: в заголовке прогноза — последний день месяца',fa.t0==='Прогноз до '+fa.eom,fa);
   // поиск сделки — фильтром по столбцу «№»: старый номер, новый «26-42» и часть номера
   const dq=await p.evaluate(()=>{goBase('clients');const n=q=>{S.CF.id=q;renderClients();const r=document.querySelectorAll('#cList tbody tr').length;S.CF.id='';renderClients();return r;};return{old:n('00011'),part:n('0011')};});
   check('поиск сделки по номеру договора — фильтр столбца «№»',dq.old===1&&dq.part>=1,dq);
