@@ -53,6 +53,17 @@ export default async function(){
   check('«Обзор»: свой период считается так же, как ОПИУ за месяц',ov.ok&&ov.title==='Обзор',ov);
   check('«Обзор»: часть месяца и всё время',ov.half!==undefined&&ov.allCols>=14,ov);
   check('«Обзор»: 4 вкладки, каждая открывается без ошибок',ov.ntabs===4&&Object.values(ov.tabs).every(v=>v!=='bad'&&v>50),ov);
+  // «Свой период» на компьютере: дата вводится с клавиатуры по цифрам — поле не перерисовывается посреди ввода
+  await p.evaluate(()=>{goTo('finance');S.perFin={v:'m0'};perSet('perFin','custom','renderFinance');});await wait(p,300);
+  const pf0=await p.evaluate(()=>S.perFin.from);
+  await p.locator('#finBody .per-d input').first().click({position:{x:12,y:10}});
+  const steps=[];for(const ch of '03152025'){await p.keyboard.type(ch);await wait(p,60);steps.push(await p.evaluate(()=>{const i=document.querySelector('#finBody .per-d input');return{focus:document.activeElement===i,v:i.value,from:S.perFin.from};}));}
+  await p.keyboard.press('Enter');await wait(p,300);
+  const pf=await p.evaluate(()=>({from:S.perFin.from,to:S.perFin.to,label:document.querySelector('.fin-per-l').textContent}));
+  check('«Свой период»: дату можно ввести с клавиатуры — поле не сбрасывается на каждой цифре',steps.every(x=>x.focus&&x.from===pf0)&&/^20\d\d-\d\d-\d\d$/.test(pf.from)&&pf.from===steps[steps.length-1].v&&pf.from!==pf0,{steps:steps.slice(-3),pf});
+  const pk=await p.evaluate(async()=>{const [a,b]=document.querySelectorAll('#finBody .per-d input');b.value='2025-12-31';b.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,200));
+    const after=S.perFin.to;const a2=document.querySelector('#finBody .per-d input');a2.value='0002-01-01';a2.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,200));return{after,from:S.perFin.from};});
+  check('«Свой период»: выбор в календаре применяется сразу, год вроде 0002 не принимается',pk.after==='2025-12-31'&&/^20/.test(pk.from),pk);
   // поиск сделки — фильтром по столбцу «№»: старый номер, новый «26-42» и часть номера
   const dq=await p.evaluate(()=>{goBase('clients');const n=q=>{S.CF.id=q;renderClients();const r=document.querySelectorAll('#cList tbody tr').length;S.CF.id='';renderClients();return r;};return{old:n('00011'),part:n('0011')};});
   check('поиск сделки по номеру договора — фильтр столбца «№»',dq.old===1&&dq.part>=1,dq);

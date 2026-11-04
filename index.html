@@ -1604,7 +1604,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='04.11.2026 · 1';
+const CRM_VERSION='04.11.2026 · 2';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1844,11 +1844,25 @@ function perHtml(key,cb){
   const p=S[key],ys=dataYears(),o=PER_PRESETS.map(([v,t])=>'<option value="'+v+'"'+(p.v===v?' selected':'')+'>'+t+'</option>').join('')+
     '<optgroup label="Год">'+ys.map(y=>'<option value="Y'+y+'"'+(p.v==='Y'+y?' selected':'')+'>'+y+'</option>').join('')+'</optgroup>';
   let h='<span class="per"><select class="inp sel per-sel" aria-label="Период" onchange="perSet(\''+key+'\',this.value,\''+cb+'\')">'+o+'</select>';
-  if(p.v==='custom')h+='<span class="per-d"><input class="inp" type="date" aria-label="С" value="'+p.from+'" onchange="perDate(\''+key+'\',\'from\',this.value,\''+cb+'\')"/><span>—</span><input class="inp" type="date" aria-label="По" value="'+p.to+'" onchange="perDate(\''+key+'\',\'to\',this.value,\''+cb+'\')"/></span>';
+  const di=(k,l)=>'<input class="inp" type="date" min="2000-01-01" max="2100-12-31" aria-label="'+l+'" value="'+p[k]+'" onkeydown="perKey(event,this)" onchange="perCh(this)" onblur="perBlur(this)"/>';
+  if(p.v==='custom')h+='<span class="per-d" data-k="'+key+'" data-cb="'+cb+'">'+di('from','С')+'<span>—</span>'+di('to','По')+'</span>';
   return h+'</span>';
 }
 function perSet(key,v,cb){const p=S[key];p.v=v;if(v==='custom'&&!p.from){const n=new Date();p.from=dayKey(mStart(n.getFullYear(),n.getMonth()));p.to=dayKey(n);}window[cb]();}
 function perDate(key,k,v,cb){if(!v)return;const p=S[key];p[k]=v;if(p.from>p.to){if(k==='from')p.to=v;else p.from=v;}window[cb]();}
+// Свой период. Chrome на компьютере сообщает об изменении даты на каждой введённой цифре (год «2» → 0002),
+// а пересчёт страницы перерисовывает поле и обрывает ввод. Поэтому дата применяется, когда ввод закончен:
+// Enter, уход из обоих полей или выбор в календаре (на телефоне — колёсиком). Год вне 2000–2100 не берём.
+const perOk=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')&&+v.slice(0,4)>=2000&&+v.slice(0,4)<=2100;
+function perKey(e,el){el._typed=Date.now();if(e.key==='Enter'){e.preventDefault();perApply(el.closest('.per-d'));}}
+function perCh(el){if(el._typed&&Date.now()-el._typed<1000)return;perApply(el.closest('.per-d'));}
+function perBlur(el){const w=el.closest('.per-d');setTimeout(()=>{if(w&&w.isConnected&&!w.contains(document.activeElement))perApply(w);},0);}
+function perApply(w){
+  if(!w)return;const key=w.dataset.k,cb=w.dataset.cb,p=S[key],[a,b]=w.querySelectorAll('input');
+  let f=perOk(a.value)?a.value:p.from,t=perOk(b.value)?b.value:p.to;
+  if(f>t){if(f!==p.from)t=f;else f=t;}
+  if(f===p.from&&t===p.to){if(a.value!==f)a.value=f;if(b.value!==t)b.value=t;return;}
+  p.from=f;p.to=t;window[cb]();}
 // Разбить период на дни, месяцы или годы
 function perUnits(from,to,g){
   const u=[];let d=new Date(from);
