@@ -40,7 +40,9 @@ window.addEventListener('online',()=>{netOkAt=0;netDown=false;netBadge();});wind
 const NET_ERR='Нет интернета — изменение не сохранено. Подключитесь к сети и повторите.';
 const netFail=()=>{netDown=true;netOkAt=0;netBadge();return Object.assign(new Error(NET_ERR),{code:'offline'});};
 // «Нет интернета», «Недостаточно средств», «Договор изменился» — ожидаемые ситуации, а не сбой: в консоли это предупреждение, а не ошибка
-const _cErr=console.error.bind(console);console.error=(...a)=>a[0]&&['offline','short','stale'].includes(a[0].code)?console.warn(...a):_cErr(...a);
+// При перезагрузке базы (восстановление из копии, «перечитать всё») подписки закрываются — их «Firestore shutting down» не ошибка
+let closing=false;
+const _cErr=console.error.bind(console);console.error=(...a)=>closing||a[0]&&['offline','short','stale'].includes(a[0].code)?console.warn(...a):_cErr(...a);
 const withTimeout=(pr,ms)=>Promise.race([pr,new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]);
 // Сервер отвечал недавно (15 с) — не спрашиваем снова: одно действие часто пишет несколько раз
 const netCheck=async()=>{
@@ -160,11 +162,11 @@ async function checkEpoch(){
   if(mine===ep)return;
   try{localStorage.removeItem(SYNC_KEY);localStorage.setItem(EPOCH_KEY,ep);}catch(e){}
   if(!had)return; // на устройстве ещё ничего не загружали — стирать нечего
-  try{await terminate(db);await clearIndexedDbPersistence(db);}catch(e){console.warn('Кэш не очищен:',e);}
+  closing=true;try{await terminate(db);await clearIndexedDbPersistence(db);}catch(e){console.warn('Кэш не очищен:',e);}
   location.reload();await new Promise(()=>{});
 }
 // Полностью перечитать базу с сервера (кнопка в настройках)
-async function resyncAll(){try{localStorage.removeItem(SYNC_KEY);}catch(e){}try{await terminate(db);await clearIndexedDbPersistence(db);}catch(e){}location.reload();}
+async function resyncAll(){try{localStorage.removeItem(SYNC_KEY);}catch(e){}closing=true;try{await terminate(db);await clearIndexedDbPersistence(db);}catch(e){}location.reload();}
 
 // Номер договора и сам договор пишутся одной транзакцией: если сохранить не удалось, номер не тратится.
 // fn(w,last) делает записи через w и возвращает новое значение счётчика.
@@ -172,7 +174,56 @@ const counterTx=async(id,fn)=>{await netCheck();const ref=doc(db,'settings',id);
   const s=await tx.get(ref),last=s.exists()?(s.data().lastId||0):0;
   const w={set:(r,d,o)=>{o?tx.set(r,stamp(d),o):tx.set(r,stamp(d));return w;},update:(r,d)=>{tx.update(r,stamp(d));return w;},delete:r=>{tx.delete(r);tomb(tx,r);return w;}};
   const nv=await fn(w,last);if(nv!==last)tx.set(ref,{lastId:nv,[U]:serverTimestamp()},{merge:true});return nv;});};
-window.DB={db,counterTx,collection,doc,addDoc:addDocU,updateDoc:updateDocU,deleteDoc:deleteDocU,getDocs,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc:setDocU,writeBatch:writeBatchU,increment,arrayUnion,arrayRemove,deleteField,nextCounter,createOnce,live,liveTombs,resyncAll,checkEpoch};
+// ---- Резервная копия: вся база в одном файле JSON ----
+// Формат переносимый: даты — {"$date":"ISO-время"}, суммы — числа, номера записей (id) сохраняются, связи между записями не меняются.
+// Служебное для синхронизации (метка _u, надгробия, settings/meta) в копию не входит.
+// История действий и корзина входят в копию для переноса, но при восстановлении не трогаются (они только дописываются).
+const BK_COLS=['clients','payments','kassaOps','wallets','persons','investors','invOps','invMonths','settings'],BK_LOGS=['journal','trash'];
+const bkOut=v=>v instanceof Timestamp?{$date:v.toDate().toISOString()}:Array.isArray(v)?v.map(bkOut)
+  :v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,bkOut(x)])):(typeof v==='number'&&!isFinite(v))?null:v;
+const bkIn=v=>Array.isArray(v)?v.map(bkIn):v&&typeof v==='object'?(Object.keys(v).length===1&&typeof v.$date==='string'?Timestamp.fromDate(new Date(v.$date))
+  :Object.fromEntries(Object.entries(v).map(([k,x])=>[k,bkIn(x)]))):v;
+const bkSkip=(c,id)=>c==='settings'&&id==='meta';
+// Читаем с сервера; если сервер недоступен — из памяти устройства (копия может быть не самой свежей, это отмечается в файле)
+async function bkDump(){
+  const cols=[...BK_COLS,...BK_LOGS];
+  let src='server',got;
+  const one=async(c,server)=>{const s=server?await withTimeout(getDocsFromServer(collection(db,c)),30000):await getDocsFromCache(collection(db,c));
+    return s.docs.filter(x=>{if(bkSkip(c,x.id))return false;if(server)return true;const t=tombs.get(c+'/'+x.id),d=x.data();return!(t&&(!d[U]||uMs(d)<=t));});};
+  try{if(!navigator.onLine)throw new Error('offline');got=await Promise.all(cols.map(c=>one(c,true)));}
+  catch(e){src='device';got=await Promise.all(cols.map(c=>one(c,false).catch(()=>[])));}
+  const collections={},counts={};
+  cols.forEach((c,i)=>{const o={};got[i].forEach(x=>{const d=Object.assign({},x.data());delete d[U];o[x.id]=bkOut(d);});collections[c]=o;counts[c]=got[i].length;});
+  return{format:'amana-crm-backup',version:1,createdAt:new Date().toISOString(),source:src,counts,collections};
+}
+// Проверка файла копии: только известные разделы, у каждой записи допустимый номер и данные-объект
+function bkCheck(B){
+  if(!B||B.format!=='amana-crm-backup'||!B.collections||typeof B.collections!=='object')return'Это не файл копии Amana CRM';
+  if(B.version!==1)return'Копия сделана более новой версией CRM — обновите страницу и попробуйте снова';
+  for(const c of BK_COLS){const o=B.collections[c];if(o===undefined)continue;if(!o||typeof o!=='object'||Array.isArray(o))return'Файл копии повреждён (раздел '+c+')';
+    for(const [id,d] of Object.entries(o))if(!id||id.includes('/')||id==='.'||id==='..'||/^__.*__$/.test(id)||id.length>700||!d||typeof d!=='object'||Array.isArray(d))return'Файл копии повреждён (запись '+c+'/'+String(id).slice(0,40)+')';}
+  if(!B.collections.clients||!B.collections.wallets)return'В файле нет договоров или счетов — это не полная копия';
+  return'';
+}
+// Восстановление: база становится точно такой, как в копии. Записи, которых в копии нет, удаляются (с надгробием —
+// чтобы пропали и на других устройствах), остальные записываются целиком. Повторный запуск с тем же файлом даёт тот же результат.
+// В конце меняется метка базы: все устройства при открытии заново загрузят данные с сервера.
+async function bkRestore(B,prog){
+  const err=bkCheck(B);if(err)throw new Error(err);
+  await netCheck();
+  const ops=[];let put=0,del=0;
+  for(const c of BK_COLS){
+    const want=B.collections[c]||{},cur=(await withTimeout(getDocsFromServer(collection(db,c)),30000)).docs;
+    cur.forEach(x=>{if(bkSkip(c,x.id)||Object.prototype.hasOwnProperty.call(want,x.id))return;
+      ops.push(['delete',x.ref],['set',doc(collection(db,TOMB)),{c,id:x.id,[U]:serverTimestamp()}]);del++;});
+    Object.entries(want).forEach(([id,d])=>{if(bkSkip(c,id))return;ops.push(['set',doc(db,c,id),stamp(bkIn(d))]);put++;});
+  }
+  for(let i=0;i<ops.length;i+=400){const b=writeBatch(db);ops.slice(i,i+400).forEach(o=>applyOp(b,o));await withTimeout(b.commit(),60000);if(prog)prog(Math.min(i+400,ops.length),ops.length);}
+  const ep=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  await withTimeout(setDoc(doc(db,'settings','meta'),{epoch:ep,[U]:serverTimestamp()}),30000);
+  return{put,del};
+}
+window.DB={db,counterTx,collection,doc,addDoc:addDocU,updateDoc:updateDocU,deleteDoc:deleteDocU,getDocs,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc:setDocU,writeBatch:writeBatchU,increment,arrayUnion,arrayRemove,deleteField,nextCounter,createOnce,live,liveTombs,resyncAll,checkEpoch,bkDump,bkRestore,bkCheck};
 window.AUTH=auth;window.SIGN_IN=signInWithEmailAndPassword;window.SIGN_OUT=signOut;window.ON_AUTH=onAuthStateChanged;
 window.dispatchEvent(new Event('dbReady'));
 </script>
@@ -444,7 +495,11 @@ body.light .bwa{color:#128c4a}
 .cd-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}.cd-main,.cd-side{min-width:0}
 .plink{color:var(--green);text-decoration:none;font-weight:700}
 @media(max-width:768px){.cd-grid{grid-template-columns:1fr}.cd-side{order:-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.cd-side>.sc{margin:0!important;padding:10px}.cd-side .sv{font-size:var(--fs-md)!important}.cd-side>.cd-cmt{grid-column:1/-1}.plink{display:inline-block;padding:6px 0}}
-.slist{display:flex;flex-direction:column;gap:7px}.sit{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--bg3);border-radius:var(--r2)}
+.slist{display:flex;flex-direction:column;gap:7px}
+/* Резервная копия */
+.bk-t{font-size:var(--fs-xs);color:var(--t2);line-height:1.55;margin:0 0 10px}.bk-s{color:var(--t3)}.bk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}.bk-fn{font-size:var(--fs-xs);color:var(--t3);overflow-wrap:anywhere;min-width:0}
+.bk-sep{height:1px;background:var(--brd);margin:6px 0 12px}.bk-st:empty{display:none}.bk-ok,.bk-warn,.bk-err{font-size:var(--fs-xs);line-height:1.55;border-radius:var(--r2);padding:8px 11px;margin:0 0 10px}.bk-ok{background:rgba(149,193,31,0.1);color:var(--text)}.bk-warn{background:rgba(255,165,2,0.1);color:var(--yellow)}.bk-err{background:rgba(255,71,87,0.1);color:var(--red)}
+.bk-box{background:var(--bg3);border-radius:var(--r2);padding:12px 13px}.bk-h{font-weight:700;font-size:var(--fs-sm);margin-bottom:6px}.sit{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--bg3);border-radius:var(--r2)}
 .sadd{display:flex;gap:8px;margin-top:10px}.sadd .inp{flex:1}
 .inp-ro{opacity:.65;cursor:default}
 .part-ph{width:160px;flex:0 0 160px!important;margin-bottom:0;padding:6px 10px;font-size:var(--fs-xs)}
@@ -1381,6 +1436,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div class="pt">Настройки</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 <div class="card"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
 <div class="card"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
+<div class="card" id="bkCard"><div class="ct">Резервная копия</div><div id="bkBody"></div></div>
 <div class="card" id="renumCard" style="display:none"><div class="ct">Номера в новом формате</div><div id="renumBody"></div></div>
 <div class="card"><div class="ct">Шаблоны WhatsApp</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">Подстановки: {имя} {фио} {договор} {сумма} {дата} {дней} {просрочено} {остаток} {товар}</div><label class="lbl">Ближайшие 5 дней</label><textarea class="inp" id="waSoon" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Сегодня</label><textarea class="inp" id="waToday" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Просрочка</label><textarea class="inp" id="waOverdue" rows="4" style="resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn bg bsm" onclick="saveWaTpl()">Сохранить</button><button class="btn bgh bsm" onclick="resetWaTpl()">По умолчанию</button></div></div>
 </div></div>
@@ -1627,7 +1683,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 2';
+const CRM_VERSION='05.11.2026 · 3';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -3043,7 +3099,7 @@ let _ensuringCash=false;
 async function ensureCashWallet(){
   if(_ensuringCash)return;
   const has=S.wallets.some(w=>w.isDefault||(w.name==='Наличные'&&w.type==='cash'));
-  if(!has&&_inited){
+  if(!has&&_inited&&!_saving){ // во время восстановления из копии счета на миг пропадают — не создаём лишний
     _ensuringCash=true;
     try{await window.DB.addDoc(window.DB.collection(window.DB.db,'wallets'),{name:'Наличные',type:'cash',balance:0,isDefault:true});}
     catch(e){console.error('ensureCashWallet:',e);}
@@ -3051,7 +3107,7 @@ async function ensureCashWallet(){
   }
 }
 function renderSettings(){
-  renderRecon();renderWaTpl();renderRenum();
+  renderRecon();renderWaTpl();renderRenum();renderBackup();
   document.getElementById('partList').innerHTML=S.partners.map((p,i)=>{
     const locked=p==='Сторонний';
     return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:var(--fs-sm);font-weight:600">'+esc(p)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(fmtPhone(S.partnerPhones[p]||''))+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
@@ -3060,6 +3116,116 @@ function renderSettings(){
     const locked=w.isDefault||(w.name==='Наличные'&&w.type==='cash');
     return'<div class="sit'+(locked?' locked':'')+'"><div><div style="font-size:var(--fs-sm);font-weight:600">'+esc(w.name)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный)</span>':'')+'</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+(w.type==='cash'?'Наличные':'Карта / Счёт')+' · '+fmt(w.balance||0)+' ₽</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="renameWallet(\''+w.id+'\')">Переименовать</button>'+(locked?'':'<button class="btn br bsm" onclick="removeWallet(\''+w.id+'\','+((w.balance||0))+')">Удалить</button>')+'</div></div>';
   }).join('');
+}
+// ---------- РЕЗЕРВНАЯ КОПИЯ (Настройки) ----------
+// «Скачать копию» — вся база одним файлом; по желанию файл шифруется паролем (AES-256, ключ из пароля через PBKDF2).
+// «Восстановить» — показывает дату и состав копии, просит сначала сохранить текущие данные, потом возвращает базу к копии.
+const BK_ITER=310000;let _bkFile=null,_bkB=null,_bkPre=null,_bkPw='',_bkPreSaved=false;
+const bkB64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s);};
+const bkUnB64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function bkKey(pw,salt,iter){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function bkEncrypt(text,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await bkKey(pw,salt,BK_ITER),new TextEncoder().encode(text));
+  return JSON.stringify({format:'amana-crm-backup-encrypted',version:1,kdf:{name:'PBKDF2',hash:'SHA-256',iterations:BK_ITER,salt:bkB64(salt)},cipher:{name:'AES-GCM',iv:bkB64(iv)},data:bkB64(new Uint8Array(ct))});}
+async function bkDecrypt(E,pw){const k=await bkKey(pw,bkUnB64(E.kdf.salt),E.kdf.iterations);
+  return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:bkUnB64(E.cipher.iv)},k,bkUnB64(E.data)));}
+const bkDT=iso=>{const d=new Date(iso);return isNaN(d)?'—':fmtD(d)+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});};
+const bkName=d=>{const z=n=>String(n).padStart(2,'0');return'amana-backup-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes())+'.json';};
+function bkSummary(B){const n=c=>Object.keys((B.collections||{})[c]||{}).length,it=(v,a,b,c)=>'<b>'+v+'</b>\u00a0'+invPlural(v,a,b,c);
+  return[it(n('clients'),'договор','договора','договоров'),it(n('persons'),'клиент','клиента','клиентов'),it(n('payments'),'платёж','платежа','платежей'),
+    it(n('kassaOps'),'операция\u00a0кассы','операции\u00a0кассы','операций\u00a0кассы'),it(n('investors'),'участник','участника','участников')+' (инвесторы)'].join(' · ');}
+// Готовый файл: на телефоне — через «Поделиться» (там «Сохранить в Файлы»), на компьютере — обычное скачивание
+async function bkDeliver(f){
+  let file=null;try{file=new File([f.blob],f.name,{type:'application/json'});}catch(e){}
+  if(file&&matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file]});return true;}catch(e){if(e&&e.name==='AbortError')return false;}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(f.blob);a.download=f.name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},10000);return true;
+}
+async function bkMake(pw){
+  const B=await window.DB.bkDump();B.app=CRM_VERSION;B.createdBy=curUser();
+  let text=JSON.stringify(B,null,1);if(pw)text=await bkEncrypt(text,pw);
+  return{blob:new Blob([text],{type:'application/json'}),name:bkName(new Date(B.createdAt)),B,enc:!!pw};
+}
+function renderBackup(){
+  const el=document.getElementById('bkBody');if(!el||el.dataset.on)return;el.dataset.on='1';
+  el.innerHTML='<div class="bk-t">Вся база одним файлом: договоры, клиенты, платежи, касса, счета, инвесторы, закрытые месяцы, история действий и настройки. Храните файл не только на телефоне: например, на компьютере и в облаке. Этот же файл подойдёт для переезда CRM на другой сервер.</div>'+
+    '<label class="lbl" for="bkPw">Пароль для файла (необязательно)</label><input class="inp" type="password" id="bkPw" autocomplete="new-password" placeholder="Без пароля файл читается любым"/>'+
+    '<div class="bk-t bk-s">С паролем файл зашифрован. Забудете пароль — открыть копию будет нельзя, восстановить пароль невозможно.</div>'+
+    '<div class="bk-row"><button class="btn bg" id="bkDl" onclick="bkSave()">Скачать копию</button></div><div id="bkSt" class="bk-st" aria-live="polite"></div>'+
+    '<div class="bk-sep"></div><div class="bk-t">Восстановление вернёт базу к моменту копии: всё, что внесли после, пропадёт. История действий остаётся как есть.</div>'+
+    '<input type="file" id="bkFile" accept=".json,application/json" style="display:none" onchange="bkPick(this)"/>'+
+    '<div class="bk-row"><button class="btn bgh" id="bkPickBtn" onclick="document.getElementById(\'bkFile\').click()">Восстановить из копии…</button></div><div id="bkRs" aria-live="polite"></div>';
+}
+async function bkSave(){
+  const btn=document.getElementById('bkDl'),st=document.getElementById('bkSt'),pw=document.getElementById('bkPw').value;
+  if(btn.disabled)return;btn.disabled=true;btn.textContent='Готовлю копию…';st.innerHTML='';
+  try{
+    _bkFile=await bkMake(pw);const B=_bkFile.B;
+    const coarse=matchMedia('(pointer:coarse)').matches;
+    st.innerHTML='<div class="bk-ok">Копия готова'+(_bkFile.enc?' (с паролем)':'')+': '+bkSummary(B)+'.</div>'+
+      (B.source==='device'?'<div class="bk-warn">Сервер не ответил — копия сделана из данных на этом устройстве. Последние изменения с других устройств могут в неё не попасть.</div>':'')+
+      '<div class="bk-row"><button class="btn bg" onclick="bkDeliver(_bkFile)">'+(coarse?'Сохранить файл':'Скачать ещё раз')+'</button><span class="bk-fn">'+esc(_bkFile.name)+'</span></div>';
+    if(!coarse)await bkDeliver(_bkFile);
+    if(B.source==='server')logA('Скачана резервная копия',bkSummary(B).replace(/<\/?b>/g,'')+(_bkFile.enc?' · с паролем':''));
+  }catch(e){console.error('Копия:',e);st.innerHTML='<div class="bk-err">Не получилось сделать копию: '+esc(e&&e.message||String(e))+'</div>';}
+  finally{btn.disabled=false;btn.textContent='Скачать копию';}
+}
+// Выбран файл копии: читаем, при необходимости спрашиваем пароль, проверяем и показываем, что внутри
+async function bkPick(inp){
+  const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  const rs=document.getElementById('bkRs');_bkB=null;_bkPre=null;_bkPw='';_bkPreSaved=false;
+  let J;try{J=JSON.parse(await f.text());}catch(e){rs.innerHTML='<div class="bk-err">Это не файл копии Amana CRM (файл не читается).</div>';return;}
+  if(J&&J.format==='amana-crm-backup-encrypted'){
+    window._bkEnc=J;rs.innerHTML='<div class="bk-t">Файл защищён паролем.</div><label class="lbl" for="bkOpenPw">Пароль файла</label><input class="inp" type="password" id="bkOpenPw" autocomplete="off" onkeydown="if(event.key===\'Enter\')bkOpenEnc()"/><div class="bk-row"><button class="btn bg" id="bkOpenBtn" onclick="bkOpenEnc()">Открыть</button></div><div id="bkOpenSt"></div>';
+    return;
+  }
+  bkShow(J);
+}
+async function bkOpenEnc(){
+  const pw=document.getElementById('bkOpenPw').value,st=document.getElementById('bkOpenSt'),btn=document.getElementById('bkOpenBtn');
+  if(!pw){st.innerHTML='<div class="bk-err">Введите пароль.</div>';return;}
+  btn.disabled=true;btn.textContent='Открываю…';
+  let J;try{J=JSON.parse(await bkDecrypt(window._bkEnc,pw));}catch(e){st.innerHTML='<div class="bk-err">Неверный пароль или файл повреждён.</div>';btn.disabled=false;btn.textContent='Открыть';return;}
+  _bkPw=pw;bkShow(J);
+}
+function bkShow(B){
+  const rs=document.getElementById('bkRs'),err=window.DB.bkCheck(B);
+  if(err){rs.innerHTML='<div class="bk-err">'+esc(err)+'.</div>';return;}
+  _bkB=B;
+  rs.innerHTML='<div class="bk-box"><div class="bk-h">Копия от '+bkDT(B.createdAt)+'</div><div class="bk-t">'+bkSummary(B)+'</div>'+
+    (B.source==='device'?'<div class="bk-warn">Эта копия была сделана без связи с сервером, из данных устройства.</div>':'')+
+    '<div class="bk-t"><b>Шаг 1.</b> Сохраните текущие данные — на случай, если понадобится вернуться к ним.</div>'+
+    '<div class="bk-row"><button class="btn bg" id="bkPreBtn" disabled onclick="bkSavePre()">Готовлю текущие данные…</button></div>'+
+    '<div class="bk-t"><b>Шаг 2.</b> Восстановить базу из копии от '+bkDT(B.createdAt)+'. Перед этим попросите всех закрыть CRM.</div>'+
+    '<div class="bk-row"><button class="btn br" id="bkGo" disabled onclick="bkRestoreAsk()">Восстановить</button><button class="btn bgh" onclick="bkCancel()">Отмена</button></div><div id="bkGoSt"></div></div>';
+  const pw=_bkPw||document.getElementById('bkPw').value;
+  bkMake(pw).then(f=>{if(_bkB!==B)return;_bkPre=f;const b=document.getElementById('bkPreBtn');if(b){b.disabled=false;b.textContent='Сохранить текущие данные'+(f.enc?' (с паролем)':'');}})
+    .catch(e=>{const b=document.getElementById('bkPreBtn');if(b)b.textContent='Не получилось: '+(e&&e.message||e);});
+}
+async function bkSavePre(){
+  if(!_bkPre)return;const ok=await bkDeliver(_bkPre);if(!ok)return;
+  _bkPreSaved=true;const b=document.getElementById('bkPreBtn');if(b){b.textContent='Сохранено ✓ · сохранить ещё раз';b.classList.replace('bg','bgh');}
+  const g=document.getElementById('bkGo');if(g)g.disabled=false;
+}
+function bkCancel(){_bkB=null;_bkPre=null;_bkPw='';_bkPreSaved=false;document.getElementById('bkRs').innerHTML='';}
+function bkRestoreAsk(){
+  if(!_bkB||!_bkPreSaved)return;const B=_bkB;
+  showConfirm('Восстановить из копии?','База вернётся к '+bkDT(B.createdAt)+': '+bkSummary(B)+'.<br>Всё, что внесли после этого момента, пропадёт. Остатки счетов и номера договоров тоже станут как в копии.<br>После восстановления CRM перезагрузится.',()=>bkDoRestore(B));
+}
+async function bkDoRestore(B){
+  if(_saving)return;_saving=true;
+  const g=document.getElementById('bkGo'),st=document.getElementById('bkGoSt');if(g){g.disabled=true;g.textContent='Восстанавливаю…';}
+  try{
+    const r=await window.DB.bkRestore(B,(i,n)=>{if(st)st.innerHTML='<div class="bk-t">Записано '+i+' из '+n+'…</div>';});
+    await logA('Восстановление из резервной копии','копия от '+bkDT(B.createdAt)+' · записано: '+r.put+', удалено: '+r.del);
+    if(st)st.innerHTML='<div class="bk-ok">Готово. База восстановлена, CRM перезагружается…</div>';
+    toast('База восстановлена из копии','tok');
+    setTimeout(()=>window.DB.resyncAll(),1200);
+  }catch(e){console.error('Восстановление:',e);_saving=false;
+    if(st)st.innerHTML='<div class="bk-err">Ошибка: '+esc(e&&e.message||String(e))+'. Восстановление можно запустить ещё раз с тем же файлом — результат будет тем же.</div>';
+    if(g){g.disabled=false;g.textContent='Восстановить';}}
 }
 // ---------- ПЕРЕНУМЕРАЦИЯ В НОВЫЙ ФОРМАТ (разово) ----------
 // Клиенты — К-00001… по порядку старых номеров; договоры — ГГ-0001… по году и дате договора.
