@@ -30,7 +30,7 @@ export default async function(){
   // окно месяца: капитал каждого участника на конец месяца в рублях
   const cap=await A.p.evaluate(mk=>{openInvMonth(mk);const d=invMonthData(invModel(),mk),hs=[...document.querySelectorAll('#imBody thead th')].map(t=>t.textContent),ci=hs.indexOf('Капитал на конец');
     const cells=[...document.querySelectorAll('#imBody tbody tr:not(.inv-subrow)')].map(tr=>tr.children[ci]&&tr.children[ci].textContent);closeM('mInvMonth');
-    const want=d.rows.slice().sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||b.capEnd-a.capEnd).map(r=>fmt(r.capEnd||0)+' ₽');return{ci,cells,want};},mk);
+    const want=d.rows.slice().sort((a,b)=>(a.role==='founder'?0:1)-(b.role==='founder'?0:1)||b.capEnd-a.capEnd).map(r=>fmt(r.capEnd||0)+'\u00a0₽');return{ci,cells,want};},mk);
   check('окно месяца показывает капитал участника на конец месяца в рублях',cap.ci===1&&cap.cells.length>0&&JSON.stringify(cap.cells)===JSON.stringify(cap.want),cap);
   // итоги пула: суммы совпадают с балансами участников и закрытыми месяцами
   const ps=await A.p.evaluate(()=>{S.invTab='months';S.invYears=[];goTo('investors');const M=invModel(),st=invPoolStats(M),R=x=>Math.round(x*100)/100;
@@ -42,7 +42,7 @@ export default async function(){
     document.querySelectorAll('#invContent details.inv-jm').forEach(d=>{const mk=d.dataset.mk,ops=M.ops.filter(o=>monthKey(o._d)===mk);n+=ops.length;
       const cnt=d.querySelectorAll('.inv-desk tbody tr').length;if(cnt!==ops.length)bad.push(mk+': строк '+cnt+' из '+ops.length);
       const dep=ops.filter(o=>o.type==='deposit').reduce((a,o)=>a+o._a,0),chip=[...d.querySelectorAll('.inv-jchip')].find(c=>/Пополнения/.test(c.textContent));
-      if(dep>0&&(!chip||chip.querySelector('b').textContent!=='+'+fmt(invR(dep))+' ₽'))bad.push(mk+': пополнения');});
+      if(dep>0&&(!chip||chip.querySelector('b').textContent!=='+'+fmt(invR(dep))+'\u00a0₽'))bad.push(mk+': пополнения');});
     const open=[...document.querySelectorAll('#invContent details.inv-jm')].map(d=>d.open);
     return{bad,n,total:M.ops.length,groups:open.length,open};});
   check('журнал инвесторов разбит по месяцам, итоги месяцев верные, месяцы по умолчанию свёрнуты',!jg.bad.length&&jg.n===jg.total&&jg.groups>=2&&jg.open.every(x=>x===false),jg);
