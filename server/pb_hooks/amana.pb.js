@@ -10,6 +10,9 @@ routerAdd('POST', '/api/amana/staff', (e) => require(`${__hooks}/amana_lib.js`).
 routerAdd('POST', '/api/amana/staff/{id}', (e) => require(`${__hooks}/amana_lib.js`).staffSave(e, $app), $apis.requireAuth('users', '_superusers'));
 routerAdd('DELETE', '/api/amana/staff/{id}', (e) => require(`${__hooks}/amana_lib.js`).staffDelete(e, $app), $apis.requireAuth('users', '_superusers'));
 
+// Вход и продление входа сотрудника: запоминаем устройство и время (ошибка записи не мешает войти)
+onRecordAuthRequest((e) => { e.next(); try { require(`${__hooks}/amana_lib.js`).noteDevice(e, $app); } catch (x) { console.log('devices:', x); } }, 'users');
+
 // Себестоимость в договорах — только тем, у кого есть право её видеть
 onRecordEnrich((e) => { require(`${__hooks}/amana_lib.js`).enrichClient(e); e.next(); }, 'clients');
 

@@ -296,7 +296,9 @@ body.no-kassa_ops.no-purchase [onclick^="openKassaOp("],body.no-kassa_ops [oncli
 body.no-inv_ops [onclick^="openInvOp("],body.no-inv_ops [onclick^="openInvForm("],body.no-inv_ops [onclick^="invCloseMonth("],body.no-inv_ops [onclick^="invReopenMonth("],body.no-inv_ops [onclick^="invFormDelete("],
 body.no-backup [onclick^="exportExcel("],body.no-settings .perm-settings,body.no-backup .perm-backup,body.no-restore .perm-restore,body.no-backup.no-restore .perm-bk,body.no-staff .perm-staff,
 body.no-settings [onclick^="goTo('settings'"],body.no-staff.no-backup.no-restore [onclick^="goTo('security'"]{display:none!important}
-.st-row.st-off{box-shadow:inset 3px 0 0 var(--red)}.st-tag{font-size:var(--fs-xs);font-weight:700;color:var(--green);margin-left:4px}.st-tag-off{color:var(--red)}
+.st-row.st-off{box-shadow:inset 3px 0 0 var(--red)}
+.st-last{font-size:var(--fs-xs);color:var(--t2);margin-top:3px}.st-dev{margin-top:6px;font-size:var(--fs-xs);color:var(--t2)}.st-dev>summary{cursor:pointer;font-weight:700;color:var(--green);min-height:32px;display:flex;align-items:center}
+.st-dev-it{padding:7px 0;border-top:1px solid var(--brd2);line-height:1.5;overflow-wrap:anywhere}.st-tag{font-size:var(--fs-xs);font-weight:700;color:var(--green);margin-left:4px}.st-tag-off{color:var(--red)}
 .st-g{margin:0 0 12px}.st-gt{font-size:var(--fs-xs);font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin:0 0 6px}
 .st-ck{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:var(--r2);background:var(--bg3);margin:0 0 6px;cursor:pointer;font-size:var(--fs-sm)}
 .st-ck input{width:20px;height:20px;accent-color:var(--green);flex:none;margin:0}.st-ck input:disabled+span{opacity:.75}
@@ -1499,7 +1501,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 9';
+const CRM_VERSION='05.11.2026 · 10';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -3013,11 +3015,26 @@ async function renderStaff(){
     const own=u.perms==='*',n=own?0:PERM_KEYS.filter(k=>u.perms.indexOf(','+k+',')>=0).length,pr=presetOf(u.perms);
     const what=own?'Владелец — все права':(pr?pr[1]+' · ':'')+n+' '+invPlural(n,'право','права','прав');
     return'<div class="sit st-row'+(u.disabled?' st-off':'')+'"><div><div style="font-size:var(--fs-sm);font-weight:600">'+esc(u.name||u.email)+(u.id===me?' <span class="st-tag">это вы</span>':'')+(u.disabled?' <span class="st-tag st-tag-off">вход отключён</span>':'')+'</div>'+
-      '<div style="font-size:var(--fs-xs);color:var(--t3);overflow-wrap:anywhere">'+(u.name?esc(u.email)+' · ':'')+esc(what)+'</div></div>'+
+      '<div style="font-size:var(--fs-xs);color:var(--t3);overflow-wrap:anywhere">'+(u.name?esc(u.email)+' · ':'')+esc(what)+'</div>'+staffDevHtml(u)+'</div>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="openStaff(\''+u.id+'\')">Права</button>'+
       (u.id===me?'':'<button class="btn bgh bsm" onclick="staffToggle(\''+u.id+'\')">'+(u.disabled?'Включить вход':'Отключить вход')+'</button><button class="btn br bsm" onclick="staffDel(\''+u.id+'\')">Удалить</button>')+'</div></div>';}).join('');
   el.innerHTML='<div class="bk-t">Каждому сотруднику — свой вход и свои права. Права проверяет сервер: без права действие не выполнится, а скрытые разделы и себестоимость сотрудник не получит вовсе.</div><div class="slist">'+rows+'</div><div class="bk-row" style="margin-top:10px"><button class="btn bg" onclick="openStaff()">+ Сотрудник</button></div>';
 }
+// Устройства сотрудника: последний вход сразу, весь список — по нажатию (свёрнут, пока не откроете)
+const stDT=ms=>{if(!ms)return'—';const d=new Date(ms);return fmtD(d)+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});};
+const _stDevOpen={};
+function staffDevHtml(u){
+  const ds=u.devices||[],mine=window.DB&&window.DB.deviceId,me=_staff&&u.id===_staff.me;
+  if(!ds.length)return'<div class="st-last">Ещё не входил</div>';
+  const last=ds[0],item=d=>'<div class="st-dev-it"><div style="font-weight:600">'+esc(d.name||'Устройство')+(me&&d.key===mine?' <span class="st-tag">это устройство</span>':'')+'</div>'+
+    '<div>Последний вход: <b>'+stDT(d.last)+'</b> · первый: '+stDT(d.first)+' · входов: '+(d.count||1)+(d.ip?' · IP '+esc(d.ip):'')+'</div></div>';
+  return'<div class="st-last">Последний вход: <b>'+stDT(last.last)+'</b> · '+esc(last.name||'')+'</div>'+
+    '<details class="st-dev"'+(_stDevOpen[u.id]?' open':'')+' ontoggle="_stDevOpen[\''+u.id+'\']=this.open"><summary>Устройства: '+ds.length+'</summary>'+ds.map(item).join('')+
+    '<button class="btn bgh bsm" style="margin-top:6px" onclick="staffLogoutAll(\''+u.id+'\')">Выйти на всех устройствах</button></details>';
+}
+function staffLogoutAll(id){const u=_staff&&_staff.list.find(x=>x.id===id);if(!u)return;const me=u.id===_staff.me;
+  showConfirm('Выйти на всех устройствах?',esc(u.name||u.email)+': вход на всех телефонах и компьютерах перестанет действовать, войти можно будет заново с паролем.'+(me?'<br><b>Это ваш вход — вас тоже попросит войти заново.</b>':''),async()=>{
+    try{await window.DB.staff.save(id,{logoutAll:true});await logA('Выход на всех устройствах',u.email).catch(()=>{});toast('Готово: все входы сброшены','tok');if(me)setTimeout(()=>location.reload(),800);else renderStaff();}catch(e){toast('Ошибка: '+e.message,'ter');}});}
 const presetOf=perms=>{if(perms==='*')return PERM_PRESETS[0];const set=PERM_KEYS.filter(k=>perms.indexOf(','+k+',')>=0).sort().join();return PERM_PRESETS.find(p=>p[2]!=='*'&&p[2].slice().sort().join()===set)||null;};
 function openStaff(id){
   const u=id&&_staff?_staff.list.find(x=>x.id===id):null;_staffEdit=u;const self=u&&_staff&&u.id===_staff.me;

@@ -247,7 +247,10 @@ const staffView = (r) => ({ id: r.id, email: r.email(), name: r.getString('name'
 function staffGuard(e) { if (!has(myPerms(e), 'staff')) { e.json(403, { code: 'denied', message: 'Нет права: ' + PERM_LABEL.staff }); return false; } return true; }
 function staffList(e, app) {
   if (!staffGuard(e)) return;
-  const list = app.findAllRecords('users').map(staffView).sort((a, b) => (a.created < b.created ? -1 : 1));
+  const devs = {};
+  try { app.findAllRecords('devices').forEach((d) => { const u = d.getString('user'); (devs[u] = devs[u] || []).push({ key: d.getString('key'), name: d.getString('name'), ip: d.getString('ip'), first: d.getInt('first'), last: d.getInt('last'), count: d.getInt('count') }); }); } catch (x) {}
+  const list = app.findAllRecords('users').map(staffView).sort((a, b) => (a.created < b.created ? -1 : 1))
+    .map((u) => Object.assign(u, { devices: (devs[u.id] || []).sort((a, b) => b.last - a.last) }));
   return e.json(200, { list, me: e.auth.id, perms: PERMS.map((k) => ({ k, label: PERM_LABEL[k] })) });
 }
 function staffSave(e, app) {
@@ -274,6 +277,7 @@ function staffSave(e, app) {
   if (b.name !== undefined) r.set('name', String(b.name).slice(0, 100));
   if (perms !== undefined) r.set('perms', perms);
   if (b.disabled !== undefined) { r.set('disabled', !!b.disabled); if (b.disabled) r.refreshTokenKey(); }
+  if (b.logoutAll && id) r.refreshTokenKey(); // все входы этого сотрудника перестают действовать
   try { app.save(r); } catch (x) { return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
   return e.json(200, staffView(r));
 }
@@ -284,6 +288,7 @@ function staffDelete(e, app) {
   let r; try { r = app.findRecordById('users', id); } catch (x) { return e.json(404, { code: 'missing', message: 'Сотрудник не найден' }); }
   if (r.getString('perms') === '*' && myPerms(e) !== '*') return e.json(403, { code: 'denied', message: 'Удалить владельца может только владелец' });
   app.delete(r);
+  try { app.findRecordsByFilter('devices', 'user = {:u}', '', 0, 0, { u: id }).forEach((d) => app.delete(d)); } catch (x) {}
   return e.json(200, { ok: true });
 }
 // Себестоимость не уходит к тем, кому её видеть нельзя (списки, карточки, realtime)
@@ -295,4 +300,28 @@ function enrichClient(e) {
   }
 }
 
-module.exports = { commit, Fail, staffList, staffSave, staffDelete, enrichClient, has, PERMS };
+
+// ---------- Устройства: записываются при каждом входе и продлении входа ----------
+function devName(ua, app) {
+  ua = String(ua || '');
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac OS X|Macintosh/.test(ua) ? 'Mac' : /CrOS/.test(ua) ? 'Chromebook' : /Linux/.test(ua) ? 'Linux' : 'Устройство';
+  const br = /YaBrowser/.test(ua) ? 'Яндекс Браузер' : /Edg[A]?\//.test(ua) ? 'Edge' : /OPR\/|Opera/.test(ua) ? 'Opera' : /Firefox|FxiOS/.test(ua) ? 'Firefox' : /CriOS|Chrome/.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : 'браузер';
+  return os + ' · ' + (app ? 'приложение на экране «Домой»' : br);
+}
+function noteDevice(e, app) {
+  const rec = e.record; if (!rec || rec.collection().name !== 'users') return;
+  // заголовки запроса: имена в нижнем регистре, «-» → «_» (так их отдаёт requestInfo)
+  const hs = (e.requestInfo().headers) || {}, h = (n) => String(hs[n] || ''), ua = h('user_agent').slice(0, 1000);
+  let key = h('x_amana_device').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
+  if (!key) { let x = 0; for (let i = 0; i < ua.length; i++) x = (x * 31 + ua.charCodeAt(i)) | 0; key = 'ua' + (x >>> 0).toString(36); }
+  const isApp = h('x_amana_app') === '1', now = Date.now();
+  let d = null;
+  try { d = app.findFirstRecordByFilter('devices', 'user = {:u} && key = {:k}', { u: rec.id, k: key }); } catch (x) { d = null; }
+  if (!d) { d = new Record(app.findCollectionByNameOrId('devices')); d.set('user', rec.id); d.set('key', key); d.set('first', now); d.set('count', 0); }
+  d.set('name', devName(ua, isApp)); d.set('ua', ua); d.set('ip', String(e.realIP() || '').slice(0, 100)); d.set('last', now); d.set('count', d.getInt('count') + 1);
+  app.save(d);
+  // не больше 30 устройств на сотрудника: самые давние стираются
+  try { const all = app.findRecordsByFilter('devices', 'user = {:u}', '-last', 0, 0, { u: rec.id }); all.slice(30).forEach((x) => app.delete(x)); } catch (x) {}
+}
+
+module.exports = { commit, Fail, staffList, staffSave, staffDelete, enrichClient, noteDevice, devName, has, PERMS };

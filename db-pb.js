@@ -14,6 +14,11 @@ import PocketBase from './vendor/pocketbase-0.28.1/pocketbase.es.js';
 const BASE = String(window.__AMANA_PB || location.origin).replace(/\/$/, '');
 const pb = new PocketBase(BASE);
 pb.autoCancellation(false);
+// Номер этого устройства (случайный, хранится на устройстве) и «приложение на экране Домой» — для списка устройств сотрудника
+const DEV_KEY = 'amana_device';
+let devId = ''; try { devId = localStorage.getItem(DEV_KEY) || ''; if (!devId) { devId = Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(36).padStart(2, '0')).join('').slice(0, 20); localStorage.setItem(DEV_KEY, devId); } } catch (e) {}
+const isApp = (() => { try { return navigator.standalone === true || matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } })();
+pb.beforeSend = (url, options) => { options.headers = Object.assign({}, options.headers, devId ? { 'X-Amana-Device': devId } : {}, { 'X-Amana-App': isApp ? '1' : '0' }); return { url, options }; };
 const TOMB = 'deleted';
 
 // ---------- Дата/время как в Firestore (у CRM везде .toDate()) ----------
@@ -95,7 +100,7 @@ async function api(path, body, ms) {
     if (e && e.message === 'timeout') { netFail(); throw new Error('Связь пропала во время сохранения. Изменение могло сохраниться — не повторяйте его, а проверьте через минуту.'); }
     const st = e && e.status, d = (e && e.response) || {};
     if (!st) throw netFail();
-    if (st === 401) throw Object.assign(new Error('Вход устарел — выйдите и войдите снова.'), { code: 'unauthenticated' });
+    if (st === 401) { authLost(); throw Object.assign(new Error('Вход больше не действует — войдите заново.'), { code: 'unauthenticated' }); }
     throw Object.assign(new Error(d.message || ('Ошибка сервера ' + st)), { code: ERR_CODE[d.code] || d.code || 'unknown' });
   }
   netOkAt = Date.now(); if (netDown) { netDown = false; netBadge(); }
@@ -367,12 +372,15 @@ const SIGN_IN = async (_a, email, pw) => {
   try { await pb.collection('users').authWithPassword(email, pw, { requestKey: null }); }
   catch (e) { const st = e && e.status; throw Object.assign(new Error('auth'), { code: st === 429 ? 'auth/too-many-requests' : !st ? 'auth/network-request-failed' : 'auth/invalid-credential' }); }
 };
+// Вход перестал действовать (вход отключён, «Выйти на всех устройствах», сменён пароль): показываем экран входа
+let _authLost = false;
+function authLost() { if (_authLost) return; _authLost = true; try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); setTimeout(() => location.reload(), 1200); }
 const SIGN_OUT = async () => { try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); };
 const ON_AUTH = (_a, cb) => {
   let last = AUTH.currentUser && AUTH.currentUser.uid;
   pb.authStore.onChange(() => { const u = AUTH.currentUser, id = u && u.uid; if (id !== last) { last = id; cb(u); } });
   setTimeout(() => cb(AUTH.currentUser), 0);
-  if (pb.authStore.isValid && navigator.onLine) pb.collection('users').authRefresh({ requestKey: null }).then(() => window.dispatchEvent(new Event('permsChanged'))).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) pb.authStore.clear(); });
+  if (pb.authStore.isValid && navigator.onLine) pb.collection('users').authRefresh({ requestKey: null }).then(() => window.dispatchEvent(new Event('permsChanged'))).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) authLost(); });
 };
 
 // ---------- Сотрудники и права (нужно право staff) ----------
@@ -389,6 +397,6 @@ const staff = {
 
 window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, getDoc, query, orderBy, limit, startAfter, where,
   setDoc: setDocU, writeBatch: writeBatchU, increment, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp, nextCounter, createOnce, live, liveTombs, resyncAll, checkEpoch,
-  bkDump, bkRestore, bkCheck, staff, backend: 'pocketbase', pb };
+  bkDump, bkRestore, bkCheck, staff, deviceId: devId, backend: 'pocketbase', pb };
 window.AUTH = AUTH; window.SIGN_IN = SIGN_IN; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
 window.dispatchEvent(new Event('dbReady'));
