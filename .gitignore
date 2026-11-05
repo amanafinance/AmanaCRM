@@ -3,3 +3,4 @@ backup/
 tests/node_modules/
 tests/*.log
 tests/audit-out/
+tests/.pb/

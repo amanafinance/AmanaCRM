@@ -6,13 +6,31 @@ import {doc,writeBatch,Timestamp} from 'firebase/firestore';
 export const PROJECT='amana-crm-16033';
 const OPEN="rules_version='2';service cloud.firestore{match /databases/{d}/documents{match /{p=**}{allow read,write: if request.auth!=null;}}}";
 
+// Свой сервер (PocketBase): те же данные через служебный адрес для тестов; даты → {$date}
+const toPB=v=>v instanceof Timestamp?{$date:v.toDate().toISOString()}:Array.isArray(v)?v.map(toPB):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,toPB(x)])):v;
+async function seedPB(opts){
+  const {PB_URL,pbAdmin}=await import('./lib.mjs');const t=await pbAdmin(),H={'Content-Type':'application/json',Authorization:t};
+  await fetch(PB_URL+'/api/amana/test/wipe',{method:'POST',headers:H});
+  const docs=[];if(!opts.empty)await fill(async(p,d)=>{const [c,id]=p.split("/");docs.push({c,id,data:toPB(d)});},opts);
+  for(let i=0;i<docs.length;i+=500){const r=await fetch(PB_URL+'/api/amana/test/seed',{method:'POST',headers:H,body:JSON.stringify({docs:docs.slice(i,i+500)})});if(!r.ok)throw new Error('seed '+r.status+' '+await r.text());}
+  return docs.length;
+}
 export async function seed(opts={}){
+  if(process.env.CRM_DB==='pb')return seedPB(opts);
   const env=await initializeTestEnvironment({projectId:PROJECT,firestore:{host:'127.0.0.1',port:8085,rules:OPEN}});
   await env.clearFirestore();
   let n=0;
   if(!opts.empty)await env.withSecurityRulesDisabled(async c=>{
     const db=c.firestore();let b=writeBatch(db);
     const put=async(p,d)=>{b.set(doc(db,p),d);if(++n%400===0){await b.commit();b=writeBatch(db);}};
+    await fill(put,opts);
+    await b.commit();
+  });
+  await env.cleanup();
+  return n;
+}
+// Тестовые данные (одинаковые для обеих баз)
+async function fill(put,opts={}){
     const now=new Date(),f=d=>('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
     for(let j=0;j<150;j++)await put('persons/P'+j,{name:'Клиент '+j,phones:['8928'+(1000000+j)],addr:'',note:'',no:'К-'+String(j+1).padStart(4,'0')});
     await put('settings/pcounter',{lastId:150});
@@ -45,8 +63,4 @@ export async function seed(opts={}){
     await put('wallets/w1',{name:'Наличные',type:'cash',balance:bal.w1,isDefault:true});
     await put('wallets/w2',{name:'Сбер',type:'card',balance:bal.w2});
     await put('settings/counter',{lastId:200});
-    await b.commit();
-  });
-  await env.cleanup();
-  return n;
 }

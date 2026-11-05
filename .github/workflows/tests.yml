@@ -11,6 +11,12 @@ jobs:
     # ubuntu-latest теперь 26.04, а Playwright 1.56 её ещё не поддерживает — закрепляем 24.04
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # Две базы: fb — Firebase (эмулятор), pb — свой сервер (PocketBase)
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [fb, pb]
+    name: test (${{ matrix.db }})
     defaults:
       run:
         working-directory: tests
@@ -22,9 +28,15 @@ jobs:
           cache: npm
           cache-dependency-path: tests/package-lock.json
       - uses: actions/setup-java@v4
+        if: matrix.db == 'fb'
         with:
           distribution: temurin
           java-version: 21
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm test
+        if: matrix.db == 'fb'
+      - run: ./get-pocketbase.sh && node run.mjs
+        if: matrix.db == 'pb'
+        env:
+          CRM_DB: pb

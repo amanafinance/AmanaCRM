@@ -8,6 +8,7 @@
 #   4. Включает HTTPS: сертификат Let's Encrypt для вашего домена получается и продлевается сам.
 #   5. Спрашивает email и пароль администратора базы — они вводятся только здесь, на сервере, никому не передаются.
 #   6. Каждую ночь в 03:30 сохраняет копию базы на сервере (хранятся 14 последних).
+#   7. Ставит саму CRM и каждые 5 минут обновляет её из GitHub (ветка main): сайт, таблицы и серверные проверки.
 #
 # Запуск (в консоли сервера, от root):
 #   curl -fsSL https://amanafinance.github.io/AmanaCRM/server/setup.sh -o setup.sh && bash setup.sh crm.ваш-домен.ru
@@ -40,7 +41,7 @@ say "Пакеты и обновления системы"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade
-apt-get -y -q install curl ca-certificates unzip jq ufw fail2ban unattended-upgrades sqlite3 dnsutils
+apt-get -y -q install curl ca-certificates unzip jq ufw fail2ban unattended-upgrades sqlite3 dnsutils git rsync
 
 say "Проверка: домен $DOMAIN указывает на этот сервер"
 MYIPS="$(hostname -I 2>/dev/null || true) $(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || true)"
@@ -124,7 +125,7 @@ Type=simple
 User=pocketbase
 Group=pocketbase
 WorkingDirectory=$APP
-ExecStart=$APP/pocketbase serve $DOMAIN --dir=$APP/pb_data --publicDir=$APP/pb_public --migrationsDir=$APP/pb_migrations --hooksDir=$APP/pb_hooks
+ExecStart=$APP/pocketbase serve $DOMAIN --dir=$APP/pb_data --publicDir=$APP/pb_public --migrationsDir=$APP/pb_migrations --hooksDir=$APP/pb_hooks --automigrate=false --hooksWatch=false
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -204,6 +205,62 @@ EOF
 systemctl daemon-reload
 systemctl enable --now amana-backup.timer >/dev/null
 
+say "CRM и автообновление из GitHub (каждые 5 минут)"
+cat >/usr/local/bin/amana-update <<'UPD'
+#!/usr/bin/env bash
+# Обновление CRM на сервере из GitHub (ветка main): сайт, таблицы базы и серверные проверки.
+# Запускается таймером каждые 5 минут; вручную: sudo amana-update --force
+set -euo pipefail
+SRC=/opt/amana-src APP=/opt/pocketbase REPO=https://github.com/amanafinance/AmanaCRM.git
+exec 9>/run/amana-update.lock; flock -n 9 || exit 0
+if [ ! -d "$SRC/.git" ]; then
+  rm -rf "$SRC"; git clone -q --depth 1 --branch main "$REPO" "$SRC"
+else
+  OLD="$(git -C "$SRC" rev-parse HEAD)"
+  git -C "$SRC" fetch -q --depth 1 origin main
+  NEW="$(git -C "$SRC" rev-parse FETCH_HEAD)"
+  if [ "$OLD" = "$NEW" ] && [ "${1:-}" != "--force" ]; then exit 0; fi
+  git -C "$SRC" reset -q --hard FETCH_HEAD
+fi
+# сайт: только то, что нужно браузеру
+STAGE="$(mktemp -d)"; trap 'rm -rf "$STAGE"' EXIT
+cp -a "$SRC/index.html" "$SRC/db-pb.js" "$SRC"/icon-*.png "$SRC/vendor" "$STAGE/"
+rsync -a --delete "$STAGE/" "$APP/pb_public/"
+# серверная часть: если изменилась — перезапуск (новые таблицы создаются при запуске)
+CH=0
+for d in pb_hooks pb_migrations; do
+  if ! diff -qr "$SRC/server/$d" "$APP/$d" >/dev/null 2>&1; then rsync -a --delete "$SRC/server/$d/" "$APP/$d/"; CH=1; fi
+done
+chown -R pocketbase:pocketbase "$APP/pb_public" "$APP/pb_hooks" "$APP/pb_migrations"
+if [ "$CH" = 1 ]; then systemctl restart pocketbase; fi
+echo "Amana CRM: версия $(git -C "$SRC" rev-parse --short HEAD)"
+UPD
+chmod 755 /usr/local/bin/amana-update
+cat >/etc/systemd/system/amana-update.service <<'UPD'
+[Unit]
+Description=Amana CRM: обновление из GitHub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/amana-update
+UPD
+cat >/etc/systemd/system/amana-update.timer <<'UPD'
+[Unit]
+Description=Amana CRM: проверять обновления каждые 5 минут
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+UPD
+systemctl daemon-reload
+/usr/local/bin/amana-update --force || warn "CRM не скачалась с GitHub — проверьте позже: sudo amana-update --force"
+systemctl enable --now amana-update.timer >/dev/null
+
 say "Проверка HTTPS (получение сертификата может занять до минуты)"
 OK=0
 for _ in $(seq 1 30); do
@@ -215,7 +272,7 @@ done
 echo
 if [ "$OK" = 1 ]; then
   say "ГОТОВО"
-  echo "  Сервер CRM:        https://$DOMAIN"
+  echo "  CRM:               https://$DOMAIN"
   echo "  Панель базы:       https://$DOMAIN/_/   (вход — email и пароль администратора)"
 else
   warn "PocketBase работает, но HTTPS пока не ответил."
@@ -224,6 +281,7 @@ else
   echo "  Журнал службы:     journalctl -u pocketbase -n 50"
 fi
 echo "  Копии базы:        $BK (каждую ночь в 03:30)"
+echo "  Обновление CRM:    само, каждые 5 минут (вручную: amana-update --force)"
 echo "  Журнал настройки:  $LOG"
 echo
 echo "Пришлите в чат только это: «Сервер готов, домен $DOMAIN». Пароли не присылайте."
