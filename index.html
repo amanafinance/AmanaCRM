@@ -419,6 +419,9 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .kcard-top .badge{font-size:var(--fs-xs);padding:1px 5px}
 .kcard-amount{font-weight:700;font-size:var(--fs-xs);font-family:'Manrope',sans-serif}
 .kcard-desc{font-size:var(--fs-xs);color:var(--t2);line-height:1.25;margin-bottom:3px;word-wrap:break-word}
+.k-deal{cursor:pointer;text-decoration:underline;text-decoration-color:var(--brd2);text-underline-offset:3px;border-radius:4px}.k-deal svg{margin-left:3px;vertical-align:-1px;color:var(--t3)}
+.k-deal:hover,.k-deal:focus-visible{color:var(--green);text-decoration-color:currentColor;outline:none}.k-deal:hover svg{color:currentColor}
+.kcard-link{cursor:pointer}.kcard-link:active{border-color:var(--brd2)}
 .kcard-bot{display:flex;justify-content:space-between;align-items:center;font-size:var(--fs-xs);color:var(--t3);gap:4px;flex-wrap:wrap}
 .kcard-bal{font-weight:700;color:var(--text)}
 /* Касса — кошельки мельче */
@@ -1502,7 +1505,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 13';
+const CRM_VERSION='05.11.2026 · 14';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2852,6 +2855,12 @@ function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getSt
 function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Введите сумму скидки числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
 async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{const{doc,writeBatch}=window.DB,bt=writeBatch(db);bt.set(doc(collection(db,'payments')),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await bt.commit({deal:{id:_cid,seq:c.paySeq||0}});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;}}
 // Закупки по договору: можно платить поставщику частями, пока не оплачена вся себестоимость
+// Сделка, к которой относится операция кассы (оплата, предоплата, закупка): по ссылке, а у старых записей — по «(№…)» в описании
+function kOpClient(o){if(o.refType==='client'&&o.refId&&S.clients.some(c=>c.id===o.refId))return o.refId;
+  if(o.refType&&o.refType!=='client')return'';const m=/\(№([^)]+)\)/.exec(o.desc||'');if(!m)return'';
+  const c=S.clients.find(x=>x.contractId===m[1])||S.clients.find(x=>x.oldContractId===m[1]);return c?c.id:'';}
+function kDescHtml(o,auto,empty,card){const t=esc(o.desc||empty)+(auto?' <span style="color:var(--t3)">(авто)</span>':''),cid=kOpClient(o);
+  return cid?'<span class="k-deal"'+(card?'':' role="link" tabindex="0" title="Открыть сделку" onclick="openC(\''+cid+'\')" onkeydown="if(event.key===\'Enter\')openC(\''+cid+'\')"')+'>'+t+'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>':t;}
 function purchasesOf(id){return S.kassaOps.filter(o=>o.type==='purchase'&&o.refType==='client'&&o.refId===id);}
 function purchasePaid(id,except){return R2(purchasesOf(id).filter(o=>o.id!==except).reduce((a,o)=>a+(parseFloat(o.amount)||0),0));}
 function purchaseInfo(c){
@@ -3907,12 +3916,13 @@ function renderKassa(){
     const balCell=bal?'<span class="amt" style="font-size:var(--fs-xs)">'+fmt(bal.wallet)+' ₽</span><div style="font-size:var(--fs-xs);color:var(--t3)">общий: '+fmt(bal.total)+' ₽</div>':'';
     const editIco='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
     const delBtn=(!m.auto&&!o.auto)?'<td style="white-space:nowrap"><button class="ib ig" style="width:22px;height:22px;margin-right:4px" onclick="openKassaEdit(\''+o.id+'\')" title="Изменить">'+editIco+'</button><button class="ib ir" style="width:22px;height:22px" onclick="delKassaOp(\''+o.id+'\')" title="Удалить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>':'<td></td>';
-    rows+='<tr><td style="color:var(--t2)">'+esc(d)+'</td><td><span class="badge '+m.color+'">'+m.name+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:var(--fs-xs);color:var(--t2)">'+walletCell+'</td><td>'+balCell+'</td><td style="font-size:var(--fs-xs)">'+esc(o.desc||'')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</td>'+delBtn+'</tr>';
+    rows+='<tr><td style="color:var(--t2)">'+esc(d)+'</td><td><span class="badge '+m.color+'">'+m.name+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:var(--fs-xs);color:var(--t2)">'+walletCell+'</td><td>'+balCell+'</td><td style="font-size:var(--fs-xs)">'+kDescHtml(o,o.auto||m.auto,'')+'</td>'+delBtn+'</tr>';
     // Мобильная карточка
     if(d!==ldM){mobileCards+='<div class="kcard-day">'+d+'</div>';ldM=d;}
-    const delBtnM=(!m.auto&&!o.auto)?'<button class="ib ig" style="width:32px;height:32px;margin-right:6px" onclick="openKassaEdit(\''+o.id+'\')" title="Изменить">'+editIco+'</button><button class="ib ir" style="width:32px;height:32px" onclick="delKassaOp(\''+o.id+'\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>':'';
+    const delBtnM=(!m.auto&&!o.auto)?'<button class="ib ig" style="width:32px;height:32px;margin-right:6px" onclick="event.stopPropagation();openKassaEdit(\''+o.id+'\')" title="Изменить">'+editIco+'</button><button class="ib ir" style="width:32px;height:32px" onclick="event.stopPropagation();delKassaOp(\''+o.id+'\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>':'';
     const balLine=bal?'<span class="kcard-bal">'+fmt(bal.wallet)+' ₽</span> · общий '+fmt(bal.total)+' ₽':'';
-    mobileCards+='<div class="kcard"><div class="kcard-top"><span class="badge '+m.color+'">'+m.name+'</span><span class="kcard-amount '+cl+'">'+sign+fmt(o.amount)+' ₽</span></div><div class="kcard-desc">'+esc(o.desc||'—')+((o.auto||m.auto)?' <span style="color:var(--t3)">(авто)</span>':'')+'</div><div class="kcard-bot"><span>'+walletCell+'</span><span>'+balLine+'</span>'+delBtnM+'</div></div>';
+    const kc=kOpClient(o);
+    mobileCards+='<div class="kcard'+(kc?' kcard-link" role="link" tabindex="0" onclick="openC(\''+kc+'\')':'')+'"><div class="kcard-top"><span class="badge '+m.color+'">'+m.name+'</span><span class="kcard-amount '+cl+'">'+sign+fmt(o.amount)+' ₽</span></div><div class="kcard-desc">'+kDescHtml(o,o.auto||m.auto,'—',1)+'</div><div class="kcard-bot"><span>'+walletCell+'</span><span>'+balLine+'</span>'+delBtnM+'</div></div>';
   });
   const loadMoreKBtn=hasMoreK?'<div class="scroll-sentinel" data-target="kassa"></div>':'';
   document.getElementById('kList').innerHTML='<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="kcards">'+mobileCards+'</div>'+loadMoreKBtn;

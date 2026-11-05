@@ -55,6 +55,14 @@ export default async function(){
     S.CF={...CF_EMPTY};renderClients();goTo('dashboard');r.wa=document.body.innerHTML.includes('WhatsApp: ');return r;});
   check('сделки: у повторного клиента значок рядом с именем, без надписи «Повторный»',rp.icon&&rp.glued&&!rp.word&&/договоров — \d/.test(rp.label),rp);
   check('под сроком платежа нет даты отправки в WhatsApp',!rp.wa,rp);
+  // 8. Касса: по описанию оплаты клиента открывается его сделка, «Назад» возвращает в кассу
+  const kd=await p.evaluate(async()=>{goTo('kassa');renderKassa();await new Promise(r=>setTimeout(r,200));
+    const el=document.querySelector('#kList tbody .k-deal');if(!el)return{none:true};const tr=el.closest('tr'),op=S.kassaOps.find(o=>tr.textContent.includes(o.desc));
+    el.click();const r={client:pageOn('client'),cur:S.curClient,want:op&&op.refId};document.querySelector('#page-client .bback').click();r.back=pageOn('kassa');
+    const c=S.clients[5],fake={desc:'Оплата от '+c.name+' (№'+c.contractId+')'};r.byDesc=kOpClient(fake)===c.id;r.other=kOpClient({desc:'Аренда',refType:''})==='';
+    r.plain=[...document.querySelectorAll('#kList tbody tr')].some(x=>!x.querySelector('.k-deal')&&x.children.length>5);return r;});
+  check('касса: нажатие на «Оплата от …» открывает сделку клиента, «Назад» — обратно в кассу',kd.client&&kd.cur&&kd.cur===kd.want&&kd.back,kd);
+  check('касса: старые записи находят сделку по номеру в описании, прочие операции — без ссылки',kd.byDesc&&kd.other,kd);
   noErrors('фильтры и блоки',errs);await ctx.close();
   // 6. Телефон: нижняя панель без наложений, «Безопасность» — в «Ещё»; окна «Фильтры» со всеми столбцами
   const M=await device({mobile:true,vp:{width:390,height:844}});await login(M.p);
@@ -82,5 +90,9 @@ export default async function(){
   const dup=await M.p.evaluate(()=>{const res=[];const scan=n=>{const m={};document.querySelectorAll('[id]').forEach(e=>{m[e.id]=(m[e.id]||0)+1;});Object.keys(m).filter(k=>m[k]>1).forEach(k=>res.push(n+': '+k));};
     scan('страница');openPplFilter();scan('фильтры клиентов');closeMobileFilter();goBase('clients');openMobileFilter('clients');scan('фильтры сделок');closeMobileFilter();return res;});
   check('нигде нет двух полей с одинаковым именем',!dup.length,dup);
+  // касса на телефоне: нажатие на карточку оплаты открывает сделку
+  await M.p.evaluate(()=>goTo('kassa'));await wait(M.p,400);
+  await M.p.locator('#kList .kcards .kcard-link .kcard-bot').first().click();await wait(M.p,300);
+  check('телефон: из кассы по оплате переходит в сделку клиента',await M.p.evaluate(()=>pageOn('client')&&!!S.curClient));
   noErrors('телефон',M.errs);await M.ctx.close();
 }
