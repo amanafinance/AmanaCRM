@@ -102,7 +102,7 @@ export default async function(){
   const T=await device({vp:{width:390,height:844},mobile:true});await login(T.p);
   await T.p.evaluate(()=>{const P=VisualViewport.prototype;window.__kb={h:470,t:0};
     Object.defineProperty(P,'height',{get(){return window.__kb.h;},configurable:true});Object.defineProperty(P,'offsetTop',{get(){return window.__kb.t;},configurable:true});});
-  for(const [name,open,sel] of [['новый клиент — телефон',()=>{goBase('people');openPersonForm();},'.mover.on input[type=tel]'],['фильтры клиентов',()=>{goBase('people');openPplFilter();},'#pf_addr'],['оплата — последнее поле',()=>{openC('c0');openPay('c0');},'.mover.on .modal input:not([type=hidden]), .mover.on .modal textarea']]){
+  for(const [name,open,sel] of [['новый клиент — телефон',()=>{goBase('people');openPersonForm();},'.mover.on input[type=tel]'],['фильтры клиентов',()=>{goBase('people');openPplFilter();},'#pflt_addr'],['оплата — последнее поле',()=>{openC('c0');openPay('c0');},'.mover.on .modal input:not([type=hidden]), .mover.on .modal textarea']]){
     await T.p.evaluate(()=>document.querySelectorAll('.mover.on').forEach(m=>m.classList.remove('on')));
     await T.p.evaluate(open);await wait(T.p,300);
     const r=await T.p.evaluate(async sel=>{const els=[...document.querySelectorAll(sel)].filter(e=>e.offsetParent);const el=els[els.length-1];if(!el)return{none:sel};el.focus();window.__kbFit();await new Promise(r=>setTimeout(r,600));
