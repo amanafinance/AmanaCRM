@@ -54,6 +54,19 @@ export default async function(){
   check('страница инвесторов не открывается',!blocked.invPage);
   const pay=await K.p.evaluate(async()=>{const c=S.clients.find(x=>x.id==='c3');_cid=c.id;const n=S.payments.length;await savePay(777,'w1');await new Promise(r=>setTimeout(r,1500));return{was:n,now:S.payments.length,has:S.payments.some(x=>x.amount===777)};});
   check('кассир принимает оплату',pay.has&&pay.now===pay.was+1,pay);
+  // устройства: у владельца в списке видно, откуда и когда входил кассир; «Выйти на всех устройствах» сбрасывает вход
+  await O.p.evaluate(()=>{_staffAt=0;renderStaff();});await wait(O.p,1200);
+  const dv=await O.p.evaluate(()=>{const u=_staff.list.find(x=>x.email==='kassa@test.ru'),me=_staff.list.find(x=>x.id===_staff.me);
+    return{n:(u.devices||[]).length,name:u.devices[0]&&u.devices[0].name,last:u.devices[0]&&u.devices[0].last,txt:document.getElementById('staffBody').textContent,meDev:(me.devices||[]).some(d=>d.key===window.DB.deviceId)};});
+  check('в «Сотрудниках» видно устройство и время последнего входа кассира',dv.n===1&&/Linux · Chrome/.test(dv.name)&&Date.now()-dv.last<120000&&/Последний вход/.test(dv.txt)&&/Устройства: 1/.test(dv.txt),dv);
+  check('у владельца отмечено «это устройство»',dv.meDev&&/это устройство/.test(await O.p.evaluate(()=>{document.querySelectorAll('#staffBody details.st-dev').forEach(d=>d.open=true);return document.getElementById('staffBody').innerHTML;})),dv);
+  await O.p.evaluate(()=>{const u=_staff.list.find(x=>x.email==='kassa@test.ru');staffLogoutAll(u.id);});await wait(O.p,1200);
+  const lo=await K.p.evaluate(async()=>{try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'clients','c3'),{comment:'y'});return'ok';}catch(e){return e.code||e.message;}});
+  check('«Выйти на всех устройствах»: старый вход сотрудника перестаёт действовать',lo!=='ok',lo);
+  await loginAs(K.p,'kassa@test.ru','kassa12345');
+  await O.p.evaluate(()=>{_staffAt=0;renderStaff();});await wait(O.p,1200);
+  const dv2=await O.p.evaluate(()=>{const u=_staff.list.find(x=>x.email==='kassa@test.ru');return{n:u.devices.length,count:u.devices[0].count};});
+  check('повторный вход с того же устройства — та же строка, входов стало больше',dv2.n===1&&dv2.count>=2,dv2);
   await K.p.evaluate(()=>goTo('security'));await wait(K.p,300);
   check('кассиру не видны «Безопасность» и «Справочники»',!(await vis(K.p,'#staffCard'))&&!(await vis(K.p,'#walletList'))&&!(await vis(K.p,'#nav-settings'))&&!(await vis(K.p,'#nav-security')));
 
