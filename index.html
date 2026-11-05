@@ -1501,7 +1501,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 10';
+const CRM_VERSION='05.11.2026 · 11';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -3466,9 +3466,9 @@ function openPplFilter(){
   const sortOpts=[['no',-1,'Сначала новые'],['no',1,'Сначала старые'],['name',1,'ФИО: А → Я'],['name',-1,'ФИО: Я → А'],['debt',-1,'Больше долг'],['over',-1,'Больше просрочка']];
   const cur=sortOpts.findIndex(o=>o[0]===_pplSort.k&&o[1]===_pplSort.dir);
   const html='<div class="modal mf-modal"><div class="m-head"><div class="mtitle">Фильтры</div><button type="button" class="m-x" aria-label="Закрыть" title="Закрыть" onclick="closeMobileFilter()">×</button></div><div class="mf-body">'+
-    '<div class="mf-sec"><label class="lbl">Сортировка</label><select class="inp" id="pf_sort">'+sortOpts.map((o,i)=>'<option value="'+i+'"'+(i===cur?' selected':'')+'>'+o[2]+'</option>').join('')+(cur<0?'<option value="-1" selected>'+esc(pplColName(_pplSort.k))+(_pplSort.dir>0?' ▲':' ▼')+'</option>':'')+'</select></div>'+
-    PPL_MTXT.filter(k=>k==='name'||PCOLS[k]).map(k=>'<div class="mf-sec"><label class="lbl">'+esc(pplColName(k))+'</label><input class="inp" id="pf_'+k+'"'+(k==='phone'?' inputmode="tel"':'')+' value="'+v(k)+'"'+(k==='no'?' placeholder="например 5 или К-00005"':'')+'/></div>').join('')+
-    Object.keys(PCOLS).filter(k=>PCOLS[k].num).map(k=>'<div class="mf-sec"><label class="lbl">'+esc(PCOLS[k].n)+' от–до</label><div class="mf-range"><input class="inp" id="pf_'+k+'_from" type="number" inputmode="numeric" placeholder="от" value="'+r(k,'from')+'"/><input class="inp" id="pf_'+k+'_to" type="number" inputmode="numeric" placeholder="до" value="'+r(k,'to')+'"/></div></div>').join('')+
+    '<div class="mf-sec"><label class="lbl">Сортировка</label><select class="inp" id="pflt_sort">'+sortOpts.map((o,i)=>'<option value="'+i+'"'+(i===cur?' selected':'')+'>'+o[2]+'</option>').join('')+(cur<0?'<option value="-1" selected>'+esc(pplColName(_pplSort.k))+(_pplSort.dir>0?' ▲':' ▼')+'</option>':'')+'</select></div>'+
+    PPL_MTXT.filter(k=>k==='name'||PCOLS[k]).map(k=>'<div class="mf-sec"><label class="lbl">'+esc(pplColName(k))+'</label><input class="inp" id="pflt_'+k+'"'+(k==='phone'?' inputmode="tel"':'')+' value="'+v(k)+'"'+(k==='no'?' placeholder="например 5 или К-00005"':'')+'/></div>').join('')+
+    Object.keys(PCOLS).filter(k=>PCOLS[k].num).map(k=>'<div class="mf-sec"><label class="lbl">'+esc(PCOLS[k].n)+' от–до</label><div class="mf-range"><input class="inp" id="pflt_'+k+'_from" type="number" inputmode="numeric" placeholder="от" value="'+r(k,'from')+'"/><input class="inp" id="pflt_'+k+'_to" type="number" inputmode="numeric" placeholder="до" value="'+r(k,'to')+'"/></div></div>').join('')+
     '</div><div class="mft"><button class="btn bgh" onclick="S.PF={};closeMobileFilter();renderPeople()">Сбросить</button><button class="btn bg" onclick="applyPplFilter()">Применить</button></div></div>';
   const mov=document.createElement('div');mov.className='mover on';mov.id='mfOver';mov.onclick=e=>{if(e.target===mov)closeMobileFilter();};
   mov.innerHTML=html;document.body.appendChild(mov);
@@ -3476,9 +3476,9 @@ function openPplFilter(){
 }
 function applyPplFilter(){
   const g=id=>(document.getElementById(id)||{}).value||'';
-  S.PF={};PPL_MTXT.forEach(k=>{const q=g('pf_'+k).trim();if(q)S.PF[k]={q};});
-  Object.keys(PCOLS).filter(k=>PCOLS[k].num).forEach(k=>{const f=g('pf_'+k+'_from'),t=g('pf_'+k+'_to');if(f||t)S.PF[k]={from:f,to:t};});
-  const i=parseInt(g('pf_sort'),10),o=(window._pplSortOpts||[])[i];if(o)_pplSort={k:o[0],dir:o[1]};
+  S.PF={};PPL_MTXT.forEach(k=>{const q=g('pflt_'+k).trim();if(q)S.PF[k]={q};});
+  Object.keys(PCOLS).filter(k=>PCOLS[k].num).forEach(k=>{const f=g('pflt_'+k+'_from'),t=g('pflt_'+k+'_to');if(f||t)S.PF[k]={from:f,to:t};});
+  const i=parseInt(g('pflt_sort'),10),o=(window._pplSortOpts||[])[i];if(o)_pplSort={k:o[0],dir:o[1]};
   closeMobileFilter();renderPeople();
 }
 function pplBadge(g){
