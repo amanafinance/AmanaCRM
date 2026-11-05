@@ -48,6 +48,13 @@ export default async function(){
     goTo('settings');const st=document.getElementById('page-settings');a.stTitle=st.querySelector('.pt').textContent;a.stHasBk=!!st.querySelector('#bkCard');a.navName=document.getElementById('nav-settings').textContent.trim();return a;});
   check('«Безопасность»: здесь сотрудники и резервная копия',r6.bk&&r6.staff&&r6.title==='Безопасность'&&r6.nav,r6);
   check('«Настройки» теперь «Справочники», без копии и сотрудников',r6.stTitle==='Справочники'&&!r6.stHasBk&&r6.navName==='Справочники',r6);
+  // 7. Повторный клиент — значок у имени вместо надписи; под сроком нет даты WhatsApp
+  const rp=await p.evaluate(()=>{const c=S.clients.find(x=>!x.archived&&findDups(x.name,x.id).length);S.CF={...CF_EMPTY,name:c.name};goBase('clients');renderClients();
+    const row=document.querySelector('#cList tbody tr'),ic=row&&row.querySelector('.rep-ic'),nm=ic&&ic.closest('.nm-end');
+    const r={icon:!!ic,label:ic&&ic.getAttribute('aria-label'),word:!!document.querySelector('#cList .rbadge')||/Повторный<\/span>/.test(row.innerHTML),glued:!!nm};
+    S.CF={...CF_EMPTY};renderClients();goTo('dashboard');r.wa=document.body.innerHTML.includes('WhatsApp: ');return r;});
+  check('сделки: у повторного клиента значок рядом с именем, без надписи «Повторный»',rp.icon&&rp.glued&&!rp.word&&/договоров — \d/.test(rp.label),rp);
+  check('под сроком платежа нет даты отправки в WhatsApp',!rp.wa,rp);
   noErrors('фильтры и блоки',errs);await ctx.close();
   // 6. Телефон: нижняя панель без наложений, «Безопасность» — в «Ещё»; окна «Фильтры» со всеми столбцами
   const M=await device({mobile:true,vp:{width:390,height:844}});await login(M.p);
