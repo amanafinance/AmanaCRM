@@ -30,10 +30,16 @@ const netFail=()=>{netDown=true;netOkAt=0;netBadge();return Object.assign(new Er
 // «Нет интернета», «Недостаточно средств», «Договор изменился» — ожидаемые ситуации, а не сбой: в консоли это предупреждение, а не ошибка
 // При перезагрузке базы (восстановление из копии, «перечитать всё») подписки закрываются — их «Firestore shutting down» не ошибка
 let closing=false;
-const _cErr=console.error.bind(console);console.error=(...a)=>closing||a[0]&&['offline','short','stale'].includes(a[0].code)?console.warn(...a):_cErr(...a);
+const _cErr=console.error.bind(console);console.error=(...a)=>closing||a[0]&&['offline','short','stale','moved'].includes(a[0].code)?console.warn(...a):_cErr(...a);
 const withTimeout=(pr,ms)=>Promise.race([pr,new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]);
 // Сервер отвечал недавно (15 с) — не спрашиваем снова: одно действие часто пишет несколько раз
+// ---- CRM переехала на свой сервер ----
+// На старом адресе (GitHub Pages) база Firebase остаётся архивом: смотреть и скачать копию можно, сохранить изменения — нет.
+const MOVED=window.__AMANA_MOVED===true||(/\.github\.io$/.test(location.hostname)&&!window.__AMANA_EMU);
+const MOVED_MSG='CRM переехала на crm-amana.ru — здесь только просмотр, изменения не сохраняются.';
+if(MOVED){const show=()=>{const el=document.createElement('a');el.id='movedBadge';el.href='https://crm-amana.ru';el.textContent='CRM переехала: crm-amana.ru · здесь только просмотр';el.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:9999;padding:9px 16px;border-radius:999px;background:#c0392b;color:#fff;font:700 14px Manrope,sans-serif;text-decoration:none;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:calc(100% - 24px);text-align:center';document.body.appendChild(el);};document.body?show():addEventListener('DOMContentLoaded',show);}
 const netCheck=async()=>{
+  if(MOVED)throw Object.assign(new Error(MOVED_MSG),{code:'moved'});
   if(!navigator.onLine)throw netFail();
   if(Date.now()-netOkAt<15000)return;
   try{await withTimeout(getDocFromServer(doc(db,'settings','meta')),7000);netOkAt=Date.now();if(netDown){netDown=false;netBadge();}}
