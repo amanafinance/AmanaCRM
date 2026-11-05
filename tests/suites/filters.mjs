@@ -10,6 +10,11 @@ export default async function(){
     if(btn)btn.click();return{th,btn:!!btn,after:Object.keys(S.PF).length,rows:document.querySelectorAll('#pplList .ppl-desk tbody tr').length};});
   check('клиенты: при пустом результате заголовки с фильтрами остаются, есть «Сбросить фильтры»',r1.th>1&&r1.btn,r1);
   check('клиенты: «Сбросить фильтры» возвращает список',r1.after===0&&r1.rows>10,r1);
+  // 1б. «№ клиента» ищет только нынешний номер, а не номер до перенумерации
+  const rn=await p.evaluate(()=>{goBase('people');const ps=S.persons.filter(x=>x.no).slice(0,2),a=ps[0],b=ps[1],was=b.oldNo;b.oldNo=a.no;
+    S.PF={no:{q:a.no}};renderPeople();const rows=[...document.querySelectorAll('#pplList .ppl-desk tbody tr')].map(r=>r.textContent);
+    b.oldNo=was;S.PF={};renderPeople();return{n:rows.length,a:a.no,b:b.no,hasA:rows.some(t=>t.includes(a.no)),hasB:rows.some(t=>t.includes(b.no))};});
+  check('клиенты: фильтр «№ клиента» не находит клиента по старому номеру',rn.n===1&&rn.hasA&&!rn.hasB,rn);
   // 2. Сделки: «Сбросить» в одном столбце не трогает фильтр другого
   const r2=await p.evaluate(()=>{goBase('clients');S.CF={...CF_EMPTY,product:'Товар 1',name:'Клиент 1'};renderClients();
     toggleDrop({stopPropagation(){}},'product','clients',document.querySelector('#cList th .th-cell'));document.getElementById('fdo_reset').click();
