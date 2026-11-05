@@ -11,12 +11,12 @@ export default async function(){
   await reseed();
   const O=await device();await login(O.p);await autoConfirm(O.p);
   if(BACKEND!=='pb'){
-    await O.p.evaluate(()=>goTo('settings'));await wait(O.p,300);
+    await O.p.evaluate(()=>goTo('security'));await wait(O.p,300);
     check('старая база: раздела «Сотрудники» нет',!(await vis(O.p,'#staffCard')));
     noErrors('сотрудники (Firebase)',O.errs);await O.ctx.close();return;
   }
   // 1. Владелец: раздел есть, готовый набор ставит галочки, зависимые права ставятся сами
-  await O.p.evaluate(()=>goTo('settings'));await O.p.waitForSelector('#staffBody .st-row',{timeout:20000});
+  await O.p.evaluate(()=>goTo('security'));await O.p.waitForSelector('#staffBody .st-row',{timeout:20000});
   check('владелец видит раздел «Сотрудники и права», себя в списке',/это вы/.test(await O.p.textContent('#staffBody')));
   await O.p.click('#staffBody button:has-text("+ Сотрудник")');await O.p.waitForSelector('#mStaff.on');
   const pre=await O.p.evaluate(()=>{const on=()=>[...document.querySelectorAll('#stPerms input:checked')].map(b=>b.dataset.k).sort().join();
@@ -54,8 +54,8 @@ export default async function(){
   check('страница инвесторов не открывается',!blocked.invPage);
   const pay=await K.p.evaluate(async()=>{const c=S.clients.find(x=>x.id==='c3');_cid=c.id;const n=S.payments.length;await savePay(777,'w1');await new Promise(r=>setTimeout(r,1500));return{was:n,now:S.payments.length,has:S.payments.some(x=>x.amount===777)};});
   check('кассир принимает оплату',pay.has&&pay.now===pay.was+1,pay);
-  await K.p.evaluate(()=>goTo('settings'));await wait(K.p,300);
-  check('кассиру не виден раздел «Сотрудники» и настройки',!(await vis(K.p,'#staffCard'))&&!(await vis(K.p,'#walletList'))&&!(await vis(K.p,'#nav-settings')));
+  await K.p.evaluate(()=>goTo('security'));await wait(K.p,300);
+  check('кассиру не видны «Безопасность» и «Справочники»',!(await vis(K.p,'#staffCard'))&&!(await vis(K.p,'#walletList'))&&!(await vis(K.p,'#nav-settings'))&&!(await vis(K.p,'#nav-security')));
 
   // 3. Владелец отключает вход — у сотрудника всё перестаёт работать
   await O.p.evaluate(()=>{_staffAt=0;renderStaff();});await wait(O.p,1200);

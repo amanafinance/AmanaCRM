@@ -15,7 +15,7 @@ export default async function(){
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'amana-bk-'));
   const {p,errs,ctx}=await device();await login(p);await autoConfirm(p);
   const B=await device();await login(B.p); // второе устройство: данные уже в его памяти
-  await p.evaluate(()=>goTo('settings'));await wait(p,300);
+  await p.evaluate(()=>goTo('security'));await wait(p,300);
   check('в настройках есть карточка «Резервная копия»',await p.isVisible('#bkCard #bkDl'));
   const before=await snap(p);
 
@@ -56,7 +56,7 @@ export default async function(){
   check('текущие данные сохранены в отдельный файл (с изменениями после копии)',preJ.format==='amana-crm-backup'&&!preJ.collections.clients.c5&&preJ.collections.settings.pcounter.lastId===999);
   check('после сохранения кнопка «Восстановить» доступна',!(await p.isDisabled('#bkGo')));
   await Promise.all([p.waitForEvent('framenavigated',{timeout:180000}),p.click('#bkGo')]);
-  await ready(p);await p.evaluate(()=>goTo('settings'));
+  await ready(p);await p.evaluate(()=>goTo('security'));
   const after=await snap(p);
   check('после восстановления: столько же договоров, платежей, операций кассы, счетов, клиентов',JSON.stringify(after.n)===JSON.stringify(before.n),{before:before.n,after:after.n});
   check('удалённый договор вернулся, лишний клиент исчез',JSON.stringify(after.c5)===JSON.stringify(before.c5)&&!after.extra,{c5:!!after.c5,extra:after.extra});
@@ -97,7 +97,7 @@ export default async function(){
 
   // 7. Телефон: файл сохраняется по кнопке «Сохранить файл»; карточка не шире экрана
   const M=await device({mobile:true,vp:{width:390,height:844}});await login(M.p);
-  await M.p.evaluate(()=>goTo('settings'));await wait(M.p,300);
+  await M.p.evaluate(()=>goTo('security'));await wait(M.p,300);
   const ov=await M.p.evaluate(()=>{const r=document.getElementById('bkCard').getBoundingClientRect();return{w:r.width,right:r.right,vw:innerWidth,sw:document.documentElement.scrollWidth};});
   check('телефон: карточка копии помещается в экран',ov.right<=ov.vw+0.5&&ov.sw<=ov.vw,ov);
   await M.p.click('#bkDl');await M.p.waitForSelector('#bkSt button:has-text("Сохранить файл")',{timeout:60000});
@@ -112,7 +112,7 @@ export default async function(){
       try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets','w1'),{name:'Взлом'});}catch(e){err=e.message;}
       return{badge:!!b&&getComputedStyle(b).display!=='none'&&b.href.includes('crm-amana.ru'),err,name:S.wallets.find(w=>w.id==='w1').name};});
     check('старый адрес: плашка «CRM переехала», изменения не сохраняются',r.badge&&/переехала/.test(r.err)&&r.name!=='Взлом',r);
-    await O.p.evaluate(()=>goTo('settings'));
+    await O.p.evaluate(()=>goTo('security'));
     const [dl5]=await Promise.all([O.p.waitForEvent('download',{timeout:60000}),O.p.click('#bkDl')]);
     const J5=JSON.parse(fs.readFileSync(await dl5.path(),'utf8'));
     check('старый адрес: копию для переезда скачать можно',J5.format==='amana-crm-backup'&&Object.keys(J5.collections.clients).length===before.n.c);

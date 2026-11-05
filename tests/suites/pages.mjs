@@ -3,7 +3,7 @@ import {reseed,device,login,check,noErrors,wait} from '../lib.mjs';
 export const PAGES=[
  ['Дашборд',()=>goTo('dashboard')],['Показатели',()=>goTo('finance')],['Клиенты',()=>goBase('people')],['Карточка клиента',()=>openPerson('p:P0')],
  ['Сделки',()=>{goBase('clients');renderClients();}],['Карточка сделки',()=>openC('c0')],['Контроль платежей',()=>goBase('reminders')],['Касса',()=>goTo('kassa')],
- ['Инвесторы',()=>goTo('investors')],['Инвестор',()=>openInv('INV1')],['История',()=>goTo('journal')],['Настройки',()=>{if(!S.partners.includes('Иса кирпич строймаркет')){S.partners.push('Иса кирпич строймаркет');S.partnerPhones['Иса кирпич строймаркет']='89290000034';}goTo('settings');}],
+ ['Инвесторы',()=>goTo('investors')],['Инвестор',()=>openInv('INV1')],['История',()=>goTo('journal')],['Безопасность',()=>goTo('security')],['Настройки',()=>{if(!S.partners.includes('Иса кирпич строймаркет')){S.partners.push('Иса кирпич строймаркет');S.partnerPhones['Иса кирпич строймаркет']='89290000034';}goTo('settings');}],
  ['Окно: новый договор',()=>{goTo('dashboard');openNew();}],['Окно: оплата',()=>{openC('c0');openPay('c0');}],['Окно: клиент',()=>{goBase('people');openPersonForm('p:P0');}],
  ['Окно: отсрочка',()=>{openC('c0');openDefer('c0',6);}],['Окно: операция кассы',()=>{goTo('kassa');openKassaOp();}],['Окно: вклад',()=>{openInv('INV1');openInvOp('deposit','INV1');}],
  ['Окно: вид',()=>{goBase('clients');openView(window.innerWidth<=768?'card':'cols');}],['Окно: месяц инвесторов',()=>{goTo('investors');openInvMonth(invModel().months[0]);}],

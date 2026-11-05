@@ -33,7 +33,7 @@ CRM_DB=pb node run.mjs       # или один набор: CRM_DB=pb node run.mj
 
 В GitHub проверки идут на обеих базах сразу: `test (fb)` и `test (pb)`.
 
-Наборы: `pages`, `money`, `investors`, `sync`, `people`, `numbers`, `backup`, `staff`, `security`, `ui`, `interface`, `devices`, `design`, `speed` (папка `suites/`).
+Наборы: `pages`, `money`, `investors`, `sync`, `people`, `filters`, `numbers`, `backup`, `staff`, `security`, `ui`, `interface`, `devices`, `design`, `speed` (папка `suites/`).
 
 `design` проверяет дизайн-систему на всех страницах и окнах, на телефоне и компьютере, в обеих темах:
 на телефоне всё нажимаемое не меньше 44 px, текст не мельче 12 px, контраст текста по норме,
