@@ -218,5 +218,6 @@ async function bkRestore(B,prog){
   return{put,del};
 }
 window.DB={db,counterTx,collection,doc,addDoc:addDocU,updateDoc:updateDocU,deleteDoc:deleteDocU,getDocs,getDoc,query,orderBy,limit,startAfter,where,onSnapshot,setDoc:setDocU,writeBatch:writeBatchU,increment,arrayUnion,arrayRemove,deleteField,nextCounter,createOnce,live,liveTombs,resyncAll,checkEpoch,bkDump,bkRestore,bkCheck};
-window.AUTH=auth;window.SIGN_IN=signInWithEmailAndPassword;window.SIGN_OUT=signOut;window.ON_AUTH=onAuthStateChanged;
+window.AUTH=auth;try{Object.defineProperty(auth,'perms',{get:()=>'*',configurable:true});}catch(e){} // в Firebase прав нет: всем всё
+window.SIGN_IN=signInWithEmailAndPassword;window.SIGN_OUT=signOut;window.ON_AUTH=onAuthStateChanged;
 window.dispatchEvent(new Event('dbReady'));

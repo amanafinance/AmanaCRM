@@ -102,9 +102,9 @@ async function api(path, body, ms) {
   return r;
 }
 // Одна транзакция: ops — изменения, checks — проверки (см. server/pb_hooks/amana_lib.js)
-async function commitOps(ops, checks, ms) {
+async function commitOps(ops, checks, ms, mode) {
   await netCheck();
-  const r = await api('/api/amana/commit', { ops, checks: checks || {} }, ms);
+  const r = await api('/api/amana/commit', { ops, checks: checks || {}, ...(mode ? { mode } : {}) }, ms);
   applyServerDocs(r.docs || []);
   return r;
 }
@@ -352,7 +352,7 @@ async function bkRestore(B, prog) {
     cur.forEach(r => { if (bkSkip(c, r.id) || Object.prototype.hasOwnProperty.call(want, r.id)) return; ops.push({ t: 'delete', c, id: r.id }); del++; });
     Object.entries(want).forEach(([id, d]) => { if (bkSkip(c, id)) return; const x = Object.assign({}, d); delete x._u; ops.push({ t: 'set', c, id, d: x }); put++; });
   }
-  for (let i = 0; i < ops.length; i += 400) { await commitOps(ops.slice(i, i + 400), null, 120000); if (prog) prog(Math.min(i + 400, ops.length), ops.length); }
+  for (let i = 0; i < ops.length; i += 400) { await commitOps(ops.slice(i, i + 400), null, 120000, 'restore'); if (prog) prog(Math.min(i + 400, ops.length), ops.length); }
   const ep = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   await commitOps([{ t: 'set', c: 'settings', id: 'meta', d: { epoch: ep } }]);
   return { put, del };
@@ -360,7 +360,9 @@ async function bkRestore(B, prog) {
 
 // ---------- Вход ----------
 // Токен входа действует 30 дней и продлевается при каждом открытии CRM
-const AUTH = { get currentUser() { const r = pb.authStore.isValid && pb.authStore.record; return r ? { email: r.email, uid: r.id } : null; } };
+const AUTH = { get currentUser() { const r = pb.authStore.isValid && pb.authStore.record; return r ? { email: r.email, uid: r.id, name: r.name || '' } : null; },
+  // права: "*" — владелец (всё), иначе ",право,право,"
+  get perms() { const r = pb.authStore.isValid && pb.authStore.record; return r ? (r.perms || '') : ''; } };
 const SIGN_IN = async (_a, email, pw) => {
   try { await pb.collection('users').authWithPassword(email, pw, { requestKey: null }); }
   catch (e) { const st = e && e.status; throw Object.assign(new Error('auth'), { code: st === 429 ? 'auth/too-many-requests' : !st ? 'auth/network-request-failed' : 'auth/invalid-credential' }); }
@@ -370,11 +372,23 @@ const ON_AUTH = (_a, cb) => {
   let last = AUTH.currentUser && AUTH.currentUser.uid;
   pb.authStore.onChange(() => { const u = AUTH.currentUser, id = u && u.uid; if (id !== last) { last = id; cb(u); } });
   setTimeout(() => cb(AUTH.currentUser), 0);
-  if (pb.authStore.isValid && navigator.onLine) pb.collection('users').authRefresh({ requestKey: null }).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) pb.authStore.clear(); });
+  if (pb.authStore.isValid && navigator.onLine) pb.collection('users').authRefresh({ requestKey: null }).then(() => window.dispatchEvent(new Event('permsChanged'))).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) pb.authStore.clear(); });
+};
+
+// ---------- Сотрудники и права (нужно право staff) ----------
+async function staffCall(method, path, body) {
+  await netCheck();
+  try { return await withTimeout(pb.send(path, { method, ...(body ? { body } : {}), requestKey: null }), 15000); }
+  catch (e) { const st = e && e.status, d = (e && e.response) || {}; if (!st) throw netFail(); throw Object.assign(new Error(d.message || ('Ошибка сервера ' + st)), { code: ERR_CODE[d.code] || d.code || 'unknown' }); }
+}
+const staff = {
+  list: () => staffCall('GET', '/api/amana/staff'),
+  save: (id, data) => staffCall('POST', '/api/amana/staff' + (id ? '/' + encodeURIComponent(id) : ''), data),
+  remove: id => staffCall('DELETE', '/api/amana/staff/' + encodeURIComponent(id)),
 };
 
 window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, getDoc, query, orderBy, limit, startAfter, where,
   setDoc: setDocU, writeBatch: writeBatchU, increment, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp, nextCounter, createOnce, live, liveTombs, resyncAll, checkEpoch,
-  bkDump, bkRestore, bkCheck, backend: 'pocketbase', pb };
+  bkDump, bkRestore, bkCheck, staff, backend: 'pocketbase', pb };
 window.AUTH = AUTH; window.SIGN_IN = SIGN_IN; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
 window.dispatchEvent(new Event('dbReady'));
