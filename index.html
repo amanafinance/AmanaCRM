@@ -169,7 +169,9 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 .stbl{width:100%;border-collapse:collapse}.stbl th{font-size:var(--fs-xs);font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;border-bottom:1px solid var(--brd2);text-align:left}
 .stbl td{padding:5px 10px;border-bottom:1px solid var(--brd2)}.stbl tr:last-child td{border-bottom:none}
 .si{width:100%;padding:6px 10px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:6px;font-family:'Manrope',sans-serif;font-size:var(--fs-xs);color:var(--text);outline:none}.si:focus{border-color:var(--green)}
-.rbadge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;font-size:var(--fs-xs);font-weight:700;background:rgba(255,165,2,0.1);color:var(--yellow);margin-left:6px}
+.rep-ic{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(255,165,2,0.14);color:var(--yellow);margin-left:6px;vertical-align:-4px;flex:none}.rep-ic svg{width:12px;height:12px}
+.nm-end{white-space:nowrap}
+.cd-name .rep-ic{width:22px;height:22px;margin-left:8px;vertical-align:middle;position:relative;top:-2px}.cd-name .rep-ic svg{width:13px;height:13px}
 .loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--t3);font-size:var(--fs-sm);gap:8px}
 .spin{width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--green);border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -245,7 +247,6 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 @media(max-width:768px){.dsh-2{grid-template-columns:minmax(0,1fr)}.dsh-g4{gap:8px}.dsh-h{margin:16px 0 8px}.dsh-g4,.dsh-g3,.dsh-2{margin-bottom:10px}}
 .bwa{background:rgba(37,211,102,0.12);color:#25d366;border:1px solid rgba(37,211,102,0.25)}
 body.light .bwa{color:#128c4a}
-.rem-wa{font-size:var(--fs-xs);color:var(--t3);margin-top:3px}
 .k-recon summary::-webkit-details-marker{display:none}
 .k-recon{margin-bottom:14px}
 .k-recon>summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;user-select:none;-webkit-user-select:none;min-height:32px}
@@ -402,7 +403,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .mcard{background:var(--card);border:1px solid var(--brd2);border-radius:12px;padding:14px;cursor:pointer;transition:.15s}
 .mcard:active{background:var(--bg3);transform:scale(0.99)}
 .mcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
-.mcard-name{font-weight:700;font-size:var(--fs-md);line-height:1.3;flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mcard-name{font-weight:700;font-size:var(--fs-md);line-height:1.3;flex:1;min-width:0}.mcard-name>svg{margin-left:4px;vertical-align:-1px}
 .mcard-id{font-size:var(--fs-xs);font-weight:700;color:var(--t3);white-space:nowrap;padding-top:2px}
 .mcard-ph{font-size:var(--fs-xs);color:var(--t2);margin-bottom:10px;line-height:1.5;font-family:'Manrope',sans-serif}
 .mcard-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--brd2);font-size:var(--fs-xs)}
@@ -901,7 +902,7 @@ body{font-size:var(--fs-sm);line-height:1.45}
 .ct,.sdiv,.dsh-ht,.sg,.kcard-day,.fdo-title{font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
 .dsh-ht{color:var(--text)}
 .sdiv{margin:var(--sp-5) 0 var(--sp-3)}
-.badge,.rbadge{font-size:var(--fs-xs);padding:2px var(--sp-2);border-radius:999px}
+.badge{font-size:var(--fs-xs);padding:2px var(--sp-2);border-radius:999px}
 
 /* ---------- Отступы страницы ---------- */
 .main{padding:var(--sp-5) var(--sp-6)}
@@ -1022,7 +1023,7 @@ select.inp,select.si{background-image:var(--chev);background-repeat:no-repeat;ba
 /* ---------- Доводка после проверки ---------- */
 .locked{opacity:1}.locked>*{color:var(--t2)}
 body.light .bwa{color:var(--text)}
-body.light .ba,body.light .brp{color:#496510}body.light .bd{color:#2a55ad}body.light .bo{color:#b0222f}body.light .by2,body.light .rbadge{color:#7f4b00}
+body.light .ba,body.light .brp{color:#496510}body.light .bd{color:#2a55ad}body.light .bo{color:#b0222f}body.light .by2,body.light .rep-ic{color:#7f4b00}
 @media(max-width:768px){
   .plink{display:inline-flex;align-items:center;min-height:var(--tap);padding:0}
   .mcard-top[onclick]{min-height:var(--tap);align-items:center;cursor:pointer}
@@ -1501,7 +1502,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 12';
+const CRM_VERSION='05.11.2026 · 13';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2153,7 +2154,7 @@ function mobileCardsHtml(list){
     const dups=findDups(c.name,c.id),hc=c.comment&&c.comment.trim();
     const rows=fields.map(f=>{const d=CARD_F[f.k];if(d.show&&!d.show(c))return'';return d.raw?'<div class="mcard-row'+(f.k==='gname'?' mrow-g':'')+'"><span class="mcard-label">'+d.n+'</span>'+d.v(c)+'</div>':'<div class="mcard-row'+(String(d.v(c)||'').length>34?' stack':'')+'"><span class="mcard-label">'+d.n+'</span><span class="mcard-val'+(d.cls?' '+d.cls(c):'')+'"'+(d.st?' style="'+d.st+'"':'')+'>'+esc(d.v(c))+'</span></div>';}).join('');
     return'<div class="mcard" onclick="openC(\''+c.id+'\')">'+
-      '<div class="mcard-top"><div class="mcard-name">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+(hc?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+'</div><div class="mcard-id">№'+esc(c.contractId||'—')+'</div></div>'+
+      '<div class="mcard-top"><div class="mcard-name">'+nameRep(c.name,dups)+(hc?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+'</div><div class="mcard-id">№'+esc(c.contractId||'—')+'</div></div>'+
       '<div class="mcard-ph">'+(c.phones||[]).filter(Boolean).map(fmtPhone).join('<br>')+'</div>'+rows+
       '</div>';
   }).join('');
@@ -2353,7 +2354,7 @@ function renderDetail(c){
   const hc=c.comment&&c.comment.trim();
   // Верхняя строка с именем и действиями
   const telL=(c.phones||[]).filter(Boolean).map(p=>{const t=waPhone(p);return t?'<a class="cd-tel" href="tel:+'+t+'">'+esc(fmtPhone(p))+'</a>':'<span class="cd-tel">'+esc(fmtPhone(p))+'</span>';}).join('');
-  const header='<div class="cd-head"><div class="cd-hl"><div class="cd-name">'+esc(c.name)+'</div><div class="cd-meta"><span>№'+esc(c.contractId||'—')+(c.oldContractId&&c.oldContractId!==c.contractId?' <span style="color:var(--t3)">(было '+esc(c.oldContractId)+')</span>':'')+'</span><span>от '+esc(c.date||'—')+'</span>'+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div>'+(telL?'<div class="cd-tels">'+telL+'</div>':'')+'</div><div class="cd-acts">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button>'+waBtn(c.id)+'<button class="btn by" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bb" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh" onclick="openEdit(\''+c.id+'\')">Изменить</button>'+cdDelBtn(c)+'</div></div>';
+  const header='<div class="cd-head"><div class="cd-hl"><div class="cd-name">'+nameRep(c.name,dups)+'</div><div class="cd-meta"><span>№'+esc(c.contractId||'—')+(c.oldContractId&&c.oldContractId!==c.contractId?' <span style="color:var(--t3)">(было '+esc(c.oldContractId)+')</span>':'')+'</span><span>от '+esc(c.date||'—')+'</span>'+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div>'+(telL?'<div class="cd-tels">'+telL+'</div>':'')+'</div><div class="cd-acts">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button>'+waBtn(c.id)+'<button class="btn by" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bb" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh" onclick="openEdit(\''+c.id+'\')">Изменить</button>'+cdDelBtn(c)+'</div></div>';
   const dupsBlock=dups.length?'<div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:10px 14px;margin-bottom:14px;font-size:var(--fs-xs)"><div style="color:var(--yellow);font-weight:700;margin-bottom:6px">Другие договоры клиента</div>'+dups.map(d=>'<div class="cd-dup" role="button" tabindex="0" onclick="openC(\''+d.id+'\')">№'+esc(d.contractId||'—')+' — '+esc(d.product||'—')+' ('+effStatus(d)+')</div>').join('')+'</div>':'';
   // Данные клиента и поручителя
   const _pi=personIndex(),_pl=(n,k)=>'<a href="#" class="plink" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
@@ -3379,6 +3380,11 @@ function personIndex(){
 }
 const pLabel=p=>(p.no?p.no+' · ':'')+p.name;
 // Другие сделки этого же клиента (для пометки «Повторный»)
+// Имя клиента со значком «повторный клиент»: значок держится за последнее слово и не переносится отдельно
+function nameRep(name,dups){const n=dups&&dups.length;const t=String(name||'').trim();if(!n)return esc(t);
+  const i=t.lastIndexOf(' '),lbl='Повторный клиент: договоров — '+(n+1);
+  const ic='<span class="rep-ic" role="img" title="'+lbl+'" aria-label="'+lbl+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>';
+  return esc(t.slice(0,i+1))+'<span class="nm-end">'+esc(t.slice(i+1))+ic+'</span>';}
 function findDups(name,excludeId){const c0=S.clients.find(x=>x.id===excludeId);const k=c0?dealClientKey(c0):refKey(name,null);if(!k)return[];return S.clients.filter(c=>c.id!==excludeId&&dealClientKey(c)===k);}
 // Клиенты со статистикой: сделки как клиента и как поручителя
 function groupPeople(){
@@ -3774,7 +3780,6 @@ function renderReminders(more){
     let b=r.over?'<span class="badge bo">просрочка '+r.days+' '+invPlural(r.days,'день','дня','дней')+'</span>':(r.todayDue?'<span class="badge ba">сегодня</span>':'<span class="inv-muted">через '+(-r.days)+' '+invPlural(-r.days,'день','дня','дней')+'</span>');
     if(r.df)b+='<div class="rem-mark rem-df">отсрочка до '+fmtD(r.eff)+(r.df.note?' · '+esc(r.df.note):'')+'</div>'+(r.origOver&&!r.over?'<div class="rem-mark cr">по договору — просрочка</div>':'');
     if(r.partial)b+='<div class="rem-mark rem-pt">оплачено '+fmt(r.paid)+' из '+fmt(r.size)+' ₽</div>';
-    if(r.c.lastRemind&&r.c.lastRemind.date)b+='<div class="rem-wa">WhatsApp: '+esc(r.c.lastRemind.date)+'</div>';
     return b;
   };
   const btnsM=r=>waBtn(r.c.id,r.month)+'<button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">+ Оплата</button><button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>';
@@ -5070,7 +5075,7 @@ function clMargin(c){const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0;re
 const CL_COLS={
   id:{n:'№',f:'id',td:c=>'<td '+_clO(c)+' style="font-weight:700;color:var(--t2)">'+esc(c.contractId||'—')+'</td>'},
   date:{n:'Дата',f:'date',td:c=>'<td '+_clO(c)+' style="color:var(--t2)">'+esc(c.date||'—')+'</td>'},
-  name:{n:'Клиент',f:'name',td:c=>{const dups=findDups(c.name,c.id);return'<td '+_clO(c)+'><div style="font-weight:600;display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+esc(c.name)+(dups.length?'<span class="rbadge">Повторный</span>':'')+'</div><div style="font-size:var(--fs-xs);color:var(--t3);line-height:1.5">'+(c.phones||[]).filter(Boolean).map(fmtPhone).join('<br>')+'</div></td>';}},
+  name:{n:'Клиент',f:'name',td:c=>{const dups=findDups(c.name,c.id);return'<td '+_clO(c)+'><div style="font-weight:600">'+nameRep(c.name,dups)+'</div><div style="font-size:var(--fs-xs);color:var(--t3);line-height:1.5">'+(c.phones||[]).filter(Boolean).map(fmtPhone).join('<br>')+'</div></td>';}},
   product:{n:'Товар',f:'product',td:c=>'<td '+_clO(c)+' style="color:var(--t2)">'+esc(c.product||'—')+'</td>'},
   partner:{n:'Поставщик',f:'partner',td:c=>'<td '+_clO(c)+' style="font-size:var(--fs-xs);color:var(--t2)">'+esc(c.partner||'—')+'</td>'},
   pricecost:{n:'Цена / предоплата / себест.',h:'Цена',f:'pricecost',td:c=>'<td '+_clO(c)+'><div style="font-weight:600;font-size:var(--fs-xs)">'+fmt(c.price||0)+' ₽</div><div style="font-size:var(--fs-xs);color:var(--t2)">'+fmt(c.prepay||0)+' ₽</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+fmt(c.cost||0)+' ₽</div></td>'},
