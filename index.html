@@ -1473,7 +1473,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 4';
+const CRM_VERSION='05.11.2026 · 5';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2415,7 +2415,7 @@ function renderJournal(){
   setupInfiniteScroll();
 }
 function loadMoreJournal(){_journalShown+=50;renderJournal();}
-async function logA(t,d){const{db,collection,addDoc}=window.DB;try{await addDoc(collection(db,'journal'),{type:t,description:d,user:curUser(),date:new Date(),dateStr:fmtD(new Date()),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});}catch(e){console.error('Журнал не записан:',e);toast('Действие выполнено, но не записалось в историю: '+(e&&e.message||''),'ter');}}
+async function logA(t,d){const{db,collection,addDoc}=window.DB;try{await addDoc(collection(db,'journal'),{type:t,description:d,user:curUser(),date:new Date(),dateStr:fmtD(new Date()),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});}catch(e){if(e&&e.code==='moved')return;console.error('Журнал не записан:',e);toast('Действие выполнено, но не записалось в историю: '+(e&&e.message||''),'ter');}}
 
 // ---------- COMMENT ----------
 function openComment(id){_cid=id;const c=S.clients.find(x=>x.id===id);document.getElementById('mcText').value=c?.comment||'';document.getElementById('mcDel').style.display=c?.comment?'inline-flex':'none';openM('mComment');}
@@ -3985,7 +3985,7 @@ function loadXlsx(){if(window.XLSX)return Promise.resolve();if(!_xlsxP)_xlsxP=ne
 async function exportExcel(){try{await loadXlsx();}catch(e){toast('Ошибка: '+e.message,'ter');return;}const r=[['№','Дата','ФИО','Телефоны','Товар','Поставщик','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{if(c.archived)return;const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
 function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);}
 function closeM(id){document.getElementById(id).classList.remove('on');}
-function toast(m,c){m=String(m).replace(/^Ошибка: (Нет интернета|Связь пропала|Недостаточно средств|Договор изменился)/,'$1');const t=document.getElementById('toast');t.textContent=m;if(/^(Нет интернета|Связь пропала|Недостаточно средств|Договор изменился)/.test(m)){t.className='toast ter';t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),6000);return;}t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
+function toast(m,c){m=String(m).replace(/^Ошибка: (Нет интернета|Связь пропала|Недостаточно средств|Договор изменился|CRM переехала)/,'$1');const t=document.getElementById('toast');t.textContent=m;if(/^(Нет интернета|Связь пропала|Недостаточно средств|Договор изменился|CRM переехала)/.test(m)){t.className='toast ter';t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),6000);return;}t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 </script>
 <script>

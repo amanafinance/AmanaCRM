@@ -1,6 +1,6 @@
 // Резервная копия: скачать всю базу файлом, испортить данные, восстановить из файла — всё как было
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
-import {reseed,device,login,check,noErrors,wait,autoConfirm} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,autoConfirm,BACKEND} from '../lib.mjs';
 const snap=p=>p.evaluate(async()=>{
   const clean=o=>o&&JSON.parse(JSON.stringify(o,(k,v)=>k==='_u'?undefined:v));
   const{db,doc,getDoc}=window.DB,pc=await getDoc(doc(db,'settings','pcounter'));
@@ -105,5 +105,18 @@ export default async function(){
   check('телефон: «Сохранить файл» отдаёт файл копии',/^amana-backup-/.test(dl4.suggestedFilename()));
   noErrors('копия на телефоне',M.errs);
   await M.ctx.close();
+  // 8. Старый адрес после переезда (Firebase): только просмотр, но копию скачать можно
+  if(BACKEND==='fb'){
+    const O=await device();await O.ctx.addInitScript(()=>{window.__AMANA_MOVED=true;});await login(O.p);
+    const r=await O.p.evaluate(async()=>{const b=document.getElementById('movedBadge');let err='';
+      try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets','w1'),{name:'Взлом'});}catch(e){err=e.message;}
+      return{badge:!!b&&getComputedStyle(b).display!=='none'&&b.href.includes('crm-amana.ru'),err,name:S.wallets.find(w=>w.id==='w1').name};});
+    check('старый адрес: плашка «CRM переехала», изменения не сохраняются',r.badge&&/переехала/.test(r.err)&&r.name!=='Взлом',r);
+    await O.p.evaluate(()=>goTo('settings'));
+    const [dl5]=await Promise.all([O.p.waitForEvent('download',{timeout:60000}),O.p.click('#bkDl')]);
+    const J5=JSON.parse(fs.readFileSync(await dl5.path(),'utf8'));
+    check('старый адрес: копию для переезда скачать можно',J5.format==='amana-crm-backup'&&Object.keys(J5.collections.clients).length===before.n.c);
+    noErrors('старый адрес',O.errs);await O.ctx.close();
+  }
   fs.rmSync(tmp,{recursive:true,force:true});
 }
