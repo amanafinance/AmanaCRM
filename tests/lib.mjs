@@ -24,7 +24,7 @@ async function startPB(){
   for(let i=0;i<100;i++){try{if((await fetch(PB_URL+'/api/health')).ok)break;}catch(e){}await new Promise(r=>setTimeout(r,100));}
   const t=(await (await fetch(PB_URL+'/api/collections/_superusers/auth-with-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(PB_ADMIN)})).json()).token;
   _pbTok=t;
-  await fetch(PB_URL+'/api/collections/users/records',{method:'POST',headers:{'Content-Type':'application/json',Authorization:t},body:JSON.stringify({email:'a@test.ru',password:'test12345',passwordConfirm:'test12345',verified:true})});
+  await fetch(PB_URL+'/api/collections/users/records',{method:'POST',headers:{'Content-Type':'application/json',Authorization:t},body:JSON.stringify({email:'a@test.ru',password:'test12345',passwordConfirm:'test12345',verified:true,perms:'*'})}); // владелец
   // ограничение частоты входов (защита от подбора паролей) в тестах выключено: устройства входят десятками подряд
   await fetch(PB_URL+'/api/settings',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:t},body:JSON.stringify({rateLimits:{enabled:false}})});
 }

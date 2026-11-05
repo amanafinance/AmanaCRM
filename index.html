@@ -286,6 +286,21 @@ body.light .bwa{color:#128c4a}
 .plink{color:var(--green);text-decoration:none;font-weight:700}
 @media(max-width:768px){.cd-grid{grid-template-columns:1fr}.cd-side{order:-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.cd-side>.sc{margin:0!important;padding:10px}.cd-side .sv{font-size:var(--fs-md)!important}.cd-side>.cd-cmt{grid-column:1/-1}.plink{display:inline-block;padding:6px 0}}
 .slist{display:flex;flex-direction:column;gap:7px}
+/* Права сотрудников: без права кнопка и раздел скрыты (а сервер действие не выполнит) */
+body.no-v_fin #nav-dashboard,body.no-v_fin [onclick^="goTo('finance'"],body.no-v_fin [onclick^="goTo('dashboard'"],
+body.no-v_kassa [onclick^="goTo('kassa'"],body.no-v_inv [onclick^="goTo('investors'"],body.no-v_inv [onclick^="openInv("],body.no-v_journal [onclick^="goTo('journal'"],
+body.no-deal_new [onclick^="openNew("],body.no-deal_edit [onclick^="openEdit("],body.no-deal_arch [onclick^="archiveClient("],body.no-deal_del [onclick^="delClient("],
+body.no-people [onclick^="openPersonForm("],body.no-people [onclick^="delPerson("],body.no-people [onclick^="pickCreate("],
+body.no-pay [onclick^="openPay("],body.no-disc [onclick^="openDisc("],body.no-pay_cancel [onclick^="cancelPay("],
+body.no-kassa_ops.no-purchase [onclick^="openKassaOp("],body.no-kassa_ops [onclick^="openKassaEdit("],body.no-kassa_ops [onclick^="delKassaOp("],body.no-kassa_ops [onclick^="fixWallet("],
+body.no-inv_ops [onclick^="openInvOp("],body.no-inv_ops [onclick^="openInvForm("],body.no-inv_ops [onclick^="invCloseMonth("],body.no-inv_ops [onclick^="invReopenMonth("],body.no-inv_ops [onclick^="invFormDelete("],
+body.no-backup [onclick^="exportExcel("],body.no-settings .perm-settings,body.no-backup .perm-backup,body.no-restore .perm-restore,body.no-backup.no-restore .perm-bk,body.no-staff .perm-staff,
+body.no-settings.no-backup.no-restore.no-staff [onclick^="goTo('settings'"]{display:none!important}
+.st-row.st-off{opacity:.65}.st-tag{font-size:var(--fs-xs);font-weight:700;color:var(--green);margin-left:4px}.st-tag-off{color:var(--red)}
+.st-g{margin:0 0 12px}.st-gt{font-size:var(--fs-xs);font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin:0 0 6px}
+.st-ck{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:var(--r2);background:var(--bg3);margin:0 0 6px;cursor:pointer;font-size:var(--fs-sm)}
+.st-ck input{width:20px;height:20px;accent-color:var(--green);flex:none;margin:0}.st-ck input:disabled+span{opacity:.75}
+.st-err{color:var(--red);font-size:var(--fs-sm);min-height:1px;margin:4px 0}
 /* Резервная копия */
 .bk-t{font-size:var(--fs-xs);color:var(--t2);line-height:1.55;margin:0 0 10px}.bk-s{color:var(--t3)}.bk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}.bk-fn{font-size:var(--fs-xs);color:var(--t3);overflow-wrap:anywhere;min-width:0}
 .bk-sep{height:1px;background:var(--brd);margin:6px 0 12px}.bk-st:empty{display:none}.bk-ok,.bk-warn,.bk-err{font-size:var(--fs-xs);line-height:1.55;border-radius:var(--r2);padding:8px 11px;margin:0 0 10px}.bk-ok{background:rgba(149,193,31,0.1);color:var(--text)}.bk-warn{background:rgba(255,165,2,0.1);color:var(--yellow)}.bk-err{background:rgba(255,71,87,0.1);color:var(--red)}
@@ -1224,11 +1239,12 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div id="page-investor" class="page" style="display:none"><button class="bback" onclick="goTo('investors')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Инвесторы</button><div id="invPg"></div></div>
 <div id="page-journal" class="page" style="display:none"><div class="ph"><div class="pt">История действий</div></div><div class="card" style="padding:0;overflow:hidden"><div id="jList"></div></div></div>
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div class="pt">Настройки</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-<div class="card"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
-<div class="card"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
-<div class="card" id="bkCard"><div class="ct">Резервная копия</div><div id="bkBody"></div></div>
-<div class="card" id="renumCard" style="display:none"><div class="ct">Номера в новом формате</div><div id="renumBody"></div></div>
-<div class="card"><div class="ct">Шаблоны WhatsApp</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">Подстановки: {имя} {фио} {договор} {сумма} {дата} {дней} {просрочено} {остаток} {товар}</div><label class="lbl">Ближайшие 5 дней</label><textarea class="inp" id="waSoon" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Сегодня</label><textarea class="inp" id="waToday" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Просрочка</label><textarea class="inp" id="waOverdue" rows="4" style="resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn bg bsm" onclick="saveWaTpl()">Сохранить</button><button class="btn bgh bsm" onclick="resetWaTpl()">По умолчанию</button></div></div>
+<div class="card perm-settings"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
+<div class="card perm-settings"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
+<div class="card perm-staff" id="staffCard" style="display:none"><div class="ct">Сотрудники и права</div><div id="staffBody"></div></div>
+<div class="card perm-bk" id="bkCard"><div class="ct">Резервная копия</div><div id="bkBody"></div></div>
+<div class="card perm-settings" id="renumCard" style="display:none"><div class="ct">Номера в новом формате</div><div id="renumBody"></div></div>
+<div class="card perm-settings"><div class="ct">Шаблоны WhatsApp</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">Подстановки: {имя} {фио} {договор} {сумма} {дата} {дней} {просрочено} {остаток} {товар}</div><label class="lbl">Ближайшие 5 дней</label><textarea class="inp" id="waSoon" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Сегодня</label><textarea class="inp" id="waToday" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Просрочка</label><textarea class="inp" id="waOverdue" rows="4" style="resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn bg bsm" onclick="saveWaTpl()">Сохранить</button><button class="btn bgh bsm" onclick="resetWaTpl()">По умолчанию</button></div></div>
 </div></div>
 </main></div>
 
@@ -1243,6 +1259,12 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 
 <div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:var(--fs-sm);font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="mpPt"></select></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpDate">Дата оплаты</label><input class="inp" type="date" id="mpDate"/><div class="ko-amt-hint" id="mpDateHint"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpNote">Комментарий к платежу</label><input class="inp" type="text" id="mpNote" maxlength="200" placeholder="Например: клиент внёс 28.10, записали позже"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
 
+<div class="mover" id="mStaff"><div class="modal"><div class="mtitle" id="stTitle">Новый сотрудник</div>
+<div class="fg"><div class="fgp"><label class="lbl" for="stName">Имя</label><input class="inp" type="text" id="stName" autocomplete="off"/></div><div class="fgp"><label class="lbl" for="stEmail">Email *</label><input class="inp" type="email" id="stEmail" autocomplete="off"/></div><div class="fgp ff"><label class="lbl" for="stPw" id="stPwLbl">Пароль *</label><input class="inp" type="text" id="stPw" autocomplete="new-password"/></div></div>
+<div class="sdiv">Права</div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="stPreset">Готовый набор</label><select class="inp sel" id="stPreset" onchange="stPreset(this.value)"></select></div>
+<div id="stSelfNote" class="bk-t" style="display:none">Это ваш вход: себе нельзя отключить вход и убрать право «Сотрудники и права».</div>
+<div id="stPerms"></div><div id="stErr" class="st-err" aria-live="polite"></div>
+<div class="mft"><button class="btn bgh" onclick="closeM('mStaff')">Отмена</button><button class="btn bg" id="stSave" onclick="staffSave()">Сохранить</button></div></div></div>
 <div class="mover" id="mDisc"><div class="modal msm"><div class="mtitle">Скидка</div><div style="font-size:var(--fs-sm);font-weight:700;margin-bottom:16px" id="mdName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mdAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Причина</label><input class="inp" type="text" id="mdReason"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mDisc')">Отмена</button><button class="btn by" onclick="confirmDisc()">Применить</button></div></div></div>
 
 <div class="mover" id="mComment"><div class="modal msm"><div class="mtitle">Комментарий</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Текст</label><textarea class="inp" id="mcText" rows="3" placeholder="Обещал оплатить..."></textarea></div><div class="mft"><button class="btn bgh" onclick="closeM('mComment')">Отмена</button><button class="btn br bsm" onclick="deleteComment()" id="mcDel" style="display:none">Удалить</button><button class="btn bg" onclick="saveComment()">Сохранить</button></div></div></div>
@@ -1473,7 +1495,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 6';
+const CRM_VERSION='05.11.2026 · 7';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1483,7 +1505,7 @@ function enterApp(){document.getElementById('loginWrap').style.display='none';do
 function doLogout(){if(window.SIGN_OUT)window.SIGN_OUT(window.AUTH).finally(()=>location.reload());else location.reload();}
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
-function initApp(){if(_inited)return;_inited=true;const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
+function initApp(){if(_inited)return;_inited=true;installPermGuards();applyPerms();const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
 async function startAll(){const{live,liveTombs,checkEpoch}=window.DB;await checkEpoch();loadSettings();await liveTombs();if(typeof startInv==='function')startInv();
   live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
 // Открыта ли страница. Скрытые страницы не перерисовываются — их рисует переход на страницу (goTo)
@@ -2897,7 +2919,7 @@ async function ensureCashWallet(){
   }
 }
 function renderSettings(){
-  renderRecon();renderWaTpl();renderRenum();renderBackup();
+  renderRecon();renderWaTpl();renderRenum();renderBackup();if(Date.now()-_staffAt>60000)renderStaff();
   document.getElementById('partList').innerHTML=S.partners.map((p,i)=>{
     const locked=p==='Сторонний';
     return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:var(--fs-sm);font-weight:600">'+esc(p)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(fmtPhone(S.partnerPhones[p]||''))+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
@@ -2907,6 +2929,114 @@ function renderSettings(){
     return'<div class="sit'+(locked?' locked':'')+'"><div><div style="font-size:var(--fs-sm);font-weight:600">'+esc(w.name)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный)</span>':'')+'</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+(w.type==='cash'?'Наличные':'Карта / Счёт')+' · '+fmt(w.balance||0)+' ₽</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="renameWallet(\''+w.id+'\')">Переименовать</button>'+(locked?'':'<button class="btn br bsm" onclick="removeWallet(\''+w.id+'\','+((w.balance||0))+')">Удалить</button>')+'</div></div>';
   }).join('');
 }
+// ---------- ПРАВА СОТРУДНИКОВ ----------
+// Права проверяет сервер (server/pb_hooks): без права действие не выполнится, даже в обход экрана.
+// Здесь — только чтобы не показывать сотруднику кнопки и разделы, которыми он пользоваться не может.
+// AUTH.perms: "*" — владелец (всё), иначе ",право,право,". В старой базе (Firebase) прав нет — всем всё.
+const PERM_GROUPS=[
+  ['Просмотр',[['v_fin','Дашборд и «Обзор»: прибыль и показатели'],['v_kassa','Касса и остатки счетов'],['v_inv','Инвесторы'],['v_cost','Себестоимость и наценка в договорах'],['v_journal','История действий']]],
+  ['Договоры и клиенты',[['deal_new','Создавать договоры'],['deal_edit','Редактировать договоры'],['deal_arch','Отправлять в архив и возвращать'],['deal_del','Удалять договоры'],['people','Добавлять и править карточки клиентов']]],
+  ['Деньги',[['pay','Принимать оплату'],['disc','Делать скидку'],['pay_cancel','Отменять оплату и скидку'],['kassa_ops','Расходы, переводы и правки в кассе'],['purchase','Закупка товара (оплата поставщику)']]],
+  ['Инвесторы',[['inv_ops','Вклады, выплаты, участники, закрытие месяца']]],
+  ['Система',[['settings','Настройки: счета, поставщики, шаблоны WhatsApp'],['backup','Скачать копию базы и Excel'],['restore','Восстановить базу из копии'],['staff','Сотрудники и права (может выдать любые права)']]]];
+const PERM_KEYS=PERM_GROUPS.flatMap(g=>g[1].map(x=>x[0]));
+const PERM_LABEL=Object.fromEntries(PERM_GROUPS.flatMap(g=>g[1]));
+// Готовые наборы: выбираются одним нажатием, потом галочки можно поменять
+const PERM_PRESETS=[['owner','Владелец — все права','*'],
+  ['manager','Менеджер',['v_cost','deal_new','deal_edit','deal_arch','people','pay','disc']],
+  ['cashier','Кассир',['v_kassa','pay','kassa_ops','purchase']],
+  ['viewer','Только просмотр',['v_fin','v_kassa','v_inv','v_cost','v_journal']]];
+// Без этих прав другое право бессмысленно: договор нельзя завести, не видя себестоимость, и т. п.
+const PERM_NEEDS={deal_new:['v_cost','people'],deal_edit:['v_cost'],kassa_ops:['v_kassa'],purchase:['v_kassa'],inv_ops:['v_inv']};
+const myPerms=()=>{const p=window.AUTH&&window.AUTH.perms;return typeof p==='string'?p:'*';};
+const can=p=>{const x=myPerms();return x==='*'||x.indexOf(','+p+',')>=0;};
+function applyPerms(){
+  const b=document.body;PERM_KEYS.forEach(k=>b.classList.toggle('no-'+k,!can(k)));
+  if(!can('v_fin')&&(pageOn('dashboard')||pageOn('finance')))goBase();
+  if(!can('v_kassa')&&pageOn('kassa'))goBase();
+  if(!can('v_inv')&&(pageOn('investors')||pageOn('investor')))goBase();
+  if(!can('v_journal')&&pageOn('journal'))goBase();
+}
+window.addEventListener('permsChanged',()=>{if(_inited)applyPerms();});
+// Кнопки скрыты; если действие всё же вызвано — понятное сообщение вместо ошибки сервера
+const PERM_GUARD={openNew:'deal_new',openEdit:'deal_edit',archiveClient:'deal_arch',delClient:'deal_del',openPersonForm:'people',delPerson:'people',
+  openPay:'pay',openDisc:'disc',cancelPay:'pay_cancel',openKassaEdit:'kassa_ops',delKassaOp:'kassa_ops',fixWallet:'kassa_ops',
+  openInvOp:'inv_ops',openInvForm:'inv_ops',invCloseMonth:'inv_ops',invReopenMonth:'inv_ops',invFormDelete:'inv_ops',saveDepEdit:'inv_ops',
+  exportExcel:'backup',bkSave:'backup',bkPick:'restore',renumberAsk:'settings',addPart:'settings',renamePart:'settings',removePart:'settings',setPartPhone:'settings',
+  addWallet:'settings',renameWallet:'settings',removeWallet:'settings',saveWaTpl:'settings',resetWaTpl:'settings'};
+const PAGE_PERM={dashboard:'v_fin',finance:'v_fin',kassa:'v_kassa',investors:'v_inv',investor:'v_inv',journal:'v_journal'};
+function installPermGuards(){
+  Object.entries(PERM_GUARD).forEach(([fn,p])=>{const f=window[fn];if(typeof f!=='function'||f._pg)return;
+    const g=function(){if(!can(p)){toast('Нет права: '+PERM_LABEL[p].toLowerCase(),'ter');return;}return f.apply(this,arguments);};g._pg=1;window[fn]=g;});
+  const gt=window.goTo;if(typeof gt==='function'&&!gt._pg){const g=function(p){if(PAGE_PERM[p]&&!can(PAGE_PERM[p]))return goBase();return gt.apply(this,arguments);};g._pg=1;window.goTo=g;}
+  // касса: закупка — отдельное право; остальные операции — «операции кассы»
+  const ko=window.openKassaOp;if(typeof ko==='function'&&!ko._pg){const g=function(){if(!can('kassa_ops')&&!can('purchase')){toast('Нет права: операции кассы','ter');return;}const r=ko.apply(this,arguments);
+    const sel=document.getElementById('koType');if(sel){let first=null;[...sel.options].forEach(o=>{const ok=o.value==='purchase'?can('purchase'):can('kassa_ops');o.hidden=!ok;o.disabled=!ok;if(ok&&!first)first=o.value;});
+      if(sel.selectedOptions[0]&&sel.selectedOptions[0].disabled&&first){sel.value=first;if(typeof kassaTypeChanged==='function')kassaTypeChanged();}}return r;};g._pg=1;window.openKassaOp=g;}
+}
+installPermGuards();
+
+// ---------- Сотрудники (Настройки) — только на своём сервере ----------
+let _staff=null,_staffEdit=null,_staffAt=0;
+async function renderStaff(){
+  const card=document.getElementById('staffCard');if(!card)return;
+  if(!(window.DB&&window.DB.staff)||!can('staff')){card.style.display='none';return;}
+  card.style.display='';const el=document.getElementById('staffBody');_staffAt=Date.now();
+  if(!_staff)el.innerHTML='<div class="bk-t">Загружаю…</div>';
+  try{_staff=await window.DB.staff.list();}catch(e){el.innerHTML='<div class="bk-err">'+esc(e.message)+'</div>';return;}
+  const me=_staff.me,rows=_staff.list.map(u=>{
+    const own=u.perms==='*',n=own?0:PERM_KEYS.filter(k=>u.perms.indexOf(','+k+',')>=0).length,pr=presetOf(u.perms);
+    const what=own?'Владелец — все права':(pr?pr[1]+' · ':'')+n+' '+invPlural(n,'право','права','прав');
+    return'<div class="sit st-row'+(u.disabled?' st-off':'')+'"><div><div style="font-size:var(--fs-sm);font-weight:600">'+esc(u.name||u.email)+(u.id===me?' <span class="st-tag">это вы</span>':'')+(u.disabled?' <span class="st-tag st-tag-off">вход отключён</span>':'')+'</div>'+
+      '<div style="font-size:var(--fs-xs);color:var(--t3);overflow-wrap:anywhere">'+(u.name?esc(u.email)+' · ':'')+esc(what)+'</div></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="openStaff(\''+u.id+'\')">Права</button>'+
+      (u.id===me?'':'<button class="btn bgh bsm" onclick="staffToggle(\''+u.id+'\')">'+(u.disabled?'Включить вход':'Отключить вход')+'</button><button class="btn br bsm" onclick="staffDel(\''+u.id+'\')">Удалить</button>')+'</div></div>';}).join('');
+  el.innerHTML='<div class="bk-t">Каждому сотруднику — свой вход и свои права. Права проверяет сервер: без права действие не выполнится, а скрытые разделы и себестоимость сотрудник не получит вовсе.</div><div class="slist">'+rows+'</div><div class="bk-row" style="margin-top:10px"><button class="btn bg" onclick="openStaff()">+ Сотрудник</button></div>';
+}
+const presetOf=perms=>{if(perms==='*')return PERM_PRESETS[0];const set=PERM_KEYS.filter(k=>perms.indexOf(','+k+',')>=0).sort().join();return PERM_PRESETS.find(p=>p[2]!=='*'&&p[2].slice().sort().join()===set)||null;};
+function openStaff(id){
+  const u=id&&_staff?_staff.list.find(x=>x.id===id):null;_staffEdit=u;const self=u&&_staff&&u.id===_staff.me;
+  document.getElementById('stTitle').textContent=u?'Права: '+(u.name||u.email):'Новый сотрудник';
+  document.getElementById('stName').value=u?u.name||'':'';
+  const em=document.getElementById('stEmail');em.value=u?u.email:'';em.disabled=!!u;
+  document.getElementById('stPwLbl').textContent=u?'Новый пароль (если нужно сменить)':'Пароль * (не меньше 8 символов)';document.getElementById('stPw').value='';
+  document.getElementById('stPreset').innerHTML='<option value="">Свой набор</option>'+PERM_PRESETS.map(p=>'<option value="'+p[0]+'">'+esc(p[1])+'</option>').join('');
+  document.getElementById('stPerms').innerHTML=PERM_GROUPS.map(g=>'<div class="st-g"><div class="st-gt">'+esc(g[0])+'</div>'+g[1].map(([k,l])=>'<label class="st-ck"><input type="checkbox" data-k="'+k+'" onchange="staffCk(this)"/><span>'+esc(l)+'</span></label>').join('')+'</div>').join('');
+  const perms=u?u.perms:'';stSet(perms);
+  document.getElementById('stSelfNote').style.display=self?'':'none';
+  document.getElementById('stErr').textContent='';openM('mStaff');
+}
+function stBoxes(){return[...document.querySelectorAll('#stPerms input[data-k]')];}
+function stSet(perms){const own=perms==='*';stBoxes().forEach(b=>{b.checked=own||perms.indexOf(','+b.dataset.k+',')>=0;b.disabled=own;});const pr=presetOf(perms);document.getElementById('stPreset').value=pr?pr[0]:'';}
+function stPreset(v){const p=PERM_PRESETS.find(x=>x[0]===v);if(!p){stBoxes().forEach(b=>{b.disabled=false;});return;}stSet(p[2]==='*'?'*':','+p[2].join(',')+',');}
+function staffCk(box){
+  const k=box.dataset.k,by=Object.fromEntries(stBoxes().map(b=>[b.dataset.k,b]));
+  if(box.checked)(PERM_NEEDS[k]||[]).forEach(d=>{if(by[d])by[d].checked=true;});
+  else Object.entries(PERM_NEEDS).forEach(([p,ds])=>{if(ds.includes(k)&&by[p])by[p].checked=false;});
+  const cur=','+stBoxes().filter(b=>b.checked).map(b=>b.dataset.k).join(',')+',',pr=presetOf(cur);document.getElementById('stPreset').value=pr?pr[0]:'';
+}
+async function staffSave(){
+  if(_saving)return;const u=_staffEdit,err=document.getElementById('stErr');err.textContent='';
+  const pv=document.getElementById('stPreset').value,perms=pv==='owner'?'*':stBoxes().filter(b=>b.checked).map(b=>b.dataset.k);
+  const data={name:document.getElementById('stName').value.trim(),perms};
+  if(!u)data.email=document.getElementById('stEmail').value.trim();
+  const pw=document.getElementById('stPw').value;if(pw)data.password=pw;
+  if(!u&&!data.email){err.textContent='Укажите email';return;}
+  if(!u&&!pw){err.textContent='Придумайте пароль — его нужно передать сотруднику';return;}
+  if(pw&&pw.length<8){err.textContent='Пароль — не меньше 8 символов';return;}
+  _saving=true;const btn=document.getElementById('stSave');btn.disabled=true;
+  try{const r=await window.DB.staff.save(u?u.id:null,data);closeM('mStaff');toast(u?'Права сохранены':'Сотрудник добавлен: '+(r.email||''),'tok');
+    await logA(u?'Права сотрудника':'Новый сотрудник',(r.name?r.name+' · ':'')+(r.email||'')+' · '+(r.perms==='*'?'владелец':(PERM_KEYS.filter(k=>r.perms.indexOf(','+k+',')>=0).map(k=>PERM_LABEL[k]).join(', ')||'без прав')));
+    if(u&&_staff&&u.id===_staff.me&&window.DB.pb)try{await window.DB.pb.collection('users').authRefresh();applyPerms();}catch(e){}
+    renderStaff();}
+  catch(e){err.textContent=e.message;}finally{_saving=false;btn.disabled=false;}
+}
+function staffToggle(id){const u=_staff&&_staff.list.find(x=>x.id===id);if(!u)return;
+  showConfirm(u.disabled?'Включить вход?':'Отключить вход?',esc(u.name||u.email)+(u.disabled?' снова сможет войти в CRM.':' больше не сможет войти, а открытая у него CRM сразу перестанет работать. Данные и история действий остаются.'),async()=>{
+    try{await window.DB.staff.save(id,{disabled:!u.disabled});await logA(u.disabled?'Вход сотрудника включён':'Вход сотрудника отключён',u.email);toast(u.disabled?'Вход включён':'Вход отключён','tok');renderStaff();}catch(e){toast('Ошибка: '+e.message,'ter');}});}
+function staffDel(id){const u=_staff&&_staff.list.find(x=>x.id===id);if(!u)return;
+  showConfirm('Удалить сотрудника?',esc(u.name||u.email)+' больше не сможет войти. Его действия в истории останутся. Если сотрудник может вернуться — лучше «Отключить вход».',async()=>{
+    try{await window.DB.staff.remove(id);await logA('Сотрудник удалён',u.email);toast('Сотрудник удалён','tok');renderStaff();}catch(e){toast('Ошибка: '+e.message,'ter');}});}
 // ---------- РЕЗЕРВНАЯ КОПИЯ (Настройки) ----------
 // «Скачать копию» — вся база одним файлом; по желанию файл шифруется паролем (AES-256, ключ из пароля через PBKDF2).
 // «Восстановить» — показывает дату и состав копии, просит сначала сохранить текущие данные, потом возвращает базу к копии.
@@ -2941,12 +3071,12 @@ async function bkMake(pw){
 function renderBackup(){
   const el=document.getElementById('bkBody');if(!el||el.dataset.on)return;el.dataset.on='1';
   el.innerHTML='<div class="bk-t">Вся база одним файлом: договоры, клиенты, платежи, касса, счета, инвесторы, закрытые месяцы, история действий и настройки. Храните файл не только на телефоне: например, на компьютере и в облаке. Этот же файл подойдёт для переезда CRM на другой сервер.</div>'+
-    '<label class="lbl" for="bkPw">Пароль для файла (необязательно)</label><input class="inp" type="password" id="bkPw" autocomplete="new-password" placeholder="Без пароля файл читается любым"/>'+
+    '<div class="perm-backup"><label class="lbl" for="bkPw">Пароль для файла (необязательно)</label><input class="inp" type="password" id="bkPw" autocomplete="new-password" placeholder="Без пароля файл читается любым"/>'+
     '<div class="bk-t bk-s">С паролем файл зашифрован. Забудете пароль — открыть копию будет нельзя, восстановить пароль невозможно.</div>'+
-    '<div class="bk-row"><button class="btn bg" id="bkDl" onclick="bkSave()">Скачать копию</button></div><div id="bkSt" class="bk-st" aria-live="polite"></div>'+
-    '<div class="bk-sep"></div><div class="bk-t">Восстановление вернёт базу к моменту копии: всё, что внесли после, пропадёт. История действий остаётся как есть.</div>'+
+    '<div class="bk-row"><button class="btn bg" id="bkDl" onclick="bkSave()">Скачать копию</button></div><div id="bkSt" class="bk-st" aria-live="polite"></div><div class="bk-sep"></div></div>'+
+    '<div class="perm-restore"><div class="bk-t">Восстановление вернёт базу к моменту копии: всё, что внесли после, пропадёт. История действий остаётся как есть.</div>'+
     '<input type="file" id="bkFile" accept=".json,application/json" style="display:none" onchange="bkPick(this)"/>'+
-    '<div class="bk-row"><button class="btn bgh" id="bkPickBtn" onclick="document.getElementById(\'bkFile\').click()">Восстановить из копии…</button></div><div id="bkRs" aria-live="polite"></div>';
+    '<div class="bk-row"><button class="btn bgh" id="bkPickBtn" onclick="document.getElementById(\'bkFile\').click()">Восстановить из копии…</button></div><div id="bkRs" aria-live="polite"></div></div>';
 }
 async function bkSave(){
   const btn=document.getElementById('bkDl'),st=document.getElementById('bkSt'),pw=document.getElementById('bkPw').value;

@@ -69,6 +69,7 @@ function commit(e, app) {
   const checks = isPlain(req.checks) ? req.checks : {};
   if (ops.length > MAX_OPS) return e.json(400, { code: 'bad', message: 'Слишком много изменений за раз' });
   const isAdmin = e.auth && e.auth.collection().name === '_superusers';
+  const perms = isAdmin ? '*' : ((e.auth && e.auth.getString('perms')) || '');
   const now = Date.now(), nowIso = new Date(now).toISOString();
   let failure = null;
   const out = { u: now, docs: [], counters: {} };
@@ -93,7 +94,7 @@ function commit(e, app) {
           try { rec = tx.findRecordById(c, id); } catch (err) { rec = null; }
           let data = null;
           if (rec) { try { data = JSON.parse(rec.getString('data') || 'null'); } catch (err) { data = null; } }
-          cache[k] = { c, id, rec, data: isPlain(data) ? data : {}, exists: !!rec, existed: !!rec, dirty: false, del: false };
+          cache[k] = { c, id, rec, data: isPlain(data) ? data : {}, orig: isPlain(data) ? data : {}, exists: !!rec, existed: !!rec, dirty: false, del: false };
         }
         return cache[k];
       };
@@ -146,6 +147,14 @@ function commit(e, app) {
       });
       if (dealSeq) { dealSeq.s.data = Object.assign({}, dealSeq.s.data, { paySeq: dealSeq.seq + 1 }); dealSeq.s.exists = true; dealSeq.s.dirty = true; }
 
+      // 2a. Права сотрудника: что меняется → какое право нужно (владелец и администратор — без ограничений)
+      if (perms !== '*') {
+        if (req.mode === 'restore') { if (!has(perms, 'restore')) throw new Fail('denied', 'Нет права: ' + PERM_LABEL.restore, 403); }
+        else permsFor(ops, cache).forEach((p) => { if (!has(perms, p)) throw new Fail('denied', 'Нет права: ' + (PERM_LABEL[p] || p), 403); });
+        // без права видеть себестоимость её нельзя и изменить: остаётся прежней
+        if (!has(perms, 'v_cost')) Object.keys(cache).forEach((k) => { const x = cache[k]; if (x.c === 'clients' && x.dirty && !x.del && x.existed && x.orig.cost !== undefined) x.data = Object.assign({}, x.data, { cost: x.orig.cost }); });
+      }
+
       // 3. Правило счетов: остаток не уходит в минус (пополнить счёт, который уже в минусе, можно)
       Object.keys(cache).forEach((k) => {
         const s = cache[k]; if (s.c !== 'wallets' || !s.dirty || s.del) return;
@@ -169,9 +178,121 @@ function commit(e, app) {
         if (!rec) { rec = new Record(tx.findCollectionByNameOrId(s.c)); rec.set('id', s.id); }
         rec.set('data', s.data); rec.set('u', now); rec.set('d', dateMs(s.data));
         tx.save(rec);
-        out.docs.push({ c: s.c, id: s.id, data: s.data, u: now });
+        out.docs.push({ c: s.c, id: s.id, data: s.c === 'clients' && !has(perms, 'v_cost') ? stripCost(s.data) : s.data, u: now });
       });
   }
 }
 
-module.exports = { commit, Fail };
+// ---------- Права сотрудников ----------
+// users.perms: "*" — владелец (всё), иначе ",право,право," . Названия — как в CRM (Настройки → Сотрудники).
+const PERM_LABEL = {
+  v_fin: 'дашборд и «Обзор»', v_kassa: 'касса и остатки счетов', v_inv: 'инвесторы', v_cost: 'себестоимость и наценка', v_journal: 'история действий',
+  deal_new: 'создавать договоры', deal_edit: 'редактировать договоры', deal_arch: 'архив договоров', deal_del: 'удалять договоры', people: 'клиенты (карточки)',
+  pay: 'принимать оплату', disc: 'делать скидку', pay_cancel: 'отменять оплату и скидку', kassa_ops: 'операции кассы', purchase: 'закупка товара',
+  inv_ops: 'операции инвесторов', settings: 'настройки', backup: 'скачать копию', restore: 'восстановить из копии', staff: 'сотрудники и права',
+};
+const PERMS = Object.keys(PERM_LABEL);
+const has = (perms, p) => perms === '*' || String(perms || '').indexOf(',' + p + ',') >= 0;
+const normPerms = (v) => { if (v === '*') return '*'; const a = (Array.isArray(v) ? v : String(v || '').split(',')).map((x) => String(x).trim()).filter((x) => PERMS.indexOf(x) >= 0); return a.length ? ',' + a.filter((x, i) => a.indexOf(x) === i).join(',') + ',' : ''; };
+const stripCost = (d) => { if (!isPlain(d) || d.cost === undefined) return d; const o = Object.assign({}, d); delete o.cost; return o; };
+const changed = (a, b) => { a = a || {}; b = b || {}; const ks = {}; Object.keys(a).forEach((k) => { ks[k] = 1; }); Object.keys(b).forEach((k) => { ks[k] = 1; }); return Object.keys(ks).filter((k) => !same(a[k], b[k])); };
+const only = (keys, allowed) => keys.every((k) => allowed.indexOf(k) >= 0);
+// Какие права нужны для этой транзакции: по тому, что и как меняется
+function permsFor(ops, cache) {
+  const need = {}, touched = {};
+  ops.forEach((o) => { touched[o.c] = 1; });
+  const createsDeal = ops.some((o) => o.c === 'clients' && cache['clients/' + o.id] && !cache['clients/' + o.id].existed);
+  ops.forEach((o) => {
+    const s = cache[o.c + '/' + o.id]; if (!s) return;
+    const del = o.t === 'delete', isNew = !s.existed, rec = del ? s.orig : s.data, K = changed(s.orig, s.data).filter((k) => k !== 'paySeq');
+    const want = (p) => { need[p] = 1; };
+    switch (o.c) {
+      case 'journal': case 'trash': return; // только дописываются (проверено выше)
+      case 'settings':
+        if (o.id === 'meta') { if (s.existed) want('restore'); return; } // метку базы меняет только восстановление из копии
+        if (/^(ui|pcounter|counter(-\d+)?)$/.test(o.id)) return;
+        return want('settings');
+      case 'persons': return want('people');
+      case 'investors': case 'invOps': case 'invMonths': return want('inv_ops');
+      case 'payments':
+        if (del) return want('pay_cancel');
+        if (isNew) return want(rec.type === 'payment' ? 'pay' : rec.type === 'discount' ? 'disc' : createsDeal ? 'deal_new' : 'deal_edit');
+        if (only(K, ['note', 'comment', 'commentDate'])) return want('pay');
+        if (only(K, ['contractId'])) return want('settings');
+        return want('deal_edit');
+      case 'clients':
+        if (del) return want('deal_del');
+        if (isNew) return want('deal_new');
+        if (!K.length || only(K, ['comment', 'commentDate', 'defer'])) return;
+        if (only(K, ['archived', 'archivedAt'])) return want('deal_arch');
+        if (only(K, ['contractId', 'oldContractId'])) return want('settings');
+        return want('deal_edit');
+      case 'wallets':
+        if (del || isNew) return want('settings');
+        if (only(K, ['balance'])) { if (!touched.kassaOps) want('kassa_ops'); return; }
+        return want('settings');
+      case 'kassaOps':
+        if (rec.refType === 'investor') return want('inv_ops');
+        if (rec.type === 'purchase') return want('purchase');
+        if (rec.refType === 'client' && rec.auto && touched.payments) return; // операция кассы при оплате/предоплате — право даёт сам платёж
+        return want('kassa_ops');
+    }
+  });
+  return Object.keys(need);
+}
+
+// ---------- Сотрудники (Настройки → Сотрудники; нужно право staff) ----------
+const myPerms = (e) => (e.auth && e.auth.collection().name === '_superusers') ? '*' : ((e.auth && e.auth.getString('perms')) || '');
+const staffView = (r) => ({ id: r.id, email: r.email(), name: r.getString('name'), perms: r.getString('perms'), disabled: r.getBool('disabled'), created: r.getString('created') });
+function staffGuard(e) { if (!has(myPerms(e), 'staff')) { e.json(403, { code: 'denied', message: 'Нет права: ' + PERM_LABEL.staff }); return false; } return true; }
+function staffList(e, app) {
+  if (!staffGuard(e)) return;
+  const list = app.findAllRecords('users').map(staffView).sort((a, b) => (a.created < b.created ? -1 : 1));
+  return e.json(200, { list, me: e.auth.id, perms: PERMS.map((k) => ({ k, label: PERM_LABEL[k] })) });
+}
+function staffSave(e, app) {
+  if (!staffGuard(e)) return;
+  const b = e.requestInfo().body || {}, mine = myPerms(e), id = e.request.pathValue('id');
+  const bad = (m) => e.json(400, { code: 'bad', message: m });
+  let perms = b.perms !== undefined ? normPerms(b.perms) : undefined;
+  if (perms === '*' && mine !== '*') return e.json(403, { code: 'denied', message: 'Права владельца может выдать только владелец' });
+  let r;
+  if (id) {
+    try { r = app.findRecordById('users', id); } catch (x) { return e.json(404, { code: 'missing', message: 'Сотрудник не найден' }); }
+    const self = e.auth && r.id === e.auth.id;
+    if (self && (b.disabled === true || (perms !== undefined && !has(perms, 'staff')))) return bad('Себе нельзя отключить вход или убрать право «сотрудники и права»');
+    if (r.getString('perms') === '*' && mine !== '*') return e.json(403, { code: 'denied', message: 'Менять владельца может только владелец' });
+  } else {
+    const email = String(b.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad('Проверьте email');
+    if (!b.password) return bad('Укажите пароль');
+    r = new Record(app.findCollectionByNameOrId('users'));
+    r.set('email', email); r.set('verified', true); r.set('emailVisibility', false);
+    if (perms === undefined) perms = '';
+  }
+  if (b.password) { if (String(b.password).length < 8) return bad('Пароль — не меньше 8 символов'); r.setPassword(String(b.password)); r.refreshTokenKey(); }
+  if (b.name !== undefined) r.set('name', String(b.name).slice(0, 100));
+  if (perms !== undefined) r.set('perms', perms);
+  if (b.disabled !== undefined) { r.set('disabled', !!b.disabled); if (b.disabled) r.refreshTokenKey(); }
+  try { app.save(r); } catch (x) { return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
+  return e.json(200, staffView(r));
+}
+function staffDelete(e, app) {
+  if (!staffGuard(e)) return;
+  const id = e.request.pathValue('id');
+  if (e.auth && id === e.auth.id) return e.json(400, { code: 'bad', message: 'Себя удалить нельзя' });
+  let r; try { r = app.findRecordById('users', id); } catch (x) { return e.json(404, { code: 'missing', message: 'Сотрудник не найден' }); }
+  if (r.getString('perms') === '*' && myPerms(e) !== '*') return e.json(403, { code: 'denied', message: 'Удалить владельца может только владелец' });
+  app.delete(r);
+  return e.json(200, { ok: true });
+}
+// Себестоимость не уходит к тем, кому её видеть нельзя (списки, карточки, realtime)
+function enrichClient(e) {
+  const a = e.requestInfo && e.requestInfo.auth;
+  if (a && a.collection().name === 'users' && !has(a.getString('perms'), 'v_cost')) {
+    let d = null; try { d = JSON.parse(e.record.getString('data') || 'null'); } catch (x) { d = null; }
+    if (isPlain(d) && d.cost !== undefined) e.record.set('data', stripCost(d));
+  }
+}
+
+module.exports = { commit, Fail, staffList, staffSave, staffDelete, enrichClient, has, PERMS };

@@ -4,6 +4,15 @@ routerAdd('POST', '/api/amana/commit', (e) => {
   return require(`${__hooks}/amana_lib.js`).commit(e, $app);
 }, $apis.requireAuth('users', '_superusers'));
 
+// Сотрудники и права (Настройки → Сотрудники): список, добавить/изменить, удалить. Нужно право staff.
+routerAdd('GET', '/api/amana/staff', (e) => require(`${__hooks}/amana_lib.js`).staffList(e, $app), $apis.requireAuth('users', '_superusers'));
+routerAdd('POST', '/api/amana/staff', (e) => require(`${__hooks}/amana_lib.js`).staffSave(e, $app), $apis.requireAuth('users', '_superusers'));
+routerAdd('POST', '/api/amana/staff/{id}', (e) => require(`${__hooks}/amana_lib.js`).staffSave(e, $app), $apis.requireAuth('users', '_superusers'));
+routerAdd('DELETE', '/api/amana/staff/{id}', (e) => require(`${__hooks}/amana_lib.js`).staffDelete(e, $app), $apis.requireAuth('users', '_superusers'));
+
+// Себестоимость в договорах — только тем, у кого есть право её видеть
+onRecordEnrich((e) => { require(`${__hooks}/amana_lib.js`).enrichClient(e); e.next(); }, 'clients');
+
 // Только для автотестов (переменная окружения AMANA_TEST=1, на настоящем сервере её нет):
 // очистить базу и записать тестовые данные напрямую, без проверок. Доступно только администратору.
 if ($os.getenv('AMANA_TEST') === '1') {
