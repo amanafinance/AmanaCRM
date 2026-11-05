@@ -1501,7 +1501,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 11';
+const CRM_VERSION='05.11.2026 · 12';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -3434,7 +3434,7 @@ function pplPass(g){
   for(const k in S.PF){const f=S.PF[k];if(!f)continue;const q=(f.q||'').trim().toLowerCase();
     if(q){
       if(k==='name'&&!personKey(g.name).includes(q))return false;
-      if(k==='no'){const n=noNum(q);if(n?(noNum(g.no)!==n&&noNum(g.oldNo)!==n):!(g.no||'').toLowerCase().includes(q))return false;}
+      if(k==='no'){const n=noNum(q);if(n?noNum(g.no)!==n:!(g.no||'').toLowerCase().includes(q))return false;}
       if(k==='phone'){const d=q.replace(/\D/g,'');if(d&&!g.phones.some(p=>String(p).replace(/\D/g,'').includes(d)))return false;}
       if(k==='addr'&&!(g.addr||'').toLowerCase().includes(q))return false;
       if(k==='note'&&!(g.note||'').toLowerCase().includes(q))return false;}
