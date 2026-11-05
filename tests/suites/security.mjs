@@ -2,11 +2,36 @@
 import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import {doc,getDoc,setDoc,updateDoc,deleteDoc} from 'firebase/firestore';
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {reseed,device,login,check,noErrors,wait} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,BACKEND,PB_URL,pbAdmin} from '../lib.mjs';
 const RULES=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../firestore.rules');
 
 async function tryOp(pr){try{await pr;return true;}catch(e){return false;}}
+// Свой сервер (PocketBase): те же правила, их проверяет сервер (server/pb_hooks, server/pb_migrations)
+async function pbRules(){
+  const req=async(m,p,b,t)=>{const r=await fetch(PB_URL+p,{method:m,headers:{'Content-Type':'application/json',...(t?{Authorization:t}:{})},body:b?JSON.stringify(b):undefined});let j=null;try{j=await r.json();}catch(e){}return{s:r.status,j};};
+  const A=await pbAdmin(),U=(await req('POST','/api/collections/users/auth-with-password',{identity:'a@test.ru',password:'test12345'})).j.token;
+  await fetch(PB_URL+'/api/amana/test/seed',{method:'POST',headers:{'Content-Type':'application/json',Authorization:A},body:JSON.stringify({docs:[{c:'clients',id:'a',data:{name:'X'}},{c:'journal',id:'j',data:{t:1}},{c:'wallets',id:'w',data:{name:'Сбер',balance:100}},{c:'wallets',id:'neg',data:{name:'Старый',balance:-50}}]})});
+  const C=(b,t)=>req('POST','/api/amana/commit',b,t===undefined?U:t);
+  const anonList=await req('GET','/api/collections/clients/records'),anonOne=await req('GET','/api/collections/clients/records/a');
+  check('без входа база не читается',anonOne.s!==200&&!(anonList.j&&anonList.j.items&&anonList.j.items.length),{one:anonOne.s,list:anonList.j&&anonList.j.items&&anonList.j.items.length});
+  check('без входа в базу нельзя писать',(await C({ops:[{t:'set',c:'clients',id:'b',d:{x:1}}]},null)).s===401);
+  check('вошедший сотрудник читает и пишет',(await req('GET','/api/collections/clients/records/a',null,U)).s===200&&(await C({ops:[{t:'set',c:'clients',id:'b',d:{x:1}}]})).s===200);
+  const direct=[await req('POST','/api/collections/clients/records',{id:'zz',data:{x:1}},U),await req('PATCH','/api/collections/clients/records/a',{data:{x:2}},U),await req('DELETE','/api/collections/clients/records/a',null,U)].map(r=>r.s);
+  check('напрямую (в обход проверок сервера) записать нельзя',direct.every(s=>s>=400),direct);
+  check('самому зарегистрироваться нельзя',(await req('POST','/api/collections/users/records',{email:'x@test.ru',password:'test12345',passwordConfirm:'test12345'})).s>=400);
+  check('историю действий нельзя исправить',(await C({ops:[{t:'update',c:'journal',id:'j',d:{t:2}}]})).s===403&&(await C({ops:[{t:'set',c:'journal',id:'j',d:{t:2}}]})).s===403);
+  check('историю действий нельзя удалить',(await C({ops:[{t:'delete',c:'journal',id:'j'}]})).s===403);
+  check('счёт нельзя увести в минус',(await C({ops:[{t:'update',c:'wallets',id:'w',d:{balance:-10}}]})).s===409);
+  check('счёт можно потратить до нуля',(await C({ops:[{t:'update',c:'wallets',id:'w',d:{balance:0}}]})).s===200);
+  check('счёт в минусе можно пополнить и переименовать',(await C({ops:[{t:'update',c:'wallets',id:'neg',d:{balance:-20}}]})).s===200&&(await C({ops:[{t:'update',c:'wallets',id:'neg',d:{name:'Сбербанк'}}]})).s===200);
+  check('новый счёт нельзя создать с минусом',(await C({ops:[{t:'set',c:'wallets',id:'x',d:{name:'X',balance:-1}}]})).s===409);
+  check('служебный раздел надгробий не пишется',(await C({ops:[{t:'set',c:'deleted',id:'q',d:{}}]})).s===400);
+}
 export default async function(){
+  if(BACKEND==='pb')await pbRules();else await fbRules();
+  await xss();
+}
+async function fbRules(){
   // Правила — в отдельном проекте эмулятора, чтобы не трогать данные CRM
   const env=await initializeTestEnvironment({projectId:'rules-check',firestore:{host:'127.0.0.1',port:8085,rules:fs.readFileSync(RULES,'utf8')}});
   await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'clients/a'),{name:'X'});await setDoc(doc(c.firestore(),'journal/j'),{t:1});});
@@ -23,7 +48,8 @@ export default async function(){
   check('счёт в минусе можно пополнить и переименовать',await tryOp(updateDoc(doc(user,'wallets/neg'),{balance:-20}))&&await tryOp(updateDoc(doc(user,'wallets/neg'),{name:'Сбербанк'})));
   check('новый счёт нельзя создать с минусом',!(await tryOp(setDoc(doc(user,'wallets/x'),{name:'X',balance:-1}))));
   await env.cleanup();
-
+}
+async function xss(){
   // Текст из полей не выполняется как код
   await reseed();
   const {p,errs,ctx}=await device();await login(p);
