@@ -44,4 +44,20 @@ export default async function(){
   check('«Безопасность»: здесь сотрудники и резервная копия',r6.bk&&r6.staff&&r6.title==='Безопасность'&&r6.nav,r6);
   check('«Настройки» теперь «Справочники», без копии и сотрудников',r6.stTitle==='Справочники'&&!r6.stHasBk&&r6.navName==='Справочники',r6);
   noErrors('фильтры и блоки',errs);await ctx.close();
+  // 6. Телефон: нижняя панель без наложений, «Безопасность» — в «Ещё»; окна «Фильтры» со всеми столбцами
+  const M=await device({mobile:true,vp:{width:390,height:844}});await login(M.p);
+  const m1=await M.p.evaluate(()=>{const vis=[...document.querySelectorAll('.sidebar > div > .nb')].filter(b=>b.offsetParent!==null&&getComputedStyle(b).display!=='none');
+    const clip=vis.filter(b=>b.scrollWidth>b.clientWidth+1).map(b=>b.textContent.trim());
+    const secMain=vis.some(b=>b.id==='nav-security'),secMore=!!document.getElementById('nav-security2');return{n:vis.length,names:vis.map(b=>b.textContent.trim()),clip,secMain,secMore};});
+  check('телефон: «Безопасность» не в нижней панели, а в «Ещё»',!m1.secMain&&m1.secMore,m1);
+  check('телефон: подписи нижней панели не наезжают друг на друга',m1.clip.length===0&&m1.n<=5,m1);
+  const m2=await M.p.evaluate(()=>{goBase('people');openPplFilter();const ids=[...document.querySelectorAll('#mfOver input')].map(i=>i.id);
+    document.getElementById('pf_active_from').value='1';document.getElementById('pf_note').value='';applyPplFilter();const pf=JSON.parse(JSON.stringify(S.PF));S.PF={};renderPeople();
+    goBase('clients');openMobileFilter('clients');const dids=[...document.querySelectorAll('#mfOver input,#mfOver select')].map(i=>i.id);
+    document.getElementById('mf_xnext_from').value='1';applyMobileFilter('clients');const cf=S.CF.x_next;S.CF={...CF_EMPTY};return{ids,pf,dids,cf};});
+  const needP=['pf_name','pf_no','pf_phone','pf_addr','pf_note','pf_deals_from','pf_active_from','pf_done_from','pf_debt_from','pf_over_from'];
+  check('телефон: в фильтрах клиентов есть все столбцы, фильтр применяется',needP.every(x=>m2.ids.includes(x))&&m2.pf.active&&m2.pf.active.from==='1',{miss:needP.filter(x=>!m2.ids.includes(x)),pf:m2.pf});
+  const needD=['mf_xstatus','mf_xgname','mf_xcomment','mf_xnext_from','mf_xpaid_from','mf_xlastpay_from','mf_xprepay_from','mf_xcost_from','mf_xmargin_from'];
+  check('телефон: в фильтрах сделок есть новые столбцы, фильтр применяется',needD.every(x=>m2.dids.includes(x))&&m2.cf&&m2.cf.from==='1',{miss:needD.filter(x=>!m2.dids.includes(x)),cf:m2.cf});
+  noErrors('телефон',M.errs);await M.ctx.close();
 }

@@ -326,7 +326,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .sidebar>div:first-child{display:flex;width:100%;justify-content:space-around;flex-wrap:nowrap;overflow:visible;gap:0;align-items:center}
 .sidebar>div:first-child::-webkit-scrollbar{display:none}
 .slogo,.sname,.sg,.sfoot,.theme-toggle{display:none!important}
-#nav-journal,#nav-settings,#nav-finance{display:none!important}
+#nav-journal,#nav-settings,#nav-security,#nav-finance{display:none!important}
 #nav-more{display:flex!important}
 .nb{flex-direction:column;gap:2px;padding:6px 4px;font-size:var(--fs-xs);min-width:0;flex:1;max-width:80px;align-items:center;justify-content:center;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:8px;transition:none!important;-webkit-tap-highlight-color:rgba(149,193,31,0.2)}
 .nb:active{background:var(--bg3)!important;opacity:0.7}
@@ -1499,7 +1499,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='05.11.2026 · 8';
+const CRM_VERSION='05.11.2026 · 9';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2183,7 +2183,8 @@ function openMobileFilter(pg){
       '<div class="mf-sec"><label class="lbl">Остаток от–до</label><div class="mf-range"><input class="inp" id="mf_bfrom" type="number" placeholder="от" inputmode="numeric" value="'+esc(v.bal_from||'')+'"/><input class="inp" id="mf_bto" type="number" placeholder="до" inputmode="numeric" value="'+esc(v.bal_to||'')+'"/></div></div>'+
       (pg==='payments'?'':'<div class="mf-sec"><label class="lbl">Статус</label><select class="inp" id="mf_xstatus"><option value="">Все</option>'+CL_XF.status.opts.map(o=>'<option value="'+o[0]+'"'+((v.x_status||{}).q===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></div>'+
         '<div class="mf-sec"><label class="lbl">Поручитель</label><input class="inp" id="mf_xgname" value="'+esc((v.x_gname||{}).q||'')+'" placeholder="ФИО или телефон"/></div>'+
-        '<div class="mf-sec"><label class="lbl">Комментарий</label><input class="inp" id="mf_xcomment" value="'+esc((v.x_comment||{}).q||'')+'"/></div>')+
+        '<div class="mf-sec"><label class="lbl">Комментарий</label><input class="inp" id="mf_xcomment" value="'+esc((v.x_comment||{}).q||'')+'"/></div>'+
+        CL_MNUM.map(k=>'<div class="mf-sec"><label class="lbl">'+esc(CL_COLS[k].n)+' от–до</label><div class="mf-range"><input class="inp" id="mf_x'+k+'_from" type="number" placeholder="от" inputmode="numeric" value="'+esc((v['x_'+k]||{}).from||'')+'"/><input class="inp" id="mf_x'+k+'_to" type="number" placeholder="до" inputmode="numeric" value="'+esc((v['x_'+k]||{}).to||'')+'"/></div></div>').join(''))+
       '<div class="mf-sec"><label class="lbl">Просрочка от–до</label><div class="mf-range"><input class="inp" id="mf_ofrom" type="number" placeholder="от" inputmode="numeric" value="'+esc(v.over_from||'')+'"/><input class="inp" id="mf_oto" type="number" placeholder="до" inputmode="numeric" value="'+esc(v.over_to||'')+'"/></div></div>'+
     '</div>'+
     '<div class="mft"><button class="btn bgh" onclick="resetMobileFilter(\''+pg+'\')">Сбросить</button><button class="btn bg" onclick="applyMobileFilter(\''+pg+'\')">Применить</button></div>'+
@@ -2214,6 +2215,7 @@ function applyMobileFilter(pg){
   target.bal_to=document.getElementById('mf_bto').value;
   target.over_from=document.getElementById('mf_ofrom').value;
   target.over_to=document.getElementById('mf_oto').value;
+  CL_MNUM.forEach(k=>{const f=document.getElementById('mf_x'+k+'_from'),t=document.getElementById('mf_x'+k+'_to');if(!f)return;if(f.value||t.value)target['x_'+k]={from:f.value,to:t.value};else delete target['x_'+k];});
   ['status','gname','comment'].forEach(k=>{const e=document.getElementById('mf_x'+k);if(!e)return;const q=e.value.trim();if(q)target['x_'+k]=Object.assign({},target['x_'+k]||{},{q});else if(target['x_'+k]){delete target['x_'+k].q;if(!target['x_'+k].from&&!target['x_'+k].to)delete target['x_'+k];}});
   closeMobileFilter();
   setTimeout(()=>{
@@ -3408,6 +3410,7 @@ function pplSortBy(k){_pplSort=_pplSort.k===k?{k,dir:-_pplSort.dir}:{k,dir:(k===
 // Текстовые столбцы — поиск по части (№ клиента — по числу: «5» = К-00005), числовые — «от–до». На телефоне — кнопка «Фильтры».
 S.PF={};
 const PPL_TXT={name:1,no:1,phone:1,addr:1,note:1};
+const PPL_MTXT=['name','no','phone','addr','note']; // текстовые фильтры в окне «Фильтры» на телефоне
 const pplColName=k=>k==='name'?'ФИО':PCOLS[k].n;
 function pplIsF(k){const f=S.PF[k];return!!f&&!!(f.q||f.from||f.to);}
 function pplPass(g){
@@ -3447,11 +3450,8 @@ function openPplFilter(){
   const cur=sortOpts.findIndex(o=>o[0]===_pplSort.k&&o[1]===_pplSort.dir);
   const html='<div class="modal mf-modal"><div class="m-head"><div class="mtitle">Фильтры</div><button type="button" class="m-x" aria-label="Закрыть" title="Закрыть" onclick="closeMobileFilter()">×</button></div><div class="mf-body">'+
     '<div class="mf-sec"><label class="lbl">Сортировка</label><select class="inp" id="pf_sort">'+sortOpts.map((o,i)=>'<option value="'+i+'"'+(i===cur?' selected':'')+'>'+o[2]+'</option>').join('')+(cur<0?'<option value="-1" selected>'+esc(pplColName(_pplSort.k))+(_pplSort.dir>0?' ▲':' ▼')+'</option>':'')+'</select></div>'+
-    '<div class="mf-sec"><label class="lbl">ФИО</label><input class="inp" id="pf_name" value="'+v('name')+'"/></div>'+
-    '<div class="mf-sec"><label class="lbl">№ клиента</label><input class="inp" id="pf_no" value="'+v('no')+'" placeholder="например 5 или К-00005"/></div>'+
-    '<div class="mf-sec"><label class="lbl">Телефон</label><input class="inp" id="pf_phone" inputmode="tel" value="'+v('phone')+'"/></div>'+
-    '<div class="mf-sec"><label class="lbl">Адрес</label><input class="inp" id="pf_addr" value="'+v('addr')+'"/></div>'+
-    '<div class="mf-sec"><label class="lbl">Остаток долга от–до</label><div class="mf-range"><input class="inp" id="pf_dfrom" type="number" inputmode="numeric" placeholder="от" value="'+r('debt','from')+'"/><input class="inp" id="pf_dto" type="number" inputmode="numeric" placeholder="до" value="'+r('debt','to')+'"/></div></div>'+
+    PPL_MTXT.filter(k=>k==='name'||PCOLS[k]).map(k=>'<div class="mf-sec"><label class="lbl">'+esc(pplColName(k))+'</label><input class="inp" id="pf_'+k+'"'+(k==='phone'?' inputmode="tel"':'')+' value="'+v(k)+'"'+(k==='no'?' placeholder="например 5 или К-00005"':'')+'/></div>').join('')+
+    Object.keys(PCOLS).filter(k=>PCOLS[k].num).map(k=>'<div class="mf-sec"><label class="lbl">'+esc(PCOLS[k].n)+' от–до</label><div class="mf-range"><input class="inp" id="pf_'+k+'_from" type="number" inputmode="numeric" placeholder="от" value="'+r(k,'from')+'"/><input class="inp" id="pf_'+k+'_to" type="number" inputmode="numeric" placeholder="до" value="'+r(k,'to')+'"/></div></div>').join('')+
     '</div><div class="mft"><button class="btn bgh" onclick="S.PF={};closeMobileFilter();renderPeople()">Сбросить</button><button class="btn bg" onclick="applyPplFilter()">Применить</button></div></div>';
   const mov=document.createElement('div');mov.className='mover on';mov.id='mfOver';mov.onclick=e=>{if(e.target===mov)closeMobileFilter();};
   mov.innerHTML=html;document.body.appendChild(mov);
@@ -3459,8 +3459,8 @@ function openPplFilter(){
 }
 function applyPplFilter(){
   const g=id=>(document.getElementById(id)||{}).value||'';
-  S.PF={};['name','no','phone','addr'].forEach(k=>{const q=g('pf_'+k).trim();if(q)S.PF[k]={q};});
-  if(g('pf_dfrom')||g('pf_dto'))S.PF.debt={from:g('pf_dfrom'),to:g('pf_dto')};
+  S.PF={};PPL_MTXT.forEach(k=>{const q=g('pf_'+k).trim();if(q)S.PF[k]={q};});
+  Object.keys(PCOLS).filter(k=>PCOLS[k].num).forEach(k=>{const f=g('pf_'+k+'_from'),t=g('pf_'+k+'_to');if(f||t)S.PF[k]={from:f,to:t};});
   const i=parseInt(g('pf_sort'),10),o=(window._pplSortOpts||[])[i];if(o)_pplSort={k:o[0],dir:o[1]};
   closeMobileFilter();renderPeople();
 }
@@ -5086,6 +5086,7 @@ const CL_XF={
   gname:{t:'txt',ph:'ФИО или телефон поручителя',v:c=>guarList(c).map(g=>(g.name||'')+' '+(g.phone||'')).join(' ')},
   comment:{t:'txt',ph:'Текст комментария',v:c=>c.comment||''}};
 Object.keys(CL_XF).forEach(k=>{if(CL_COLS[k]&&!CL_COLS[k].f)CL_COLS[k].f='x_'+k;});
+const CL_MNUM=['next','paid','lastpay','prepay','cost','margin']; // числовые фильтры сделок в окне «Фильтры» на телефоне
 function clXPass(list,cf){
   Object.keys(cf).forEach(k=>{if(k.indexOf('x_')!==0)return;const f=cf[k],d=CL_XF[k.slice(2)];if(!f||!d)return;
     if(d.t==='sel'){if(f.q)list=list.filter(c=>d.v(c)===f.q);return;}
