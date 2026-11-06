@@ -88,11 +88,13 @@ export default async function(){
 
   const cd=await p.evaluate(async()=>{openC('c0');await new Promise(r=>setTimeout(r,250));const a=document.querySelector('#cDetail .cd-acts');
     const vis=[...a.querySelectorAll('.btn')].filter(b=>b.offsetParent);
-    const colored=vis.filter(b=>b.matches('.by,.bb,.bwa'));const arch=vis.find(b=>/^В архив$/.test(b.textContent.trim()));
-    return{main:vis.filter(b=>b.classList.contains('bg')).length,colored:colored.length,arch:!!arch,archH:arch?Math.round(arch.getBoundingClientRect().height):0,more:!!a.querySelector('details.cd-more'),
-      del:vis.some(b=>/Удалить/.test(b.textContent)),hasMoney:clientHasMoney('c0')};});
-  check('карточка сделки: одна главная кнопка, цветные по смыслу (скидка, комментарий, WhatsApp), вместо «Ещё» — кнопка «В архив»',cd.main===1&&cd.colored===3&&cd.arch&&!cd.more,cd);
-  check('«Удалить» видна, только если договор можно удалить; кнопки не ниже 36 px',cd.del===!cd.hasMoney&&cd.archH>=36,cd);
+    const more=a.querySelector('details.cd-more');more.open=true;const mi=[...more.querySelectorAll('.cd-mi')].filter(x=>x.offsetParent).map(x=>x.textContent.trim());
+    const call=a.querySelector('.cd-call'),wa=a.querySelector('.cd-wa'),sum=more.querySelector('summary');
+    const r={main:vis.filter(b=>b.classList.contains('bg')).length,call:!!call&&/tel:/.test(call.getAttribute('href')||''),wa:!!wa&&/openChat/.test(wa.getAttribute('onclick')),
+      sameRow:!!call&&!!wa&&Math.abs(call.getBoundingClientRect().top-wa.getBoundingClientRect().top)<2,h:[call,wa,sum].map(x=>x?Math.round(x.getBoundingClientRect().height):0),mi,
+      del:mi.includes('Удалить'),hasMoney:clientHasMoney('c0'),loose:vis.filter(b=>/^(Скидка|Комментарий|Изменить|В архив)$/.test(b.textContent.trim())).length};more.open=false;return r;});
+  check('карточка сделки: «+ Оплата», рядом «Позвонить» и WhatsApp (просто чат), остальное — в «Ещё»',cd.main===1&&cd.call&&cd.wa&&cd.sameRow&&cd.loose===0&&['Скидка','Комментарий','Изменить','В архив'].every(x=>cd.mi.includes(x)),cd);
+  check('«Удалить» в меню, только если договор можно удалить; кнопки не ниже 44 px',cd.del===!cd.hasMoney&&cd.h.every(h=>h>=44),cd);
 
   const nav=await p.evaluate(()=>{const css=[...document.styleSheets].flatMap(s=>{try{return[...s.cssRules];}catch(e){return[];}});
     const txt=css.map(r=>r.cssText).join('\n');const nb=document.querySelector('.sidebar .nb');
@@ -121,7 +123,7 @@ export default async function(){
     S.ui.pcols=[{k:'no',on:true},{k:'note',on:true}];goBase('people');await sl(250);
     const card=document.querySelector('.ppl-mob .mcard');r.noteRow=!!card&&[...card.querySelectorAll('.mcard-label')].some(l=>/Заметка/.test(l.textContent));
     goTo('kassa');openKassaOp();await sl(150);r.lbl=document.getElementById('koWalletLbl').textContent;closeM('mKassa');
-    openC('c0');await sl(250);r.tel=[...document.querySelectorAll('#cDetail .cd-tel')].map(a=>Math.round(a.getBoundingClientRect().height));
+    openC('c0');await sl(250);r.tel=[...document.querySelectorAll('#cDetail .cd-call')].map(a=>Math.round(a.getBoundingClientRect().height));
     // в шапке договора нет сырых номеров в одной строке с датой
     r.meta=!!document.querySelector('#cDetail .cd-meta');
     return r;});

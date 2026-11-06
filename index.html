@@ -171,6 +171,12 @@ body.light .mover{background:rgba(30,40,35,0.5)}
 .si{width:100%;padding:6px 10px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:6px;font-family:'Manrope',sans-serif;font-size:var(--fs-xs);color:var(--text);outline:none}.si:focus{border-color:var(--green)}
 .rep-ic{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(255,165,2,0.14);color:var(--yellow);margin-left:6px;vertical-align:-4px;flex:none}.rep-ic svg{width:12px;height:12px}
 .nm-end,.nw{white-space:nowrap}
+/* Текст, который вводит пользователь (комментарий, адрес, товар, заметка, описание): длинная строка без пробелов переносится, а не растягивает экран */
+.iv,.cd-cmt,.ps,.pt,.ppl-name,.kcard-desc,.mcard-name,.mcard-val,.cd-name,.cd-dup,.inv-name,.inv-sub,.k-dsc,.ppl-desk td,.cl-desk td,td>div{overflow-wrap:anywhere}
+.amt,.num,td.num,.ps2{overflow-wrap:normal}
+.ut{white-space:normal;overflow-wrap:anywhere;min-width:140px;max-width:340px}
+.cphbody{overflow-x:auto}
+@media(max-width:768px){.cphbody .tbl td>div{max-width:120px!important}}
 .cd-name .rep-ic{width:22px;height:22px;margin-left:8px;vertical-align:middle;position:relative;top:-2px}.cd-name .rep-ic svg{width:13px;height:13px}
 .loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--t3);font-size:var(--fs-sm);gap:8px}
 .spin{width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--green);border-radius:50%;animation:sp .8s linear infinite}
@@ -454,7 +460,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .pn{width:auto;font-size:var(--fs-xs)}
 .pd2{font-size:var(--fs-xs);min-width:100px}
 .ps2{font-size:var(--fs-xs)}
-.pst{font-size:var(--fs-xs);margin-left:0;width:100%;padding-left:15px}
+.pst{font-size:var(--fs-xs);margin-left:0;flex:1 1 0;min-width:0;padding-left:13px}
 /* Карточка инвестора детальная */
 #invDetail > div:first-child{flex-direction:column;align-items:stretch!important;gap:10px!important}
 #invDetail > div:first-child > div:last-child{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important}
@@ -677,9 +683,12 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
   .vw-btn-pc{display:none!important}
   #page-clients .mobile-filter-btn,#page-reminders .mobile-filter-btn{margin-right:6px}
   /* карточка договора */
-  #cDetail#cDetail .cd-acts{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%;gap:var(--sp-2)!important}
+  #cDetail#cDetail .cd-acts{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-template-areas:"pay pay pay pay more more" "tel tel tel wa wa wa";width:100%;gap:var(--sp-2)!important}
+  #cDetail#cDetail .cd-acts.no-pay{grid-template-areas:"tel tel tel tel tel tel" "wa wa wa more more more"}
+  #cDetail .cd-acts .cd-pay{grid-area:pay}#cDetail .cd-acts .cd-more{grid-area:more}#cDetail .cd-acts .cd-call{grid-area:tel}#cDetail .cd-acts .cd-wa{grid-area:wa}
+  #cDetail .cd-acts .cd-more>summary{min-height:var(--tap)}
   #cDetail#cDetail .cd-acts>.btn,#cDetail#cDetail .cd-acts>.cd-more>summary{justify-content:center;padding:0 var(--sp-2);width:100%}
-  #cDetail#cDetail .cd-acts .cd-pay{grid-column:1/-1;font-size:var(--fs-md)}
+  #cDetail#cDetail .cd-acts .cd-pay{font-size:var(--fs-md)}
   /* касса: общий баланс на всю ширину, наличные и карты в ряд */
   #kWallets#kWallets{grid-template-columns:1fr 1fr!important}
   #kWallets>.sc:first-child{grid-column:1/-1}
@@ -725,8 +734,11 @@ tr.rem-partial td:first-child{box-shadow:inset 3px 0 0 var(--yellow)}
 .rem-btns{display:flex;gap:8px;margin-top:10px}
 .rem-btns .btn{flex:1;justify-content:center;min-height:42px}
 .rem-mob{display:none}
-.pr-df{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
-.pr-df .rem-mark{margin-top:0}
+.pr-br{display:none}
+.pr-dfb{margin-left:auto;background:none;border:none;padding:0;min-height:36px;min-width:44px;display:inline-flex;align-items:center;justify-content:flex-end;cursor:pointer;font:inherit;flex-shrink:0}
+.pr-dfb span{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;border:1px solid rgba(91,143,249,.35);background:rgba(91,143,249,.10);color:var(--blue);font-size:var(--fs-xs);font-weight:700;white-space:nowrap}
+.pr-dfb:hover span,.pr-dfb:focus-visible span{background:rgba(91,143,249,.2)}
+@media(max-width:768px){.pr .pr-br{display:block;flex-basis:100%;height:0;margin-top:-6px}.pr .pst{flex:1 1 0;width:auto;min-width:0}.pr .pr-dfb{min-height:var(--tap,44px);margin:-8px 0}}
 @media(max-width:768px){
   .rem-desk{display:none}.rem-mob{display:block;padding:8px}
   .ppl-bar{grid-template-columns:1fr}.deal-grid{grid-template-columns:1fr}
@@ -966,6 +978,8 @@ select.inp,select.si{background-image:var(--chev);background-repeat:no-repeat;ba
 .cd-menu{position:absolute;right:0;top:calc(100% + var(--sp-1));z-index:60;min-width:200px;padding:var(--sp-1);background:var(--card);border:1px solid var(--field-brd);border-radius:var(--rad-m);box-shadow:var(--sh);display:flex;flex-direction:column}
 .cd-mi{display:flex;align-items:center;min-height:40px;padding:0 var(--sp-3);border:none;background:none;border-radius:var(--rad-s);color:var(--text);font:inherit;font-size:var(--fs-sm);font-weight:600;text-align:left;cursor:pointer}
 .cd-mi.cd-del{color:var(--red)}
+.cd-mi{width:100%;text-decoration:none;white-space:nowrap}
+.cd-acts .cd-call,.cd-acts .cd-wa{gap:6px;white-space:nowrap;text-decoration:none}.cd-acts .cd-call span{overflow:hidden;text-overflow:ellipsis}
 .cd-dup{color:var(--text);cursor:pointer;padding:var(--sp-1) 0;font-size:var(--fs-sm)}
 
 /* ---------- Окно месяца инвесторов: на компьютере таблица, на телефоне карточки ---------- */
@@ -1506,7 +1520,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='06.11.2026 · 15';
+const CRM_VERSION='07.11.2026 · 16';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2357,8 +2371,16 @@ function renderDetail(c){
   const pr=parseFloat(c.price)||0,co=parseFloat(c.cost)||0,mg=pr-co;
   const hc=c.comment&&c.comment.trim();
   // Верхняя строка с именем и действиями
-  const telL=(c.phones||[]).filter(Boolean).map(p=>{const t=waPhone(p);return t?'<a class="cd-tel" href="tel:+'+t+'">'+esc(fmtPhone(p))+'</a>':'<span class="cd-tel">'+esc(fmtPhone(p))+'</span>';}).join('');
-  const header='<div class="cd-head"><div class="cd-hl"><div class="cd-name">'+nameRep(c.name,dups)+'</div><div class="cd-meta"><span>№'+esc(c.contractId||'—')+(c.oldContractId&&c.oldContractId!==c.contractId?' <span style="color:var(--t3)">(было '+esc(c.oldContractId)+')</span>':'')+'</span><span>от '+esc(c.date||'—')+'</span>'+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div>'+(telL?'<div class="cd-tels">'+telL+'</div>':'')+'</div><div class="cd-acts">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+c.id+'\')">+ Оплата</button>'+waBtn(c.id)+'<button class="btn by" onclick="openDisc(\''+c.id+'\')">Скидка</button>':'')+'<button class="btn bb" onclick="openComment(\''+c.id+'\')">Комментарий</button><button class="btn bgh" onclick="openEdit(\''+c.id+'\')">Изменить</button>'+cdDelBtn(c)+'</div></div>';
+  // Шапка: «+ Оплата» и «Ещё»; ниже — позвонить и WhatsApp (просто чат, без готового текста). Остальное — в меню «Ещё»
+  const id=c.id,phs=(c.phones||[]).filter(Boolean),t1=phs.length?waPhone(phs[0]):'';
+  const callBtn=phs.length?(t1?'<a class="btn bgh cd-call" href="tel:+'+t1+'">':'<span class="btn bgh cd-call">')+TEL_ICO+'<span>'+esc(fmtPhone(phs[0]))+'</span>'+(t1?'</a>':'</span>'):'';
+  const waB=t1?'<button class="btn bwa cd-wa" onclick="openChat(\''+id+'\')" title="Открыть чат WhatsApp">'+WA_ICO+'WhatsApp</button>':'';
+  const mi=(on,label,cls)=>'<button class="cd-mi'+(cls?' '+cls:'')+'" onclick="'+on+'">'+label+'</button>';
+  const menu=(st!=='завершён'?mi("openDisc('"+id+"')",'Скидка'):'')+mi("openComment('"+id+"')",'Комментарий')+mi("openEdit('"+id+"')",'Изменить')+
+    (c.archived?mi("archiveClient('"+id+"',false)",'Из архива'):mi("archiveClient('"+id+"',true)",'В архив'))+(clientHasMoney(id)?'':mi("delClient('"+id+"')",'Удалить','cd-del'))+
+    phs.slice(1).map(p=>{const t=waPhone(p);return t?'<a class="cd-mi" href="tel:+'+t+'">Позвонить '+esc(fmtPhone(p))+'</a>':'';}).join('');
+  const moreBtn='<details class="cd-more"><summary class="btn bgh">Ещё<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:6px"><polyline points="6 9 12 15 18 9"/></svg></summary><div class="cd-menu">'+menu+'</div></details>';
+  const header='<div class="cd-head"><div class="cd-hl"><div class="cd-name">'+nameRep(c.name,dups)+'</div><div class="cd-meta"><span>№'+esc(c.contractId||'—')+'</span><span>от '+esc(c.date||'—')+'</span>'+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts'+(st==='завершён'?' no-pay':'')+'">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+id+'\')">+ Оплата</button>':'')+callBtn+waB+moreBtn+'</div></div>';
   const dupsBlock=dups.length?'<div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:10px 14px;margin-bottom:14px;font-size:var(--fs-xs)"><div style="color:var(--yellow);font-weight:700;margin-bottom:6px">Другие договоры клиента</div>'+dups.map(d=>'<div class="cd-dup" role="button" tabindex="0" onclick="openC(\''+d.id+'\')">№'+esc(d.contractId||'—')+' — '+esc(d.product||'—')+' ('+effStatus(d)+')</div>').join('')+'</div>':'';
   // Данные клиента и поручителя
   const _pi=personIndex(),_pl=(n,k)=>'<a href="#" class="plink" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
@@ -2398,7 +2420,9 @@ function payRow(p,c){
   else if(p.st==='partial')stsText='Просрочен частично: '+fmt(p.size-p.paid)+' из '+fmt(p.size)+' ₽';
   else if(p.st==='partial_future')stsText='Оплачен частично: '+fmt(p.paid)+' из '+fmt(p.size)+' ₽';
   else stsText='Ожидается';
-  return'<div class="pr '+(rows[p.st]||'')+'"><div class="pdot '+(dots[p.st]||'dt3')+'"></div><div class="pn">'+p.month+' мес.</div><div class="pd2">'+p.date+'</div><div class="ps2">'+fmt(p.size)+' ₽</div><div class="pst '+(stc[p.st]||'st3')+'">'+stsText+'</div>'+deferCell(p,c)+'</div>';
+  // на телефоне: 1-я строка — месяц, дата, сумма; 2-я — статус и маленькая кнопка «Отсрочить» справа
+  const df=c&&p.st!=='paid'?deferOf(c,p.month):null;
+  return'<div class="pr '+(rows[p.st]||'')+'"><div class="pdot '+(dots[p.st]||'dt3')+'"></div><div class="pn">'+p.month+' мес.</div><div class="pd2">'+p.date+'</div><div class="ps2">'+fmt(p.size)+' ₽</div><div class="pr-br"></div><div class="pst '+(stc[p.st]||'st3')+'">'+stsText+(df?'<span class="rem-mark rem-df">отсрочка до '+fmtD(safeDateFromInput(df.date))+'</span>':'')+'</div>'+deferCell(p,c)+'</div>';
 }
 
 // Месяц уже закрыт у инвесторов: начисления зафиксированы, поэтому деньги этого месяца не меняем
@@ -2544,6 +2568,9 @@ function openWA(cid,month){
   logA('WhatsApp-напоминание','№'+(c.contractId||'')+' — '+(c.name||'')+', платёж '+x.it.month+' на '+fmt(x.left)+' ₽');
 }
 const WA_ICO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>';
+// Просто открыть чат WhatsApp с клиентом — без готового текста (кнопка в сделке)
+function openChat(cid){const c=S.clients.find(x=>x.id===cid);if(!c)return;const ph=(c.phones||[]).map(waPhone).find(Boolean);if(!ph){toast('У клиента нет номера телефона','ter');return;}window.open('https://wa.me/'+ph,'_blank');}
+const TEL_ICO='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>';
 function waBtn(cid,month,compact){return'<button class="btn bwa bsm" onclick="event.stopPropagation();openWA(\''+cid+'\''+(month?','+month:'')+')" title="Открыть WhatsApp с готовым текстом">'+WA_ICO+(compact?'':'WhatsApp')+'</button>';}
 function renderWaTpl(){WA_KEYS.forEach(k=>{const el=document.getElementById(WA_IDS[k]);if(el&&document.activeElement!==el)el.value=S.wa[k];});}
 async function saveWaTpl(){
@@ -3394,7 +3421,8 @@ const pLabel=p=>(p.no?p.no+' · ':'')+p.name;
 // Другие сделки этого же клиента (для пометки «Повторный»)
 // Имя клиента со значком «повторный клиент»: значок держится за последнее слово и не переносится отдельно
 // Текст со «хвостом» (значок, стрелка, пометка): хвост держится за последнее слово и не переносится на строку один
-function glueTail(text,tail){const t=String(text||'').trim();if(!tail)return esc(t);const i=t.lastIndexOf(' ');return esc(t.slice(0,i+1))+'<span class="nm-end">'+esc(t.slice(i+1))+tail+'</span>';}
+function glueTail(text,tail){const t=String(text||'').trim();if(!tail)return esc(t);const i=t.lastIndexOf(' ');if(t.length-i>25)return esc(t)+tail; // очень длинное «слово» не склеиваем — пусть переносится
+  return esc(t.slice(0,i+1))+'<span class="nm-end">'+esc(t.slice(i+1))+tail+'</span>';}
 function nameRep(name,dups,extra){const n=dups&&dups.length;if(!n)return glueTail(name,extra||'');
   const lbl='Повторный клиент: договоров — '+(n+1);
   const ic='<span class="rep-ic" role="img" title="'+lbl+'" aria-label="'+lbl+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>';
@@ -3425,7 +3453,7 @@ function setPplTab(t,btn){_pplTab=t;document.querySelectorAll('#pplTabs .ft').fo
 const PCOLS={
   no:{n:'№ клиента',v:g=>g.no||'—',s:g=>noNum(g.no)},
   phone:{n:'Телефон',v:g=>g.phones[0]?fmtPhone(g.phones[0]):'—',s:g=>g.phones[0]||''},
-  addr:{n:'Адрес',v:g=>esc(g.addr||'—'),s:g=>g.addr||''},
+  addr:{n:'Адрес',v:g=>'<div class="ut">'+esc(g.addr||'—')+'</div>',s:g=>g.addr||''},
   deals:{n:'Сделок',v:g=>g.deals.length,s:g=>g.deals.length,num:1},
   active:{n:'Активных',v:g=>g.active,s:g=>g.active,num:1},
   done:{n:'Завершённых',v:g=>g.done,s:g=>g.done,num:1},
@@ -3437,7 +3465,7 @@ const PCOLS={
   lastDate:{n:'Последняя сделка',v:g=>g.lastDate?fmtD(g.lastDate):'—',s:g=>g.lastDate?g.lastDate.getTime():0},
   lastPay:{n:'Последняя оплата',v:g=>g.lastPay?fmtD(g.lastPay):'—',s:g=>g.lastPay?g.lastPay.getTime():0},
   state:{n:'Статус',v:g=>pplBadge(g),s:g=>g.over>0.004?3:(g.debt>0.004?2:(g.deals.length?1:0))},
-  note:{n:'Заметка',v:g=>esc(g.note||''),s:g=>g.note||''},
+  note:{n:'Заметка',v:g=>g.note?'<div class="ut">'+esc(g.note)+'</div>':'',s:g=>g.note||''},
 };
 const PCOLS_DEF=['no','phone','addr','deals','active','done','debt','over','state'];
 function pplCols(){return (S.ui&&S.ui.pcols?S.ui.pcols:[]).filter(x=>x.on&&PCOLS[x.k]).map(x=>x.k);}
@@ -3713,7 +3741,7 @@ let _df={cid:null,m:null};
 function deferCell(p,c){
   if(!c||p.st==='paid'||R2(p.size-p.paid)<=0.004)return '';
   const df=deferOf(c,p.month);
-  return '<div class="pr-df">'+(df?'<span class="rem-mark rem-df">отсрочка до '+fmtD(safeDateFromInput(df.date))+'</span>':'')+'<button class="btn bb bsm" onclick="openDefer(\''+c.id+'\','+p.month+')">'+(df?'Изменить':'Отсрочить')+'</button></div>';
+  return '<button class="pr-dfb" onclick="openDefer(\''+c.id+'\','+p.month+')" title="Перенести дату этого платежа"><span>'+(df?'Изменить отсрочку':'Отсрочить')+'</span></button>';
 }
 function deferOf(c,m){const d=(c.defer||{})[m];return d&&d.date?d:null;}
 function openDefer(cid,m){
@@ -3921,7 +3949,7 @@ function renderKassa(){
     const balCell=bal?'<span class="amt" style="font-size:var(--fs-xs)">'+fmt(bal.wallet)+' ₽</span><div style="font-size:var(--fs-xs);color:var(--t3)">общий: '+fmt(bal.total)+' ₽</div>':'';
     const editIco='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
     const delBtn=(!m.auto&&!o.auto)?'<td style="white-space:nowrap"><button class="ib ig" style="width:22px;height:22px;margin-right:4px" onclick="openKassaEdit(\''+o.id+'\')" title="Изменить">'+editIco+'</button><button class="ib ir" style="width:22px;height:22px" onclick="delKassaOp(\''+o.id+'\')" title="Удалить"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>':'<td></td>';
-    rows+='<tr><td style="color:var(--t2)">'+esc(d)+'</td><td><span class="badge '+m.color+'">'+m.name+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:var(--fs-xs);color:var(--t2)">'+walletCell+'</td><td>'+balCell+'</td><td style="font-size:var(--fs-xs)">'+kDescHtml(o,o.auto||m.auto,'')+'</td>'+delBtn+'</tr>';
+    rows+='<tr><td style="color:var(--t2)">'+esc(d)+'</td><td><span class="badge '+m.color+'">'+m.name+'</span></td><td><span class="amt '+cl+'">'+sign+fmt(o.amount)+' ₽</span></td><td style="font-size:var(--fs-xs);color:var(--t2)">'+walletCell+'</td><td>'+balCell+'</td><td class="k-dsc" style="font-size:var(--fs-xs)"><div class="ut">'+kDescHtml(o,o.auto||m.auto,'')+'</div></td>'+delBtn+'</tr>';
     // Мобильная карточка
     if(d!==ldM){mobileCards+='<div class="kcard-day">'+d+'</div>';ldM=d;}
     const delBtnM=(!m.auto&&!o.auto)?'<button class="ib ig" style="width:32px;height:32px;margin-right:6px" onclick="event.stopPropagation();openKassaEdit(\''+o.id+'\')" title="Изменить">'+editIco+'</button><button class="ib ir" style="width:32px;height:32px" onclick="event.stopPropagation();delKassaOp(\''+o.id+'\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>':'';
@@ -4546,6 +4574,9 @@ function invMonthData(M,mk){
   return invComputeMonth(M,mk);
 }
 function invRowRent(r){const base=r.startedCap!==undefined?r.startedCap:r.capEnd;return base>0?r.total/base:null;}
+// Учредитель: рентабельность с прибылью от капитала инвесторов / только со своего капитала (без «От компании»). Только показ — расчёт тот же
+function invRentShow(r){const all=invRentFmt(invRowRent(r));if(r.role!=='founder'||!(Math.abs(r.fromComp||0)>0.004))return all;
+  const base=r.startedCap!==undefined?r.startedCap:r.capEnd;return all+' / '+invRentFmt(base>0?(r.total-(r.fromComp||0))/base:null);}
 
 // ---------- ДОХОД ПО ВКЛАДАМ ЗА ПЕРИОД ----------
 function renderInvestors(){
@@ -4683,8 +4714,8 @@ function openInvMonth(mk,refresh){
     const kv=(k,v,c)=>'<div class="im-kv"><span>'+k+'</span><b'+(c?' class="'+c+'"':'')+'>'+v+'</b></div>';
     cards+='<div class="im-card"><div class="im-card-h"><span class="im-card-n">'+invEsc(r.name)+'</span>'+badge+'<span class="im-card-t amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></div>'+
       kv('Капитал на конец',fmt(r.capEnd||0)+' ₽')+kv('Доля на конец',invPctFmt(r.shareEnd||0))+kv('С прибыли',fmt(r.gross)+' ₽')+(r.exp?kv('Расходы','−'+fmt(r.exp)+' ₽','cr'):'')+kv('Чистыми',invMoney(r.net))+
-      (isF?kv('От компании',invMoney(r.fromComp)):kv('Компании',invMoney(r.toComp)))+kv('Рентабельность',invRentFmt(invRowRent(r)))+'</div>';
-    rows+='<tr><td><span style="font-weight:700">'+invEsc(r.name)+'</span> '+badge+'</td><td class="num">'+fmt(r.capEnd||0)+' ₽</td><td class="num">'+invPctFmt(r.shareEnd||0)+'</td><td class="num">'+fmt(r.gross)+'</td><td class="num cr">'+(r.exp?'−'+fmt(r.exp):'—')+'</td><td class="num">'+invMoney(r.net)+'</td><td class="num">'+(isF?'—':invMoney(r.toComp))+'</td><td class="num">'+(isF?invMoney(r.fromComp):'—')+'</td><td class="num"><span class="amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></td><td class="num">'+invRentFmt(invRowRent(r))+'</td></tr>';
+      (isF?kv('От компании',invMoney(r.fromComp)):kv('Компании',invMoney(r.toComp)))+kv('Рентабельность',invRentShow(r))+'</div>';
+    rows+='<tr><td><span style="font-weight:700">'+invEsc(r.name)+'</span> '+badge+'</td><td class="num">'+fmt(r.capEnd||0)+' ₽</td><td class="num">'+invPctFmt(r.shareEnd||0)+'</td><td class="num">'+fmt(r.gross)+'</td><td class="num cr">'+(r.exp?'−'+fmt(r.exp):'—')+'</td><td class="num">'+invMoney(r.net)+'</td><td class="num">'+(isF?'—':invMoney(r.toComp))+'</td><td class="num">'+(isF?invMoney(r.fromComp):'—')+'</td><td class="num"><span class="amt '+(r.total<0?'cr':'cg')+'">'+invMoney(r.total)+'</span></td><td class="num">'+invRentShow(r)+'</td></tr>';
     const deps=(r.deps||[]).filter(x=>x.gross||x.exp||x.total);
     if(!isF&&deps.length>1){
       deps.forEach(x=>{
@@ -4694,7 +4725,7 @@ function openInvMonth(mk,refresh){
     }
   });
   const sum='<div class="sg4" style="margin-bottom:14px"><div class="sc"><div class="sl">Прибыль с платежей</div><div class="sv">'+fmt(d.gross)+' ₽</div></div><div class="sc"><div class="sl">Расходы</div><div class="sv cr">'+(d.exp?'−'+fmt(d.exp):'0')+' ₽</div></div><div class="sc"><div class="sl">Чистая прибыль</div><div class="sv '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</div></div><div class="sc"><div class="sl">Рентабельность пула</div><div class="sv">'+invRentFmt(d.poolRent)+'</div><div class="ss">капитал '+fmt(d.poolCap||0)+' ₽</div></div></div>';
-  document.getElementById('imBody').innerHTML=note+sum+(rows?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain num">Капитал на конец</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">Компании</th><th class="plain num">От компании</th><th class="plain num">Итого</th><th class="plain num">Рент.</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="im-cards">'+cards+'</div><div class="inv-muted" style="margin-top:8px">«Компании» — часть прибыли инвестора, которая остаётся компании. «От компании» — эта часть, распределённая между учредителями по их капиталу. «Рент.» — итог участника / его работающий капитал на конец месяца.</div>':'<div class="empty">В этом месяце нет движений</div>');
+  document.getElementById('imBody').innerHTML=note+sum+(rows?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain num">Капитал на конец</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">Компании</th><th class="plain num">От компании</th><th class="plain num">Итого</th><th class="plain num">Рент.</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="im-cards">'+cards+'</div><div class="inv-muted" style="margin-top:8px">«Компании» — часть прибыли инвестора, которая остаётся компании. «От компании» — эта часть, распределённая между учредителями по их капиталу. «Рент.» — итог участника / его работающий капитал на конец месяца. У учредителя две цифры: с прибылью от капитала инвесторов / только со своего капитала.</div>':'<div class="empty">В этом месяце нет движений</div>');
   let ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Закрыть окно</button>';
   if(s.st==='open'&&s.canClose)ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Отмена</button><button class="btn bg" id="imBtn" onclick="invCloseMonth(\''+mk+'\')">Закрыть месяц</button>';
   if(s.st==='closed'&&s.canReopen)ft='<button class="btn br bsm" style="margin-right:auto" onclick="invReopenMonth(\''+mk+'\')">Отменить закрытие</button>'+ft;
