@@ -94,5 +94,11 @@ export default async function(){
   await M.p.evaluate(()=>goTo('kassa'));await wait(M.p,400);
   await M.p.locator('#kList .kcards .kcard-link .kcard-bot').first().click();await wait(M.p,300);
   check('телефон: из кассы по оплате переходит в сделку клиента',await M.p.evaluate(()=>pageOn('client')&&!!S.curClient));
+  // стрелка «перейти в сделку» и «(авто)» не уходят на отдельную строку даже при длинном ФИО
+  const gl=await M.p.evaluate(async()=>{goTo('kassa');const o=S.kassaOps.find(x=>x.type==='payment_in');const c=S.clients.find(x=>x.id===o.refId);const was=o.desc;
+    o.desc='Оплата от Абдурахманова Хадижат Магомедрасуловна ('+c.contractId+')';renderKassa();await new Promise(r=>setTimeout(r,100));
+    const d=[...document.querySelectorAll('#kList .kcards .kcard-desc')].find(x=>x.textContent.includes('Хадижат')),e=d&&d.querySelector('.nm-end'),svg=e&&e.querySelector('svg');
+    const r={lines:e?e.getClientRects().length:0,svg:!!svg,same:svg&&Math.abs(svg.getBoundingClientRect().top-e.getClientRects()[0].top)<12};o.desc=was;renderKassa();return r;});
+  check('телефон: в кассе стрелка и «(авто)» держатся за последнее слово',gl.lines===1&&gl.svg&&gl.same,gl);
   noErrors('телефон',M.errs);await M.ctx.close();
 }
