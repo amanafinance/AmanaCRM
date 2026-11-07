@@ -1520,7 +1520,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='07.11.2026 · 18';
+const CRM_VERSION='07.11.2026 · 19';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2443,6 +2443,12 @@ function payRow(p,c){
 }
 
 // Месяц уже закрыт у инвесторов: начисления зафиксированы, поэтому деньги этого месяца не меняем
+// Месяцы, закрытые у инвесторов, в которые по договору уже были деньги (предоплата, платежи, скидки)
+function contractClosedMonths(id){
+  if(!S.invMonths||!S.invMonths.length)return[];
+  const c=S.clients.find(x=>x.id===id);if(!c)return[];
+  return[...new Set(dealProfitList(c).map(x=>closedMk(x.d)).filter(Boolean))].sort();
+}
 function closedMk(d){if(!d||!S.invMonths||!S.invMonths.length)return null;const M=invModel(),mk=monthKey(d);return M.closed[mk]||(M.lastClosed&&mk<=M.lastClosed)?mk:null;}
 async function cancelPay(pid,cid,amt,pt){
   if(pt==='prepay'){toast('Предоплату нельзя удалить из истории. Измените её в договоре.','ter');return;}
@@ -2523,7 +2529,7 @@ async function deleteComment(){const{db,doc,updateDoc}=window.DB;const c=S.clien
 
 // ---------- NEW / EDIT CLIENT ----------
 function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();openM('mClient');}
-function openEdit(id){const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value=c.partner==='Сторонний'?(c.partnerPhone||''):'';_ppManual=i.value;}setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;partPhoneSync();if(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))document.getElementById('f_prepayPt').value=c.prepayWallet;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:var(--fs-xs);font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
+function openEdit(id){_costOk=false;const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value=c.partner==='Сторонний'?(c.partnerPhone||''):'';_ppManual=i.value;}setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;partPhoneSync();if(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))document.getElementById('f_prepayPt').value=c.prepayWallet;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:var(--fs-xs);font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
 function addPh(id){const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" placeholder="89001234567"/><button class="ib ir" onclick="this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
 let _schedManual={size:false,dates:false};let _costOk=false;
@@ -2791,12 +2797,16 @@ if(!cost){toast('Укажите себестоимость','ter');return;}if(co
 // Предоплата меньше себестоимости: она возвращает деньги за товар, а наценка распределяется по ежемесячным платежам
 if(parseNum(document.getElementById('f_prepay').value)>=cost-0.004){walletBlockT('Предоплата не меньше себестоимости','Предоплата <strong>'+fmt(parseNum(document.getElementById('f_prepay').value))+' ₽</strong> должна быть меньше себестоимости <strong>'+fmt(cost)+' ₽</strong>. Уменьшите предоплату или проверьте себестоимость.');return;}
 if(_cid){
-  const oldC=S.clients.find(x=>x.id===_cid);
-  if(oldC&&R2(oldC.cost)!==R2(cost)){
+  // цена, себестоимость и предоплата задают долю прибыли в каждом рубле договора: если деньги по договору уже были
+  // в месяце, закрытом у инвесторов, менять их нельзя — начисления того месяца зафиксированы
+  const oldC=S.clients.find(x=>x.id===_cid),newPre=parseNum(document.getElementById('f_prepay').value);
+  const ch=oldC?[R2(oldC.price)!==R2(price)&&'цену',R2(oldC.cost)!==R2(cost)&&'себестоимость',R2(oldC.prepay)!==R2(newPre)&&'предоплату'].filter(Boolean):[];
+  if(ch.length){
     const blocked=contractClosedMonths(_cid);
-    if(blocked.length){toast('Месяц '+mkLabel(blocked[0])+' уже закрыт в Инвесторах — себестоимость по этому договору менять нельзя','ter');return;}
-    if(S.payments.some(p=>p.clientId===_cid&&p.type==='payment')&&!_costOk){
-      showConfirm('Изменить себестоимость?','<strong>№'+(oldC.contractId||'')+'</strong><br>Было '+fmt(oldC.cost)+' ₽, станет '+fmt(cost)+' ₽.<br>По договору уже есть оплаты, прибыль по ним пересчитается.',()=>{_costOk=true;saveClient();});
+    if(blocked.length){walletBlockT('Месяц закрыт','<strong>'+mkLabel(blocked[0])+'</strong> уже закрыт в «Инвесторах», а по этому договору в нём были деньги — '+ch.join(', ')+' менять нельзя: прибыль закрытого месяца пересчиталась бы.<br>Если это ошибка, отмените закрытие месяца в «Инвесторах».');return;}
+    const pc=ch.filter(x=>x!=='предоплату');
+    if(pc.length&&paysOf(_cid).some(p=>p.type==='payment'||p.type==='discount')&&!_costOk){
+      showConfirm('Изменить '+pc.join(' и ')+'?','<strong>№'+(oldC.contractId||'')+'</strong><br>'+(R2(oldC.price)!==R2(price)?'Цена: было '+fmt(oldC.price)+' ₽, станет '+fmt(price)+' ₽.<br>':'')+(R2(oldC.cost)!==R2(cost)?'Себестоимость: было '+fmt(oldC.cost)+' ₽, станет '+fmt(cost)+' ₽.<br>':'')+'По договору уже есть оплаты, прибыль по ним пересчитается.',()=>{_costOk=true;saveClient();});
       return;
     }
   }
@@ -4222,6 +4232,9 @@ function loadXlsx(){if(window.XLSX)return Promise.resolve();if(!_xlsxP)_xlsxP=ne
 async function exportExcel(){try{await loadXlsx();}catch(e){toast('Ошибка: '+e.message,'ter');return;}const r=[['№','Дата','ФИО','Телефоны','Товар','Поставщик','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{if(c.archived)return;const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
 function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);}
 function closeM(id){document.getElementById(id).classList.remove('on');}
+// Непредвиденная ошибка в действии (кнопка «молчит») — показываем сообщение, а не обрываемся молча
+window.addEventListener('unhandledrejection',e=>{const m=(e.reason&&e.reason.message)||String(e.reason||'');if(/ResizeObserver|AbortError/.test(m))return;try{toast('Что-то пошло не так: '+m+'. Обновите страницу и попробуйте ещё раз','ter');}catch(_){}});
+window.addEventListener('error',e=>{const m=e.message||'';if(!m||/ResizeObserver|Script error/.test(m))return;try{toast('Что-то пошло не так: '+m+'. Обновите страницу и попробуйте ещё раз','ter');}catch(_){}});
 function toast(m,c){m=String(m).replace(/^Ошибка: (Нет интернета|Связь пропала|Недостаточно средств|Договор изменился|CRM переехала)/,'$1');const t=document.getElementById('toast');t.textContent=m;if(/^(Нет интернета|Связь пропала|Недостаточно средств|Договор изменился|CRM переехала)/.test(m)){t.className='toast ter';t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),6000);return;}t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 </script>

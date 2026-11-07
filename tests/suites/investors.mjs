@@ -31,6 +31,11 @@ export default async function(){
     const op=S.invOps.filter(o=>o.type==='reinvest').sort((a,b)=>dTs(b.createdAt)-dTs(a.createdAt))[0];
     return{shown,badOk,t,ok,date:op&&dayKey(dTs(op.date)),first};},mk);
   check('реинвест: дату можно выбрать задним числом, но не в закрытом месяце',ri.shown&&!ri.badOk&&/закрыт/.test(ri.t)&&ri.ok&&ri.date===ri.first,ri);
+  // цену и себестоимость договора с деньгами в закрытом месяце менять нельзя — понятное сообщение
+  const cl=await A.p.evaluate(async mk=>{const pay=S.payments.find(x=>x.type==='payment'&&monthKey(dTs(x.date))===mk);const c=S.clients.find(x=>x.id===pay.clientId);
+    document.getElementById('confirmLayer').innerHTML='';openEdit(c.id);await new Promise(r=>setTimeout(r,300));document.getElementById('f_cost').value=String(c.cost+1000);await saveClient();await new Promise(r=>setTimeout(r,500));
+    const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',cost:S.clients.find(x=>x.id===c.id).cost,was:c.cost};document.getElementById('confirmLayer').innerHTML='';closeM('mClient');return r;},mk);
+  check('себестоимость договора с деньгами в закрытом месяце не меняется — CRM объясняет почему',cl.title==='Месяц закрыт'&&cl.cost===cl.was,cl);
   // закрытый месяц не трогается: отмену платежа CRM не даёт, расхождений нет
   const ch=await A.p.evaluate(async mk=>{const pay=S.payments.find(x=>x.type==='payment'&&monthKey(dTs(x.date))===mk);document.getElementById('confirmLayer').innerHTML='';await cancelPay(pay.id,pay.clientId,pay.amount,'payment');await new Promise(r=>setTimeout(r,1500));
     const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',still:S.payments.some(x=>x.id===pay.id),issues:integrityIssues().filter(x=>/^Инвесторы:/.test(x.t)).length};document.getElementById('confirmLayer').innerHTML='';return r;},mk);
