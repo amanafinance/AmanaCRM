@@ -23,6 +23,14 @@ export default async function(){
   // отмена закрытия невозможна после выплаты
   const ro=await A.p.evaluate(async mk=>{invReopenMonth(mk);await new Promise(r=>setTimeout(r,300));return{t:document.getElementById('toast').textContent,closed:!!invModel().closed[mk]};},mk);
   check('отмена закрытия после выплаты запрещена',ro.closed&&/выплаты/.test(ro.t),ro);
+  // реинвест с датой: задним числом в открытом месяце — можно, в закрытом — нельзя
+  const ri=await A.p.evaluate(async mk=>{const M=invModel(),dep=Object.values(M.tranches).find(t=>t.invId==='INV1');const first=mkNext(mk)+'-01',bad=mk+'-15';
+    const run=async v=>{openInvOp('reinvest','INV1');document.getElementById('ioDep').value=dep.id;document.getElementById('ioAmt').value='100';document.getElementById('ioDate').value=v;const n=S.invOps.length;await saveInvOp();await new Promise(r=>setTimeout(r,1200));closeM('mInvOp');return S.invOps.length>n;};
+    const shown=(()=>{openInvOp('reinvest','INV1');const v=document.getElementById('ioDateRow').style.display!=='none';closeM('mInvOp');return v;})();
+    const badOk=await run(bad);const t=document.getElementById('toast').textContent;const ok=await run(first);
+    const op=S.invOps.filter(o=>o.type==='reinvest').sort((a,b)=>dTs(b.createdAt)-dTs(a.createdAt))[0];
+    return{shown,badOk,t,ok,date:op&&dayKey(dTs(op.date)),first};},mk);
+  check('реинвест: дату можно выбрать задним числом, но не в закрытом месяце',ri.shown&&!ri.badOk&&/закрыт/.test(ri.t)&&ri.ok&&ri.date===ri.first,ri);
   // закрытый месяц не трогается: отмену платежа CRM не даёт, расхождений нет
   const ch=await A.p.evaluate(async mk=>{const pay=S.payments.find(x=>x.type==='payment'&&monthKey(dTs(x.date))===mk);document.getElementById('confirmLayer').innerHTML='';await cancelPay(pay.id,pay.clientId,pay.amount,'payment');await new Promise(r=>setTimeout(r,1500));
     const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',still:S.payments.some(x=>x.id===pay.id),issues:integrityIssues().filter(x=>/^Инвесторы:/.test(x.t)).length};document.getElementById('confirmLayer').innerHTML='';return r;},mk);
