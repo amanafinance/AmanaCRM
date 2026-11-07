@@ -149,6 +149,15 @@ export default async function(){
   check('переплата попадает в «Проверку базы»',op.list.some(t=>/переплата/.test(t)),op.list);
   check('после оплат касса сходится с операциями',await p.evaluate(()=>{const m=walletCalc();return S.wallets.every(w=>Math.abs(R2(w.balance)-(m[w.id]||0))<0.01);}));
 
+  // правка цены и себестоимости существующего договора сохраняется (раньше кнопка «Сохранить» молча не срабатывала)
+  const ed2=await p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&S.payments.some(q=>q.clientId===x.id&&q.type==='payment'));const was={price:c.price,cost:c.cost};
+    const sc=window.showConfirm;let asked='';window.showConfirm=(t,m,ok)=>{asked=t;ok&&ok();};
+    openEdit(c.id);await new Promise(r=>setTimeout(r,300));
+    const set=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));};
+    set('f_price',String(was.price+12000));set('f_cost',String(was.cost+6000));recalcSched();await new Promise(r=>setTimeout(r,200));
+    await saveClient();await new Promise(r=>setTimeout(r,1500));window.showConfirm=sc;
+    const n=S.clients.find(x=>x.id===c.id);return{was,now:{price:n.price,cost:n.cost},asked,open:document.getElementById('mClient').classList.contains('on')};});
+  check('правка цены и себестоимости договора с оплатами сохраняется, перед этим CRM спрашивает',ed2.now.price===ed2.was.price+12000&&ed2.now.cost===ed2.was.cost+6000&&/Изменить цену и себестоимость/.test(ed2.asked)&&!ed2.open,ed2);
   // Правило прибыли: в каждом рубле от клиента (и в предоплате) одинаковая доля наценки; скидка уменьшает наценку следующих платежей
   const pf=await p.evaluate(()=>{const D=n=>new Date(2026,0,n),P=(type,amount,n)=>({p:{type,amount},d:D(n)}),r2=x=>Math.round(x*100)/100;
     const c={price:100000,cost:70000,prepay:20000};
