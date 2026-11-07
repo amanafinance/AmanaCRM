@@ -1520,7 +1520,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='07.11.2026 · 17';
+const CRM_VERSION='07.11.2026 · 18';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -4772,7 +4772,7 @@ async function invCloseMonth(mk){
 const IO_META={
   deposit:{title:'Новый вклад',btn:'Внести вклад',wallet:true,date:true,k:'inv_in',walletLbl:'Куда поступили деньги',terms:true},
   withdraw:{title:'Вывод капитала',btn:'Вывести',wallet:true,date:true,k:'inv_out',walletLbl:'Из какого кошелька',dep:'cap',depLbl:'Из какого вклада'},
-  reinvest:{title:'Реинвест прибыли',btn:'Реинвестировать',wallet:false,date:false,dep:'pay',depLbl:'Прибыль какого вклада'},
+  reinvest:{title:'Реинвест прибыли',btn:'Реинвестировать',wallet:false,date:true,dep:'pay',depLbl:'Прибыль какого вклада'},
   payout:{title:'Выплата прибыли',btn:'Выплатить',wallet:true,date:false,k:'inv_pay',walletLbl:'Из какого кошелька',dep:'pay',depLbl:'Прибыль какого вклада'}
 };
 function openInvOp(type,invId){
@@ -4824,7 +4824,7 @@ function invOpHint(){
   if(t==='deposit')h='Капитал сейчас <b>'+fmt(b.capital)+' ₽</b> ('+invPctFmt(share)+' пула). Деньги поступят в кассу и начнут работать в пуле с даты вклада.';
   if(t==='withdraw'){h='В этом вкладе <b>'+fmt(depCap)+' ₽</b>, в кошельке «'+invEsc(w?w.name:'')+'» <b>'+fmt(wb)+' ₽</b>. Вывести можно только имеющиеся деньги.';
     if(tr&&tr.termEnd&&tr.termEnd>M.now)h+='<br><span class="cr" style="font-weight:700">Срок вклада ещё не вышел — до '+fmtD(tr.termEnd)+'.</span>';}
-  if(t==='reinvest')h='К выплате по этому вкладу <b>'+fmt(depPay)+' ₽</b>. Сумма добавится к телу этого же вклада на его условиях.';
+  if(t==='reinvest')h='К выплате по этому вкладу <b>'+fmt(depPay)+' ₽</b>. Сумма добавится к телу этого же вклада на его условиях и будет работать в пуле с выбранной даты. Дату можно поставить задним числом — например, 1-е число месяца после закрытого, но не в закрытом месяце.';
   if(t==='payout')h='К выплате по этому вкладу <b>'+fmt(depPay)+' ₽</b>, в кошельке «'+invEsc(w?w.name:'')+'» <b>'+fmt(wb)+' ₽</b>.';
   document.getElementById('ioHint').innerHTML=h;
   if(IO_META[t].terms&&!isF){
