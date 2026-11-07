@@ -1520,7 +1520,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='07.11.2026 · 16';
+const CRM_VERSION='07.11.2026 · 17';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1647,28 +1647,45 @@ function dKv(k,v){return'<div class="dsh-kv"><span>'+k+'</span><b>'+v+'</b></div
 function dealDate(c){return parseD(c.date)||dTs(c.createdAt);}
 const mkShift=(mk,n)=>{const[y,m]=mk.split('-').map(Number);return monthKey(new Date(y,m-1+n,1));};
 // Доля наценки в каждом плановом платеже: (цена − себестоимость) / (цена − предоплата)
-function planRatio(c){const p=parseFloat(c.price)||0,co=parseFloat(c.cost)||0,pp=parseFloat(c.prepay)||0;return co>0&&p-pp>0?Math.max(0,(p-co)/(p-pp)):0;}
+// Доля наценки в каждом рубле, который платит клиент, — и в предоплате, и в каждом платеже: (цена − себестоимость) / цена
+function planRatio(c){const p=parseFloat(c.price)||0,co=parseFloat(c.cost)||0;return co>0&&p>0?Math.max(0,(p-co)/p):0;}
 
-// Как платежи договора делятся на возврат себестоимости и наценку (кассовый метод, как у инвесторов).
-// list — [{p,d}] платежи и скидки договора. Скидка уменьшает сначала непогашенную себестоимость, потом наценку.
+// Деньги и скидки договора для расчёта прибыли: предоплата (дата — из её записи, иначе дата договора; сумма — из договора),
+// ежемесячные платежи и скидки. pays — платежи этого договора (по умолчанию — все его платежи).
+function dealProfitList(c,pays){
+  const out=[],pre=parseFloat(c.prepay)||0;let preD=null;
+  (pays||paysOf(c.id)).forEach(p=>{
+    if(p.type==='prepay'){if(!preD)preD=invD(p.date);return;}
+    if(p.type!=='payment'&&p.type!=='discount')return;
+    const d=invD(p.date);if(d)out.push({p,d});
+  });
+  if(pre>0){const d=preD||dealDate(c);if(d)out.push({p:{type:'prepay',amount:pre},d});}
+  return out;
+}
+// Как деньги договора делятся на возврат себестоимости и прибыль (кассовый метод, как у инвесторов).
+//  • Каждый полученный рубль (предоплата и платежи) несёт долю прибыли = оставшаяся наценка / оставшийся долг.
+//    Без скидок это одна и та же доля: (цена − себестоимость) / цена.
+//  • Скидка уменьшает наценку оставшихся платежей — они приносят меньше прибыли (сама скидка в минус месяца не идёт).
+//    Только если скидка больше оставшейся наценки, остаток — убыток в день скидки (договор ушёл ниже себестоимости).
 function dealProfitSplit(c,list){
-  const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0,prepay=parseFloat(c.prepay)||0;
-  let bodyRem=Math.max(0,cost-prepay),profRem=Math.max(0,price-cost),got=0;const items=[];
-  list.slice().sort((a,b)=>a.d-b.d).forEach(({p,d})=>{
+  const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0;
+  let bodyRem=Math.max(0,cost),profRem=Math.max(0,price-cost),got=0;const items=[];
+  const ord=t=>t==='prepay'?0:1; // в один день сначала предоплата
+  list.slice().sort((a,b)=>a.d-b.d||ord(a.p.type)-ord(b.p.type)).forEach(({p,d})=>{
     const a=parseFloat(p.amount)||0;if(a<=0)return;
-    if(p.type==='discount'){const fromBody=Math.min(a,bodyRem);bodyRem-=fromBody;profRem=Math.max(0,profRem-(a-fromBody));got-=a;items.push({d,disc:a});return;}
+    if(p.type==='discount'){const fromProf=Math.min(a,profRem);profRem-=fromProf;const loss=Math.min(a-fromProf,bodyRem);bodyRem-=loss;
+      if(loss>0.004){got-=loss;items.push({d,disc:loss});}return;}
     const R=bodyRem+profRem;let prof,body;
     if(R<=0){prof=a;body=0;}
     else{const x=Math.min(a,R);prof=x*profRem/R;body=x-prof;profRem-=prof;bodyRem-=body;prof+=a-x;}
-    got+=prof;items.push({d,prof,body});
+    got+=prof;items.push({d,prof,body,src:p.type==='prepay'?'prepay':'payment'});
   });
   return{items,bodyRem,profRem,got};
 }
-// Фактическая маржа договора: наценка в полученных платежах минус скидки
+// Фактическая маржа договора: прибыль в полученных деньгах (с предоплатой) минус скидки ниже себестоимости
 function dealMarginGot(c){
   if(!(parseFloat(c.cost)>0)||!(parseFloat(c.price)>0))return null;
-  const list=paysOf(c.id).filter(p=>p.type==='payment'||p.type==='discount').map(p=>({p,d:invD(p.date)})).filter(x=>x.d);
-  return dealProfitSplit(c,list).got;
+  return dealProfitSplit(c,dealProfitList(c)).got;
 }
 
 // Общие данные для дашборда и показателей (считаются один раз за отрисовку)
@@ -2020,9 +2037,9 @@ function renderFinance(){
     {l:'Предоплаты',k:'prepay'},
     {l:'Итого поступило',k:'received',b:1},
     {h:'Прибыли и убытки'},
-    {l:'Плановая наценка в платежах',k:'planGross',plan:1,all:1},
-    {l:'Наценка в полученных платежах',k:'gross'},
-    {l:'Скидки клиентам',k:'disc',neg:1},
+    {l:'Плановая наценка в платежах по графику',k:'planGross',plan:1,all:1},
+    {l:'Наценка в полученных деньгах (с предоплатами)',k:'gross'},
+    {l:'Скидки ниже себестоимости',k:'disc',neg:1},
     {l:'Валовая прибыль',k:'grossNet',b:1},
     {l:'Зарплата',k:'salary',neg:1},
     {l:'Операционные расходы',k:'opex',neg:1},
@@ -2065,7 +2082,7 @@ function renderFinance(){
     if(hasFut)t+=(['deals','sales','cost','margin','prepay','disc','invShare','company','purchase','invIn','invOut','invPay','kIn','kOut','flow'].includes(r.k)||r.k==='planPct')?cell(null,r,' fin-tot'):cell(fc[r.k],r,' fin-tot fin-est');
     t+='</tr>';
   });
-  t+='</tbody></table></div><div class="dsh-note">Прибыль считается по мере оплаты: в каждом платеже клиента своя доля наценки (как в разделе «Инвесторы»). «План по графику» — суммы платежей со сроком в этом месяце. Серым курсивом — прогноз: ожидаемые платежи по графику (без просрочки) и средние расходы за последние 3 месяца.</div></div>';
+  t+='</tbody></table></div><div class="dsh-note">Прибыль считается по мере оплаты: в каждом рубле от клиента — и в предоплате, и в платежах — своя доля наценки (как в разделе «Инвесторы»). Скидка уменьшает наценку следующих платежей договора; в строку «Скидки» попадает только скидка ниже себестоимости. «План по графику» — суммы платежей со сроком в этом месяце. Серым курсивом — прогноз: ожидаемые платежи по графику (без просрочки) и средние расходы за последние 3 месяца.</div></div>';
   h+='<div class="dsh-h"><div class="dsh-ht">Отчёт о прибылях и убытках</div></div>'+t;
 
   const P2=h.length;
@@ -2640,7 +2657,7 @@ function integrityIssues(){
     const s=getStats(c);
     if(s.overpaid>0.004)add(lbl(c)+': переплата '+fmt(s.overpaid)+' ₽',c.id);
     const price=parseFloat(c.price)||0,pre=parseFloat(c.prepay)||0,sum=R2(s.schedule.reduce((a,x)=>a+(parseFloat(c['размер'+x.month])||0),0));
-    if(pre>(parseFloat(c.cost)||0)+0.004&&(parseFloat(c.cost)||0)>0)add(lbl(c)+': предоплата '+fmt(pre)+' ₽ больше себестоимости '+fmt(c.cost)+' ₽ — часть наценки не попадёт в прибыль',c.id);
+    if(pre>(parseFloat(c.cost)||0)+0.004&&(parseFloat(c.cost)||0)>0)add(lbl(c)+': предоплата '+fmt(pre)+' ₽ больше себестоимости '+fmt(c.cost)+' ₽ — так быть не должно, проверьте договор',c.id);
     if(price>0&&Math.abs(sum-R2(price-pre))>0.004)add(lbl(c)+': сумма графика '+fmt(sum)+' ₽, а цена минус предоплата '+fmt(R2(price-pre))+' ₽',c.id);
     if(!c.clientPid||!pMaps().byId.has(c.clientPid))add(lbl(c)+': нет карточки клиента',c.id);
     if(c.archived&&s.balance>0.004)add(lbl(c)+': в архиве с долгом '+fmt(s.balance)+' ₽',c.id);
@@ -4213,8 +4230,8 @@ document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if
 // ИНВЕСТОРЫ — общий пул капитала
 // Правила:
 //  • Все сделки финансируются из общего пула. Доля участника = его капитал / капитал пула.
-//  • Прибыль каждого платежа клиента = платёж × (оставшаяся наценка / оставшийся долг).
-//    Первый взнос уменьшает финансирование, прибыли в нём нет.
+//  • Прибыль каждого рубля от клиента (предоплата и платежи) = сумма × (оставшаяся наценка / оставшийся долг);
+//    без скидок это (цена − себестоимость) / цена. Скидка уменьшает наценку следующих платежей договора.
 //  • Прибыль и расходы (зарплата, опер. расходы из Кассы) делятся по долям,
 //    действующим в момент операции. Расходы вычитаются до деления с инвестором.
 //  • У каждого вклада свой % инвестору и необязательный срок (от даты вклада). Вклад участвует в прибыли с даты внесения.
@@ -4482,14 +4499,14 @@ function invModelCalc(){
   });
   // события прибыли по договорам
   const byClient={};
-  S.payments.forEach(p=>{if(p.type!=='payment'&&p.type!=='discount')return;const d=invD(p.date);if(!d)return;(byClient[p.clientId]=byClient[p.clientId]||[]).push({p,d});});
+  S.payments.forEach(p=>{if(p.type!=='payment'&&p.type!=='discount'&&p.type!=='prepay')return;(byClient[p.clientId]=byClient[p.clientId]||[]).push(p);});
   const events=[];let inDeals=0,noCost=0,profLeft=0;
   S.clients.forEach(c=>{
     const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0;
     if(price<=0)return;
     if(cost<=0){if(byClient[c.id])noCost++;return;}
-    const sp=dealProfitSplit(c,byClient[c.id]||[]);
-    sp.items.forEach(x=>events.push(x.disc?{d:x.d,amount:-x.disc,body:0,kind:'profit',src:'discount',ref:'Скидка №'+(c.contractId||'—')+' '+(c.name||'')}:{d:x.d,amount:x.prof,body:x.body,kind:'profit',src:'payment',ref:'№'+(c.contractId||'—')+' '+(c.name||'')}));
+    const sp=dealProfitSplit(c,dealProfitList(c,byClient[c.id]||[]));
+    sp.items.forEach(x=>events.push(x.disc?{d:x.d,amount:-x.disc,body:0,kind:'profit',src:'discount',ref:'Скидка ниже себестоимости №'+(c.contractId||'—')+' '+(c.name||'')}:{d:x.d,amount:x.prof,body:x.body,kind:'profit',src:x.src,ref:(x.src==='prepay'?'Предоплата ':'')+'№'+(c.contractId||'—')+' '+(c.name||'')}));
     if(!c.archived){inDeals+=Math.max(0,sp.bodyRem);profLeft+=Math.max(0,sp.profRem);}
   });
   S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type)&&!INV_FEXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:INV_FEXP_TYPES.includes(o.type)?'fexpense':'expense',etype:o.type,ref:o.desc||kMeta(o.type).name});});
@@ -4686,14 +4703,14 @@ function invMonthsHtml(M){
     const pr=invRentFmt(d.poolRent);
     rows+='<tr class="crow" onclick="openInvMonth(\''+mk+'\')"><td style="font-weight:700">'+mkLabel(mk)+'</td><td class="num"><span class="amt">'+fmt(d.gross)+' ₽</span></td><td class="num"><span class="amt cr">'+(d.exp?'−'+fmt(d.exp)+' ₽':'—')+'</span></td><td class="num"><span class="amt '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</span></td><td class="num">'+pr+'</td><td class="num"><span class="amt">'+invMoney(toI)+'</span></td><td class="num"><span class="amt">'+invMoney(toF)+'</span></td><td class="num">'+st+'</td></tr>';
     cards+='<div class="mcard" onclick="openInvMonth(\''+mk+'\')"><div class="mcard-top"><div class="mcard-name">'+mkLabel(mk)+'</div><div>'+st+'</div></div>'+
-      '<div class="mcard-row"><span class="mcard-label">Прибыль с платежей</span><span class="mcard-val">'+fmt(d.gross)+' ₽</span></div>'+
+      '<div class="mcard-row"><span class="mcard-label">Прибыль с оплат</span><span class="mcard-val">'+fmt(d.gross)+' ₽</span></div>'+
       '<div class="mcard-row"><span class="mcard-label">Расходы</span><span class="mcard-val cr">'+(d.exp?'−'+fmt(d.exp)+' ₽':'—')+'</span></div>'+
       '<div class="mcard-row"><span class="mcard-label">Чистая прибыль</span><span class="mcard-val '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</span></div>'+
       '<div class="mcard-row"><span class="mcard-label">Рентабельность пула</span><span class="mcard-val">'+pr+'</span></div>'+
       '<div class="mcard-row"><span class="mcard-label">Инвесторам</span><span class="mcard-val">'+invMoney(toI)+'</span></div>'+
       '<div class="mcard-row"><span class="mcard-label">Учредителям</span><span class="mcard-val">'+invMoney(toF)+'</span></div></div>';
   });
-  return chips+invPoolStatsHtml(M,sel)+'<div class="dsh-h"><div class="dsh-ht">Месяцы</div></div><div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Месяц</th><th class="plain num">Прибыль с платежей</th><th class="plain num">Расходы</th><th class="plain num">Чистая прибыль</th><th class="plain num">Рент. пула</th><th class="plain num">Инвесторам</th><th class="plain num">Учредителям</th><th class="plain num">Статус</th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob">'+cards+'</div>'+
+  return chips+invPoolStatsHtml(M,sel)+'<div class="dsh-h"><div class="dsh-ht">Месяцы</div></div><div class="card inv-desk" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Месяц</th><th class="plain num">Прибыль с оплат</th><th class="plain num">Расходы</th><th class="plain num">Чистая прибыль</th><th class="plain num">Рент. пула</th><th class="plain num">Инвесторам</th><th class="plain num">Учредителям</th><th class="plain num">Статус</th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div class="inv-mob">'+cards+'</div>'+
     '<div class="inv-muted" style="margin-top:8px">Рентабельность пула = чистая прибыль месяца / весь капитал пула на конец месяца. Месяцы закрываются по порядку; отменить можно только последнее закрытие, пока после него не было выплат и реинвестов.</div>';
 }
 
@@ -4724,7 +4741,7 @@ function openInvMonth(mk,refresh){
       });
     }
   });
-  const sum='<div class="sg4" style="margin-bottom:14px"><div class="sc"><div class="sl">Прибыль с платежей</div><div class="sv">'+fmt(d.gross)+' ₽</div></div><div class="sc"><div class="sl">Расходы</div><div class="sv cr">'+(d.exp?'−'+fmt(d.exp):'0')+' ₽</div></div><div class="sc"><div class="sl">Чистая прибыль</div><div class="sv '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</div></div><div class="sc"><div class="sl">Рентабельность пула</div><div class="sv">'+invRentFmt(d.poolRent)+'</div><div class="ss">капитал '+fmt(d.poolCap||0)+' ₽</div></div></div>';
+  const sum='<div class="sg4" style="margin-bottom:14px"><div class="sc"><div class="sl">Прибыль с оплат</div><div class="sv">'+fmt(d.gross)+' ₽</div></div><div class="sc"><div class="sl">Расходы</div><div class="sv cr">'+(d.exp?'−'+fmt(d.exp):'0')+' ₽</div></div><div class="sc"><div class="sl">Чистая прибыль</div><div class="sv '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</div></div><div class="sc"><div class="sl">Рентабельность пула</div><div class="sv">'+invRentFmt(d.poolRent)+'</div><div class="ss">капитал '+fmt(d.poolCap||0)+' ₽</div></div></div>';
   document.getElementById('imBody').innerHTML=note+sum+(rows?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain num">Капитал на конец</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">Компании</th><th class="plain num">От компании</th><th class="plain num">Итого</th><th class="plain num">Рент.</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="im-cards">'+cards+'</div><div class="inv-muted" style="margin-top:8px">«Компании» — часть прибыли инвестора, которая остаётся компании. «От компании» — эта часть, распределённая между учредителями по их капиталу. «Рент.» — итог участника / его работающий капитал на конец месяца. У учредителя две цифры: с прибылью от капитала инвесторов / только со своего капитала.</div>':'<div class="empty">В этом месяце нет движений</div>');
   let ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Закрыть окно</button>';
   if(s.st==='open'&&s.canClose)ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Отмена</button><button class="btn bg" id="imBtn" onclick="invCloseMonth(\''+mk+'\')">Закрыть месяц</button>';

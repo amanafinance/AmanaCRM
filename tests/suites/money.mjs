@@ -149,5 +149,19 @@ export default async function(){
   check('переплата попадает в «Проверку базы»',op.list.some(t=>/переплата/.test(t)),op.list);
   check('после оплат касса сходится с операциями',await p.evaluate(()=>{const m=walletCalc();return S.wallets.every(w=>Math.abs(R2(w.balance)-(m[w.id]||0))<0.01);}));
 
+  // Правило прибыли: в каждом рубле от клиента (и в предоплате) одинаковая доля наценки; скидка уменьшает наценку следующих платежей
+  const pf=await p.evaluate(()=>{const D=n=>new Date(2026,0,n),P=(type,amount,n)=>({p:{type,amount},d:D(n)}),r2=x=>Math.round(x*100)/100;
+    const c={price:100000,cost:70000,prepay:20000};
+    const a=dealProfitSplit(c,[P('prepay',20000,1),P('payment',30000,2)]);
+    const b=dealProfitSplit({price:100000,cost:70000,prepay:0},[P('payment',50000,1),P('discount',10000,2),P('payment',40000,3)]);
+    const e=dealProfitSplit({price:100000,cost:70000,prepay:0},[P('payment',90000,1),P('discount',10000,2)]);
+    // в инвесторах прибыль от предоплаты — событие в день предоплаты
+    const M=invModel(),cc=S.clients.find(x=>x.prepay>0&&x.cost>0),ev=M.events.filter(x=>x.src==='prepay'&&x.ref.includes(cc.contractId));
+    return{pre:r2(a.items[0].prof),a:r2(a.got),aBody:r2(a.bodyRem),aProf:r2(a.profRem),bDisc:b.items.filter(x=>x.disc).length,b:r2(b.got),bMid:r2(b.items[1].prof),e:r2(e.got),eLoss:r2((e.items.find(x=>x.disc)||{}).disc||0),
+      ratio:planRatio(c),ev:ev.length,evAmt:ev[0]&&r2(ev[0].amount),evWant:r2(cc.prepay*(cc.price-cc.cost)/cc.price)};});
+  check('прибыль: в предоплате та же доля наценки, что и в платежах (20 000 → 6 000 при наценке 30%)',pf.pre===6000&&pf.a===15000&&pf.aBody===35000&&pf.aProf===15000&&Math.abs(pf.ratio-0.3)<1e-9,pf);
+  check('скидка не уходит в минус месяца, а уменьшает прибыль следующих платежей; итог = наценка − скидка',pf.bDisc===0&&pf.b===20000&&pf.bMid===5000,pf);
+  check('скидка больше оставшейся наценки — остаток убыток в день скидки, итог всё равно = наценка − скидка',pf.e===20000&&pf.eLoss===7000,pf);
+  check('у инвесторов прибыль от предоплаты начисляется в день предоплаты',pf.ev===1&&pf.evAmt===pf.evWant,pf);
   noErrors('деньги',errs);await ctx.close();
 }
