@@ -194,9 +194,13 @@ async function bkDump(){
 function bkCheck(B){
   if(!B||B.format!=='amana-crm-backup'||!B.collections||typeof B.collections!=='object')return'Это не файл копии Amana CRM';
   if(B.version!==1)return'Копия сделана более новой версией CRM — обновите страницу и попробуйте снова';
-  for(const c of BK_COLS){const o=B.collections[c];if(o===undefined)continue;if(!o||typeof o!=='object'||Array.isArray(o))return'Файл копии повреждён (раздел '+c+')';
+  if (B.source !== 'server' || B.partial) return 'Для восстановления нужна полная копия с сервера';
+  for (const c of BK_COLS) {
+    const o = B.collections[c];
+    if (o === undefined) return 'В копии отсутствует раздел ' + c;
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return 'Файл копии повреждён (раздел ' + c + ')';
+    if (!B.counts || B.counts[c] !== Object.keys(o).length) return 'В копии не совпадает число записей раздела ' + c;
     for(const [id,d] of Object.entries(o))if(!id||id.includes('/')||id==='.'||id==='..'||/^__.*__$/.test(id)||id.length>700||!d||typeof d!=='object'||Array.isArray(d))return'Файл копии повреждён (запись '+c+'/'+String(id).slice(0,40)+')';}
-  if(!B.collections.clients||!B.collections.wallets)return'В файле нет договоров или счетов — это не полная копия';
   return'';
 }
 // Восстановление: база становится точно такой, как в копии. Записи, которых в копии нет, удаляются (с надгробием —
@@ -207,7 +211,7 @@ async function bkRestore(B,prog){
   await netCheck();
   const ops=[];let put=0,del=0;
   for(const c of BK_COLS){
-    const want=B.collections[c]||{},cur=(await withTimeout(getDocsFromServer(collection(db,c)),30000)).docs;
+    const want=B.collections[c],cur=(await withTimeout(getDocsFromServer(collection(db,c)),30000)).docs;
     cur.forEach(x=>{if(bkSkip(c,x.id)||Object.prototype.hasOwnProperty.call(want,x.id))return;
       ops.push(['delete',x.ref],['set',doc(collection(db,TOMB)),{c,id:x.id,[U]:serverTimestamp()}]);del++;});
     Object.entries(want).forEach(([id,d])=>{if(bkSkip(c,id))return;ops.push(['set',doc(db,c,id),stamp(bkIn(d))]);put++;});

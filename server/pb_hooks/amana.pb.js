@@ -4,6 +4,15 @@ routerAdd('POST', '/api/amana/commit', (e) => {
   return require(`${__hooks}/amana_lib.js`).commit(e, $app);
 }, $apis.requireAuth('users', '_superusers'));
 
+// Выбор счёта для оплаты доступен без чтения кассовой книги.
+routerAdd('GET', '/api/amana/wallet-options', e => {
+  const options = $app.findAllRecords('wallets').map(record => {
+    const w = JSON.parse(record.getString('data'));
+    return { id: record.id, name: w.name || '', isDefault: !!w.isDefault };
+  });
+  return e.json(200, options);
+}, $apis.requireAuth('users', '_superusers'));
+
 // Сотрудники и права (Настройки → Сотрудники): список, добавить/изменить, удалить. Нужно право staff.
 routerAdd('GET', '/api/amana/staff', (e) => require(`${__hooks}/amana_lib.js`).staffList(e, $app), $apis.requireAuth('users', '_superusers'));
 routerAdd('POST', '/api/amana/staff', (e) => require(`${__hooks}/amana_lib.js`).staffSave(e, $app), $apis.requireAuth('users', '_superusers'));

@@ -1520,7 +1520,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='07.11.2026 · 19';
+const CRM_VERSION='11.11.2026 · 20';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2449,6 +2449,10 @@ function contractClosedMonths(id){
   const c=S.clients.find(x=>x.id===id);if(!c)return[];
   return[...new Set(dealProfitList(c).map(x=>closedMk(x.d)).filter(Boolean))].sort();
 }
+function paymentCashLink(p){
+  if(can('v_kassa')||!p||!p.kassaOpId||!p.wallet)return null;
+  return {id:p.kassaOpId,wallet:p.wallet,walletName:p.payType,amount:p.amount};
+}
 function closedMk(d){if(!d||!S.invMonths||!S.invMonths.length)return null;const M=invModel(),mk=monthKey(d);return M.closed[mk]||(M.lastClosed&&mk<=M.lastClosed)?mk:null;}
 async function cancelPay(pid,cid,amt,pt){
   if(pt==='prepay'){toast('Предоплату нельзя удалить из истории. Измените её в договоре.','ter');return;}
@@ -2456,7 +2460,7 @@ async function cancelPay(pid,cid,amt,pt){
   if(!p){toast('Платёж не найден','ter');return;}
   const cm=closedMk(dTs(p.date));
   if(cm){walletBlockT('Месяц закрыт','<strong>'+mkLabel(cm)+'</strong> уже закрыт у инвесторов — '+(pt==='discount'?'скидку':'платёж')+' этого месяца отменить нельзя. Если это ошибка, проведите исправление в текущем месяце.');return;}
-  const kOp=p.kassaOpId&&S.kassaOps.find(o=>o.id===p.kassaOpId)||null;
+  const kOp=p.kassaOpId&&S.kassaOps.find(o=>o.id===p.kassaOpId)||paymentCashLink(p);
   if(kOp&&kOp.wallet){const short=walletShort({[kOp.wallet]:-(parseFloat(kOp.amount)||0)});if(short){walletBlock('Отмена платежа заберёт деньги из кассы. '+short);return;}}
   const warn=pt==='discount'?'Скидка будет отменена, долг клиента вырастет на эту сумму. Касса не меняется.':(kOp?'Касса «'+esc(kOp.walletName||'')+'» уменьшится на '+fmt(amt)+' ₽':'<span style="color:var(--yellow)">Связанная операция в кассе не найдена — касса не изменится</span>');
   showConfirm('Отменить платёж?','<strong>'+fmt(amt)+' ₽</strong><br>'+warn,async()=>{
@@ -2539,6 +2543,7 @@ const WINC=v=>({balance:window.DB.increment(R2(v))});
 // Счёт не может уйти в минус. eff — {id счёта: изменение остатка}. Возвращает текст ошибки или ''.
 // Пополнение счёта, который уже в минусе, разрешено — оно приближает его к нулю.
 function walletShort(eff){
+  if(!can('v_kassa'))return ''; // остаток проверит сервер
   for(const k of Object.keys(eff)){const w=S.wallets.find(x=>x.id===k);if(!w||!(eff[k]<-0.004))continue;
     const b=R2(parseFloat(w.balance)||0),nb=R2(b+eff[k]);
     if(nb<-0.004)return'На счёте «'+esc(w.name)+'» '+fmt(b)+' ₽, а нужно '+fmt(-eff[k])+' ₽. Счёт не может уйти в минус.';}
@@ -2827,7 +2832,7 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
 }_saving=true;const btn=document.getElementById('mCBtn');btn.classList.add('saving');btn.textContent='...';try{const dv=document.getElementById('f_date').value,ptVal=document.getElementById('f_prepayPt').value,ptW=walletByVal(ptVal),pt=ptW?ptW.name:'',payDay=parseInt(document.getElementById('f_payDay').value)||0,data={date:dv?fmtD(safeDateFromInput(dv)):'',..._pp.data,product:document.getElementById('f_product').value,partner:document.getElementById('f_partner').value,partnerPhone:document.getElementById('f_partner').value==='Сторонний'?document.getElementById('f_partnerPhone').value.trim():'',cost,price,prepay:parseNum(document.getElementById('f_prepay').value),months:mo,payDay,prepayWallet:ptW?ptW.id:''};const lim=Math.max(12,mo,parseInt((S.clients.find(x=>x.id===_cid)||{}).months)||0);for(let m=0;m<lim;m++){if(m<mo&&rows[m]){data['размер'+(m+1)]=parseNum(rows[m].querySelector('.sz').value);const v=rows[m].querySelector('.dt').value;data['дата'+(m+1)]=v?fmtD(safeDateFromInput(v)):'';}else{data['размер'+(m+1)]=0;data['дата'+(m+1)]='';}}if(data.prepay>=cost){toast('Предоплата не может быть равна или больше себестоимости','ter');_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';return;}if(_cid){const old=S.clients.find(x=>x.id===_cid);
   const oldPrepay=R2(old&&old.prepay),newPrepay=R2(data.prepay);
   const pr=S.payments.find(x=>x.clientId===_cid&&x.type==='prepay');
-  const prK=S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===_cid);
+  const prK=S.kassaOps.find(o=>o.type==='prepay_in'&&o.refId===_cid)||paymentCashLink(pr);
   const oldW=prK?prK.wallet:((old&&old.prepayWallet)||null);
   const newW=ptW?ptW.id:null;
   // договор, платёж предоплаты, операция кассы и балансы — одной пачкой: либо всё, либо ничего
@@ -3001,7 +3006,7 @@ function loadSettings(){
 }
 let _ensuringCash=false;
 async function ensureCashWallet(){
-  if(_ensuringCash)return;
+  if(_ensuringCash||!can('settings')||!can('v_kassa'))return;
   const has=S.wallets.some(w=>w.isDefault||(w.name==='Наличные'&&w.type==='cash'));
   if(!has&&_inited&&!_saving){ // во время восстановления из копии счета на миг пропадают — не создаём лишний
     _ensuringCash=true;
@@ -3053,7 +3058,7 @@ function applyPerms(){
 window.addEventListener('permsChanged',()=>{if(_inited)applyPerms();});
 // Кнопки скрыты; если действие всё же вызвано — понятное сообщение вместо ошибки сервера
 const PERM_GUARD={openNew:'deal_new',openEdit:'deal_edit',archiveClient:'deal_arch',delClient:'deal_del',openPersonForm:'people',delPerson:'people',
-  openPay:'pay',openDisc:'disc',cancelPay:'pay_cancel',openKassaEdit:'kassa_ops',delKassaOp:'kassa_ops',fixWallet:'kassa_ops',
+  openDefer:'deal_edit',openPay:'pay',openDisc:'disc',cancelPay:'pay_cancel',openKassaEdit:'kassa_ops',delKassaOp:'kassa_ops',fixWallet:'kassa_ops',
   openInvOp:'inv_ops',openInvForm:'inv_ops',invCloseMonth:'inv_ops',invReopenMonth:'inv_ops',invFormDelete:'inv_ops',saveDepEdit:'inv_ops',
   exportExcel:'backup',bkSave:'backup',bkPick:'restore',renumberAsk:'settings',addPart:'settings',renamePart:'settings',removePart:'settings',setPartPhone:'settings',
   addWallet:'settings',renameWallet:'settings',removeWallet:'settings',saveWaTpl:'settings',resetWaTpl:'settings'};
@@ -3194,7 +3199,8 @@ async function bkSave(){
     _bkFile=await bkMake(pw);const B=_bkFile.B;
     const coarse=matchMedia('(pointer:coarse)').matches;
     st.innerHTML='<div class="bk-ok">Копия готова'+(_bkFile.enc?' (с паролем)':'')+': '+bkSummary(B)+'.</div>'+
-      (B.source==='device'?'<div class="bk-warn">Сервер не ответил — копия сделана из данных на этом устройстве. Последние изменения с других устройств могут в неё не попасть.</div>':'')+
+      (B.source==='device'?'<div class="bk-warn">Сервер не ответил — копия сделана из данных на этом устройстве. Данные можно просмотреть в файле. Для восстановления базы нужна полная копия с сервера.</div>':'')+
+      (B.partial?'<div class="bk-warn">Копия содержит только доступные вам данные. Для восстановления базы нужна копия со всеми разделами.</div>':'')+
       '<div class="bk-row"><button class="btn bg" onclick="bkDeliver(_bkFile)">'+(coarse?'Сохранить файл':'Скачать ещё раз')+'</button><span class="bk-fn">'+esc(_bkFile.name)+'</span></div>';
     if(!coarse)await bkDeliver(_bkFile);
     if(B.source==='server')logA('Скачана резервная копия',bkSummary(B).replace(/<\/?b>/g,'')+(_bkFile.enc?' · с паролем':''));
@@ -3230,7 +3236,7 @@ function bkShow(B){
     '<div class="bk-t"><b>Шаг 2.</b> Восстановить базу из копии от '+bkDT(B.createdAt)+'. Перед этим попросите всех закрыть CRM.</div>'+
     '<div class="bk-row"><button class="btn br" id="bkGo" disabled onclick="bkRestoreAsk()">Восстановить</button><button class="btn bgh" onclick="bkCancel()">Отмена</button></div><div id="bkGoSt"></div></div>';
   const pw=_bkPw||document.getElementById('bkPw').value;
-  bkMake(pw).then(f=>{if(_bkB!==B)return;_bkPre=f;const b=document.getElementById('bkPreBtn');if(b){b.disabled=false;b.textContent='Сохранить текущие данные'+(f.enc?' (с паролем)':'');}})
+  bkMake(pw).then(f=>{if(_bkB!==B)return;const err=window.DB.bkCheck(f.B);if(err)throw new Error(err);_bkPre=f;const b=document.getElementById('bkPreBtn');if(b){b.disabled=false;b.textContent='Сохранить текущие данные'+(f.enc?' (с паролем)':'');}})
     .catch(e=>{const b=document.getElementById('bkPreBtn');if(b)b.textContent='Не получилось: '+(e&&e.message||e);});
 }
 async function bkSavePre(){
@@ -3766,7 +3772,7 @@ async function dealPeopleData(){
 // ---------- Отсрочка платежа ----------
 let _df={cid:null,m:null};
 function deferCell(p,c){
-  if(!c||p.st==='paid'||R2(p.size-p.paid)<=0.004)return '';
+  if(!can('deal_edit')||!c||p.st==='paid'||R2(p.size-p.paid)<=0.004)return '';
   const df=deferOf(c,p.month);
   return '<button class="pr-dfb" onclick="openDefer(\''+c.id+'\','+p.month+')" title="Перенести дату этого платежа"><span>'+(df?'Изменить отсрочку':'Отсрочить')+'</span></button>';
 }
@@ -3783,6 +3789,7 @@ function openDefer(cid,m){
   openM('mDefer');
 }
 async function writeDefer(val){
+  if(!can('deal_edit'))throw new Error('Нет права редактировать договор');
   const c=S.clients.find(x=>x.id===_df.cid);if(!c)return;
   const d={...(c.defer||{})};
   if(val)d[_df.m]=val;else delete d[_df.m];
@@ -3851,8 +3858,8 @@ function renderReminders(more){
     if(r.partial)b+='<div class="rem-mark rem-pt">оплачено '+fmt(r.paid)+' из '+fmt(r.size)+' ₽</div>';
     return b;
   };
-  const btnsM=r=>waBtn(r.c.id,r.month)+'<button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">+ Оплата</button><button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>';
-  const btns=r=>waBtn(r.c.id,r.month,true)+' <button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">+ Оплата</button> <button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>';
+  const btnsM=r=>waBtn(r.c.id,r.month)+'<button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">+ Оплата</button>'+(can('deal_edit')?'<button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>':'');
+  const btns=r=>waBtn(r.c.id,r.month,true)+' <button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">+ Оплата</button>'+(can('deal_edit')?' <button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>':'');
   const view=list.slice(0,_remShown);
   const rowsH=view.map(r=>'<tr class="'+(r.partial?'rem-partial':'')+'"><td class="crow" onclick="openC(\''+r.c.id+'\')" style="white-space:nowrap">'+(r.df?'<div>'+fmtD(r.eff)+'</div><div class="inv-muted" style="text-decoration:line-through">'+esc(r.date)+'</div>':esc(r.date))+'</td>'+
     '<td class="crow" onclick="openC(\''+r.c.id+'\')"><div style="font-weight:600">'+esc(r.c.name)+'</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+esc(fmtPhone((r.c.phones||[])[0]))+'</div></td>'+

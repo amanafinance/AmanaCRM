@@ -184,12 +184,17 @@ async function getDoc(ref) {
 
 // ---------- Память устройства (IndexedDB) ----------
 // Коллекция целиком: {docs: {id: {data, u}}, last, full}. Пишется не чаще раза в полсекунды.
-const IDB_NAME = 'amana_pb', EPOCH_KEY = 'amana_pb_epoch';
+const cacheScope = () => {
+  const user = pb.authStore.record;
+  return user ? user.id + '_' + (user.perms || '') : 'signed_out';
+};
+const cacheName = () => 'amana_pb_' + cacheScope();
+const EPOCH_KEY = 'amana_pb_epoch';
 let _idb = null;
-const idb = () => _idb || (_idb = new Promise((ok, no) => { const r = indexedDB.open(IDB_NAME, 1); r.onupgradeneeded = () => r.result.createObjectStore('cols'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }).catch(() => null));
+const idb = () => _idb || (_idb = new Promise((ok, no) => { const r = indexedDB.open(cacheName(), 1); r.onupgradeneeded = () => r.result.createObjectStore('cols'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }).catch(() => null));
 const idbGet = async k => { const d = await idb(); if (!d) return null; return new Promise(ok => { try { const r = d.transaction('cols').objectStore('cols').get(k); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); } catch (e) { ok(null); } }); };
 const idbPut = async (k, v) => { const d = await idb(); if (!d) return; return new Promise(ok => { try { const t = d.transaction('cols', 'readwrite'); t.objectStore('cols').put(v, k); t.oncomplete = () => ok(); t.onerror = () => ok(); } catch (e) { ok(); } }); };
-const idbClear = async () => { const d = await idb(); if (d) { try { d.close(); } catch (e) {} } _idb = null; await new Promise(ok => { const r = indexedDB.deleteDatabase(IDB_NAME); r.onsuccess = r.onerror = r.onblocked = () => ok(); }); };
+const idbClear = async () => { const d = await idb(); if (d) { try { d.close(); } catch (e) {} } _idb = null; await new Promise(ok => { const r = indexedDB.deleteDatabase(cacheName()); r.onsuccess = r.onerror = r.onblocked = () => ok(); }); };
 
 // ---------- Живые коллекции ----------
 const FULL_EVERY = 7 * 864e5, OVERLAP = 5 * 60e3;
@@ -235,6 +240,19 @@ async function pullSince(name, since) {
 }
 let _rtCount = 0;
 async function live(name, opts, cb, onErr) {
+  if ((name === 'wallets' || name === 'kassaOps') && !hasRight('v_kassa')) {
+    if (name === 'kassaOps') { cb({ docs: [] }); return; }
+    const update = async () => {
+      try {
+        const options = await pb.send('/api/amana/wallet-options', { method: 'GET', requestKey: null });
+        cb({ docs: options.map(w => ({ id: w.id, data: () => ({ name: w.name, isDefault: w.isDefault }) })) });
+      } catch (e) { if (onErr) onErr(e); }
+    };
+    window.addEventListener('focus', update);
+    window.addEventListener('online', update);
+    await update();
+    return;
+  }
   opts = opts || {};
   const st = colState(name);
   const emit = () => {
@@ -305,9 +323,10 @@ async function checkEpoch() {
       catch (x) { const s2 = await getDoc(doc(null, 'settings', 'meta')); ep = s2.exists() && s2.data().epoch; if (!ep) return; }
     }
   } catch (e) { return; } // нет интернета — работаем с данными устройства
-  let mine = null; try { mine = localStorage.getItem(EPOCH_KEY); } catch (e) {}
+  const epochKey = EPOCH_KEY + '_' + cacheScope();
+  let mine = null; try { mine = localStorage.getItem(epochKey); } catch (e) {}
   if (mine === ep) return;
-  try { localStorage.setItem(EPOCH_KEY, ep); } catch (e) {}
+  try { localStorage.setItem(epochKey, ep); } catch (e) {}
   const had = !!(await idbGet('clients'));
   if (!had) return;
   closing = true; await idbClear(); location.reload(); await new Promise(() => {});
@@ -324,6 +343,7 @@ async function bkDump() {
   let src = 'server', got;
   try {
     if (!navigator.onLine) throw new Error('offline');
+    await pb.collection('users').authRefresh({requestKey:null});
     got = await Promise.all(all.map(c => withTimeout(pb.collection(c).getFullList({ batch: 1000, requestKey: null, fields: 'id,data' }), 60000).then(l => l.map(r => [r.id, r.data || {}]))));
   } catch (e) {
     src = 'device';
@@ -335,14 +355,19 @@ async function bkDump() {
   }
   const collections = {}, counts = {};
   all.forEach((c, i) => { const o = {}; got[i].forEach(([id, d]) => { if (bkSkip(c, id)) return; const x = Object.assign({}, d); delete x._u; o[id] = x; }); collections[c] = o; counts[c] = Object.keys(o).length; });
-  return { format: 'amana-crm-backup', version: 1, createdAt: new Date().toISOString(), source: src, counts, collections };
+  const partial = !['v_cost', 'v_kassa', 'v_inv', 'v_journal'].every(hasRight);
+  return { format: 'amana-crm-backup', version: 1, createdAt: new Date().toISOString(), source: src, partial, counts, collections };
 }
 function bkCheck(B) {
   if (!B || B.format !== 'amana-crm-backup' || !B.collections || typeof B.collections !== 'object') return 'Это не файл копии Amana CRM';
   if (B.version !== 1) return 'Копия сделана более новой версией CRM — обновите страницу и попробуйте снова';
-  for (const c of BK_COLS) { const o = B.collections[c]; if (o === undefined) continue; if (!o || typeof o !== 'object' || Array.isArray(o)) return 'Файл копии повреждён (раздел ' + c + ')';
+  if (B.source !== 'server' || B.partial) return 'Для восстановления нужна полная копия с сервера';
+  for (const c of BK_COLS) {
+    const o = B.collections[c];
+    if (o === undefined) return 'В копии отсутствует раздел ' + c;
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return 'Файл копии повреждён (раздел ' + c + ')';
+    if (!B.counts || B.counts[c] !== Object.keys(o).length) return 'В копии не совпадает число записей раздела ' + c;
     for (const [id, d] of Object.entries(o)) if (!/^[A-Za-z0-9_-]{1,100}$/.test(id) || !d || typeof d !== 'object' || Array.isArray(d)) return 'Файл копии повреждён (запись ' + c + '/' + String(id).slice(0, 40) + ')'; }
-  if (!B.collections.clients || !B.collections.wallets) return 'В файле нет договоров или счетов — это не полная копия';
   return '';
 }
 // Восстановление: база становится точно такой, как в копии (история действий и корзина не трогаются).
@@ -352,7 +377,7 @@ async function bkRestore(B, prog) {
   await netCheck();
   const ops = []; let put = 0, del = 0;
   for (const c of BK_COLS) {
-    const want = B.collections[c] || {};
+    const want = B.collections[c];
     const cur = await withTimeout(pb.collection(c).getFullList({ batch: 1000, requestKey: null, fields: 'id' }), 60000);
     cur.forEach(r => { if (bkSkip(c, r.id) || Object.prototype.hasOwnProperty.call(want, r.id)) return; ops.push({ t: 'delete', c, id: r.id }); del++; });
     Object.entries(want).forEach(([id, d]) => { if (bkSkip(c, id)) return; const x = Object.assign({}, d); delete x._u; ops.push({ t: 'set', c, id, d: x }); put++; });
@@ -368,6 +393,7 @@ async function bkRestore(B, prog) {
 const AUTH = { get currentUser() { const r = pb.authStore.isValid && pb.authStore.record; return r ? { email: r.email, uid: r.id, name: r.name || '' } : null; },
   // права: "*" — владелец (всё), иначе ",право,право,"
   get perms() { const r = pb.authStore.isValid && pb.authStore.record; return r ? (r.perms || '') : ''; } };
+const hasRight = p => AUTH.perms === '*' || AUTH.perms.includes(',' + p + ',');
 const SIGN_IN = async (_a, email, pw) => {
   try { await pb.collection('users').authWithPassword(email, pw, { requestKey: null }); }
   catch (e) { const st = e && e.status; throw Object.assign(new Error('auth'), { code: st === 429 ? 'auth/too-many-requests' : !st ? 'auth/network-request-failed' : 'auth/invalid-credential' }); }
@@ -377,8 +403,13 @@ let _authLost = false;
 function authLost() { if (_authLost) return; _authLost = true; try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); setTimeout(() => location.reload(), 1200); }
 const SIGN_OUT = async () => { try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); };
 const ON_AUTH = (_a, cb) => {
-  let last = AUTH.currentUser && AUTH.currentUser.uid;
-  pb.authStore.onChange(() => { const u = AUTH.currentUser, id = u && u.uid; if (id !== last) { last = id; cb(u); } });
+  let last = AUTH.currentUser && AUTH.currentUser.uid, scope = cacheScope();
+  pb.authStore.onChange(() => {
+    const u = AUTH.currentUser, id = u && u.uid, next = cacheScope();
+    if (last && id && scope !== next) { location.reload(); return; }
+    scope = next;
+    if (id !== last) { last = id; cb(u); }
+  });
   setTimeout(() => cb(AUTH.currentUser), 0);
   if (pb.authStore.isValid && navigator.onLine) pb.collection('users').authRefresh({ requestKey: null }).then(() => window.dispatchEvent(new Event('permsChanged'))).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) authLost(); });
 };
