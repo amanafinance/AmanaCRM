@@ -58,7 +58,7 @@ export default async function(){
   await O.p.evaluate(()=>{_staffAt=0;renderStaff();});await wait(O.p,1200);
   const dv=await O.p.evaluate(()=>{const u=_staff.list.find(x=>x.email==='kassa@test.ru'),me=_staff.list.find(x=>x.id===_staff.me);
     return{n:(u.devices||[]).length,name:u.devices[0]&&u.devices[0].name,last:u.devices[0]&&u.devices[0].last,txt:document.getElementById('staffBody').textContent,meDev:(me.devices||[]).some(d=>d.key===window.DB.deviceId)};});
-  check('в «Сотрудниках» видно устройство и время последнего входа кассира',dv.n===1&&/Linux · Chrome/.test(dv.name)&&Date.now()-dv.last<120000&&/Последний вход/.test(dv.txt)&&/Устройства: 1/.test(dv.txt),dv);
+  check('в «Сотрудниках» видно устройство и время последнего входа кассира',dv.n===1&&dv.name===(await K.p.evaluate(()=>/Windows/.test(navigator.userAgent)?'Windows':/Macintosh/.test(navigator.userAgent)?'Mac':'Linux'))+' · Chrome'&&Date.now()-dv.last<120000&&/Последний вход/.test(dv.txt)&&/Устройства: 1/.test(dv.txt),dv);
   check('у владельца отмечено «это устройство»',dv.meDev&&/это устройство/.test(await O.p.evaluate(()=>{document.querySelectorAll('#staffBody details.st-dev').forEach(d=>d.open=true);return document.getElementById('staffBody').innerHTML;})),dv);
   await O.p.evaluate(()=>{const u=_staff.list.find(x=>x.email==='kassa@test.ru');staffLogoutAll(u.id);});await wait(O.p,1200);
   const lo=await K.p.evaluate(async()=>{try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'clients','c3'),{comment:'y'});return'ok';}catch(e){return e.code||e.message;}});
@@ -69,6 +69,24 @@ export default async function(){
   check('повторный вход с того же устройства — та же строка, входов стало больше',dv2.n===1&&dv2.count>=2,dv2);
   await K.p.evaluate(()=>goTo('security'));await wait(K.p,300);
   check('кассиру не видны «Безопасность» и «Справочники»',!(await vis(K.p,'#staffCard'))&&!(await vis(K.p,'#walletList'))&&!(await vis(K.p,'#nav-settings'))&&!(await vis(K.p,'#nav-security')));
+
+  const manager = await O.p.evaluate(async()=>{
+    const u=await window.DB.staff.save(null,{name:'Менеджер',email:'manager@test.ru',password:'manager12345',perms:['pay','deal_edit','v_cost']});
+    return u.id;
+  });
+  const M=await device();await loginAs(M.p,'manager@test.ru','manager12345');
+  const opts=await M.p.evaluate(()=>({names:S.wallets.map(w=>w.name),hasBalances:S.wallets.some(w=>'balance' in w),ops:S.kassaOps.length}));
+  check('менеджер видит названия счетов без остатков и операций',opts.names.includes('Сбер')&&!opts.hasBalances&&!opts.ops,opts);
+  const cashLists=await M.p.evaluate(async()=>Promise.all(['wallets','kassaOps'].map(async name=>(await window.DB.pb.collection(name).getList(1,1)).items.length)));
+  check('API ограничивает чтение счетов и операций для менеджера',cashLists.every(length=>length===0),cashLists);
+  const posted=await M.p.evaluate(async()=>{
+    _cid='c3';await savePay(321,'w1');return S.payments.some(p=>p.clientId==='c3'&&p.amount===321)&&!S.kassaOps.length&&!S.wallets.some(w=>'balance' in w);
+  });
+  check('менеджер может принять оплату без раскрытия кассы',posted);
+  const deferred=await M.p.evaluate(async()=>{const {db,doc,updateDoc}=window.DB;await updateDoc(doc(db,'clients','c3'),{defer:{1:{date:'2027-01-06'}}});return true;});
+  check('редактору договора разрешено сохранить отсрочку',deferred);
+  check('кассиру без права редактировать договор отсрочка недоступна',await K.p.evaluate(async()=>{const {db,doc,updateDoc}=window.DB;try{await updateDoc(doc(db,'clients','c3'),{defer:{}});return false;}catch(e){return /Нет права/.test(e.message);}}));
+  await M.ctx.close();await O.p.evaluate(id=>window.DB.staff.remove(id),manager);
 
   // 3. Владелец отключает вход — у сотрудника всё перестаёт работать
   await O.p.evaluate(()=>{_staffAt=0;renderStaff();});await wait(O.p,1200);

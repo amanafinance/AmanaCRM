@@ -36,7 +36,7 @@ export default async function(){
   await p.evaluate(async()=>{const{db,doc,collection,deleteDoc,updateDoc,addDoc,setDoc}=window.DB;
     await deleteDoc(doc(db,'clients','c5'));const w=S.wallets.find(x=>x.id==='w1');await updateDoc(doc(db,'wallets','w1'),{balance:w.balance+12345});
     await addDoc(collection(db,'persons'),{name:'Появился после копии',phones:[],no:'К-00999'});await setDoc(doc(db,'settings','pcounter'),{lastId:999});
-    await updateDoc(doc(db,'payments','p3_1'),{amount:1});});
+    await updateDoc(doc(db,'payments','p3_1'),{note:'Уточнение после резервной копии'});});
   await p.waitForFunction(()=>!S.clients.some(c=>c.id==='c5')&&S.persons.some(x=>x.name==='Появился после копии'),null,{timeout:20000});
   const mid=await snap(p);
   check('данные изменились (для проверки восстановления)',!mid.c5&&mid.extra&&mid.pcounter===999&&mid.wallets.w1!==before.wallets.w1,mid.n);
@@ -46,6 +46,12 @@ export default async function(){
   await p.setInputFiles('#bkFile',bad);await p.waitForSelector('#bkRs .bk-err');
   check('чужой файл: «Это не файл копии Amana CRM»',/не файл копии/.test(await p.textContent('#bkRs')));
 
+  const rejects=await p.evaluate(async()=>{
+    const full=await window.DB.bkDump(), missing=structuredClone(full), wrong=structuredClone(full);
+    delete missing.collections.payments;wrong.counts.wallets++;
+    return [missing,wrong,{...full,source:'device'},{...full,partial:true}].every(b=>!!window.DB.bkCheck(b));
+  });
+  check('восстановление требует все разделы и достоверные счётчики серверной копии',rejects);
   // 4. Восстановление: дата и состав копии, сначала сохранить текущие данные, потом восстановить
   await p.setInputFiles('#bkFile',file);await p.waitForSelector('#bkPreBtn:not([disabled])',{timeout:60000});
   const rs=await p.textContent('#bkRs');

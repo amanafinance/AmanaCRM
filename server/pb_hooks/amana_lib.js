@@ -101,6 +101,7 @@ function commit(e, app) {
 
       // 1. Проверки до записи
       (Array.isArray(checks.expect) ? checks.expect : []).forEach((x) => {
+        if ((x.c === 'wallets' || x.c === 'kassaOps') && !has(perms, 'v_kassa')) throw new Fail('denied', 'Нет права на просмотр кассы', 403);
         const s = load(x.c, x.id);
         if (x.exists !== undefined && s.exists !== !!x.exists) throw new Fail(x.exists ? 'missing' : 'exists', x.exists ? 'Запись не найдена' : 'exists');
         if (x.f !== undefined) {
@@ -108,7 +109,7 @@ function commit(e, app) {
           if (!same(cur === undefined ? null : cur, x.v === undefined ? null : x.v)) throw new Fail('stale', 'Данные изменились на другом устройстве. Повторите.');
         }
       });
-      if (isPlain(checks.wallets)) Object.keys(checks.wallets).forEach((id) => {
+      if (has(perms, 'v_kassa') && isPlain(checks.wallets)) Object.keys(checks.wallets).forEach((id) => {
         const d = Number(checks.wallets[id]) || 0; if (d >= -0.004) return;
         const s = load('wallets', id); if (!s.exists) return;
         const b = r2(parseFloat(s.data.balance) || 0);
@@ -128,6 +129,7 @@ function commit(e, app) {
         const s = load(op.c, op.id);
         const append = APPEND_ONLY[op.c] && !isAdmin;
         if (op.t === 'counter') {
+          if (op.c !== 'settings' || !/^(pcounter|counter(-\d+)?)$/.test(op.id)) throw new Fail('bad', 'Неверный счётчик', 400);
           const n = Math.max(1, Math.floor(Number(op.n) || 1)), first = (s.exists ? (s.data.lastId || 0) : 0) + 1;
           s.data = Object.assign({}, s.data, { lastId: first + n - 1 }); s.exists = true; s.dirty = true; s.del = false;
           out.counters[op.id] = first;
@@ -155,6 +157,8 @@ function commit(e, app) {
         if (!has(perms, 'v_cost')) Object.keys(cache).forEach((k) => { const x = cache[k]; if (x.c === 'clients' && x.dirty && !x.del && x.existed && x.orig.cost !== undefined) x.data = Object.assign({}, x.data, { cost: x.orig.cost }); });
       }
 
+      if (req.mode !== 'restore') validateReceipts(tx, cache, load, dealSeq, now);
+
       // 3. Правило счетов: остаток не уходит в минус (пополнить счёт, который уже в минусе, можно)
       Object.keys(cache).forEach((k) => {
         const s = cache[k]; if (s.c !== 'wallets' || !s.dirty || s.del) return;
@@ -171,6 +175,7 @@ function commit(e, app) {
           t.set('id', $security.randomStringWithAlphabet(20, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'));
           t.set('data', { c: s.c, id: s.id }); t.set('u', now); t.set('d', 0);
           tx.save(t);
+          if ((s.c === 'wallets' || s.c === 'kassaOps') && !has(perms, 'v_kassa')) return;
           out.docs.push({ c: s.c, id: s.id, del: true, u: now });
           return;
         }
@@ -178,8 +183,93 @@ function commit(e, app) {
         if (!rec) { rec = new Record(tx.findCollectionByNameOrId(s.c)); rec.set('id', s.id); }
         rec.set('data', s.data); rec.set('u', now); rec.set('d', dateMs(s.data));
         tx.save(rec);
+        if ((s.c === 'wallets' || s.c === 'kassaOps') && !has(perms, 'v_kassa')) return;
         out.docs.push({ c: s.c, id: s.id, data: s.c === 'clients' && !has(perms, 'v_cost') ? stripCost(s.data) : s.data, u: now });
       });
+  }
+}
+
+// Денежные суммы сравниваются в копейках. Источник долга — записи внутри той же транзакции.
+function validateReceipts(tx, cache, load, dealSeq, now) {
+  const cents = value => Math.round(Number(value) * 100);
+  const bad = message => { throw new Fail('bad', message, 400); };
+  const changedStates = Object.values(cache).filter(s => s.dirty);
+  const walletDelta = new Map(), newReceipts = new Set();
+  const byDeal = new Map(), latestClosed = () => {
+    const rows = tx.findRecordsByFilter('invMonths', '', '-id', 1, 0);
+    return rows.length ? rows[0].id : '';
+  };
+  let closed;
+  const businessDay = ms => new Date(ms + 3 * 3600000).toISOString().slice(0, 10);
+  function checkDate(p, deal) {
+    const ms = dateMs(p);
+    if (!ms) bad('У платежа отсутствует дата');
+    const day = businessDay(ms);
+    if (closed === undefined) closed = latestClosed();
+    if (day.slice(0, 7) <= closed) bad('Этот месяц уже закрыт у инвесторов');
+    if (day > businessDay(now)) bad('Дата оплаты не может быть в будущем');
+    const start = String(deal.date || '').replace(/^(\d\d)\.(\d\d)\.(\d{4})$/, '$3-$2-$1');
+    if (start && day < start) bad('Дата оплаты раньше даты договора');
+  }
+  for (const s of changedStates) {
+    if (s.c !== 'payments') continue;
+    const p = s.exists ? s.data : s.orig;
+    if (!['prepay','payment','discount'].includes(p.type)) bad('Неизвестный вид платежа');
+    if (s.existed && s.exists && (p.type !== s.orig.type || p.clientId !== s.orig.clientId)) bad('Нельзя перенести платёж на другой договор или изменить его вид');
+    if (p.type === 'prepay') continue;
+    if (s.existed && s.exists) {
+      if (!only(changed(s.orig, p), ['contractId','note','comment','commentDate'])) bad('Для изменения платежа отмените его и проведите заново');
+      continue;
+    }
+    const deal = load('clients', p.clientId);
+    if (!s.exists) {
+      if (closed === undefined) closed = latestClosed();
+      if (closed && dateMs(p) && businessDay(dateMs(p)).slice(0,7) <= closed) bad('Этот месяц уже закрыт у инвесторов');
+    } else {
+      if (!deal.existed || !deal.exists) bad('Договор не найден');
+      if (!Number.isFinite(p.amount) || p.amount <= 0 || !Number.isSafeInteger(cents(p.amount)) || r2(p.amount) !== p.amount) bad('Проверьте сумму платежа');
+      checkDate(p, deal.orig);
+      byDeal.set(p.clientId, (byDeal.get(p.clientId) || 0) + cents(p.amount));
+    }
+    if (p.type !== 'payment') continue;
+    if (!s.exists && !p.kassaOpId) continue; // старые платежи без кассовой проводки
+    const movement = load('kassaOps', p.kassaOpId);
+    if (!s.exists && !movement.existed) continue;
+    const entry = s.exists ? movement.data : movement.orig;
+    if (!movement.dirty || movement.exists !== s.exists || movement.existed !== s.existed ||
+        entry.type !== 'payment_in' || entry.refId !== p.clientId || entry.paymentId !== s.id ||
+        entry.wallet !== p.wallet || cents(entry.amount) !== cents(p.amount) ||
+        (s.exists && (entry.auto !== true || entry.refType !== 'client' || dateMs(entry) !== dateMs(p)))) bad('Оплата и операция кассы должны совпадать');
+    newReceipts.add(movement.id);
+    walletDelta.set(p.wallet, (walletDelta.get(p.wallet) || 0) + (s.exists ? 1 : -1) * cents(p.amount));
+  }
+  for (const s of changedStates) {
+    if (s.c === 'kassaOps' && (s.orig.type === 'payment_in' || s.data.type === 'payment_in') && !newReceipts.has(s.id)) {
+      if (!s.existed || !s.exists || !only(changed(s.orig, s.data), ['contractId','desc','clientName','walletName'])) bad('Изменение кассовой операции должно соответствовать платежу');
+    }
+    if (byDeal.size && s.c === 'wallets' && !walletDelta.has(s.id)) bad('Платёж содержит постороннее изменение счёта');
+    if (byDeal.size && s.c === 'kassaOps' && !newReceipts.has(s.id)) bad('Платёж содержит постороннюю операцию кассы');
+    if (s.c === 'clients' && s.exists && (!s.existed || s.data.cost !== s.orig.cost || s.data.prepay !== s.orig.prepay) &&
+        Number(s.data.prepay) > 0 && !(Number(s.data.prepay) < Number(s.data.cost))) bad('Предоплата должна быть ниже себестоимости');
+  }
+  for (const [id, delta] of walletDelta) {
+    const wallet = load('wallets', id);
+    if (!wallet.existed || !wallet.exists || !wallet.dirty || !only(changed(wallet.orig, wallet.data), ['balance']) ||
+        !Number.isFinite(wallet.data.balance) || cents(wallet.data.balance) - cents(wallet.orig.balance || 0) !== delta) bad('Изменение остатка счёта не совпадает с оплатой');
+  }
+  for (const [id, amount] of byDeal) {
+    const deal = load('clients', id);
+    const previous = tx.findRecordsByFilter('payments', 'data.clientId = {:id}', '', 0, 0, { id });
+    let left = cents(deal.orig.price) - cents(deal.orig.prepay || 0);
+    for (const record of previous) {
+      const p = JSON.parse(record.getString('data'));
+      if (p.type === 'payment' || p.type === 'discount') left -= cents(p.amount);
+    }
+    if (!Number.isSafeInteger(left) || amount > left) bad('Сумма больше остатка долга');
+    if (!dealSeq || dealSeq.s !== deal) {
+      deal.data = Object.assign({}, deal.data, {paySeq: (deal.orig.paySeq || 0) + 1});
+      deal.dirty = true;
+    }
   }
 }
 
@@ -223,7 +313,7 @@ function permsFor(ops, cache) {
       case 'clients':
         if (del) return want('deal_del');
         if (isNew) return want('deal_new');
-        if (!K.length || only(K, ['comment', 'commentDate', 'defer'])) return;
+        if (!K.length || only(K, ['comment', 'commentDate'])) return;
         if (only(K, ['archived', 'archivedAt'])) return want('deal_arch');
         if (only(K, ['contractId', 'oldContractId'])) return want('settings');
         return want('deal_edit');

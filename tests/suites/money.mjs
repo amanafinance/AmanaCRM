@@ -1,5 +1,5 @@
 // Деньги: остатки, прибыль, ОПИУ, отсрочки, прочие расходы, архив, правка договора, переплата, проверка базы
-import {reseed,device,login,check,noErrors,wait,autoConfirm} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,autoConfirm,BACKEND} from '../lib.mjs';
 export default async function(){
   await reseed();
   const {p,errs,ctx}=await device();await login(p);await autoConfirm(p);
@@ -143,10 +143,15 @@ export default async function(){
     const{db,doc,collection,writeBatch,increment}=window.DB,c=S.clients.find(x=>x.id==='c3'),bt=writeBatch(db),pR=doc(collection(db,'payments')),kR=doc(collection(db,'kassaOps')),now=new Date();
     bt.set(pR,{clientId:'c3',contractId:c.contractId,name:c.name,amount:bal,type:'payment',typeLabel:'Ежемес. платеж',payType:'Сбер',wallet:'w2',kassaOpId:kR.id,date:now,dateStr:fmtD(now)});
     bt.set(kR,{type:'payment_in',amount:bal,wallet:'w2',walletName:'Сбер',desc:'Оплата',date:now,dateStr:fmtD(now),auto:true,refType:'client',refId:'c3',paymentId:pR.id});
-    bt.update(doc(db,'wallets','w2'),{balance:increment(bal)});await bt.commit();await new Promise(r=>setTimeout(r,1200));
+    bt.update(doc(db,'wallets','w2'),{balance:increment(bal)});
+    try { await bt.commit(); } catch(e) { return { rejected: e.message, balance:getStats(c).balance, duplicate:S.payments.some(p=>p.id===pR.id) }; }
+    await new Promise(r=>setTimeout(r,1200));
     openC('c3');await new Promise(r=>setTimeout(r,300));return{card:(document.getElementById('cDetail').innerText.match(/Переплата[^\n]*/)||[''])[0],list:integrityIssues().map(x=>x.t)};});
+  if(BACKEND==='pb') check('сервер отклоняет повторную оплату погашенного договора',/больше остатка/.test(op.rejected)&&op.balance===0&&!op.duplicate,op);
+  else {
   check('переплата видна в карточке сделки',op.card.startsWith('Переплата'),op.card);
   check('переплата попадает в «Проверку базы»',op.list.some(t=>/переплата/.test(t)),op.list);
+  }
   check('после оплат касса сходится с операциями',await p.evaluate(()=>{const m=walletCalc();return S.wallets.every(w=>Math.abs(R2(w.balance)-(m[w.id]||0))<0.01);}));
 
   // правка цены и себестоимости существующего договора сохраняется (раньше кнопка «Сохранить» молча не срабатывала)
