@@ -1294,7 +1294,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 
 <div class="mover" id="mComment"><div class="modal msm"><div class="mtitle">Комментарий</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Текст</label><textarea class="inp" id="mcText" rows="3" placeholder="Обещал оплатить..."></textarea></div><div class="mft"><button class="btn bgh" onclick="closeM('mComment')">Отмена</button><button class="btn br bsm" onclick="deleteComment()" id="mcDel" style="display:none">Удалить</button><button class="btn bg" onclick="saveComment()">Сохранить</button></div></div></div>
 
-<div class="mover" id="mPerson"><div class="modal msm"><div class="mtitle" id="mpfTitle">Клиент</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">ФИО *</label><input class="inp" type="text" id="pf_name" placeholder="Иванов Иван Иванович"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Телефоны</label><div id="pfPhones"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Адрес</label><input class="inp" type="text" id="pf_addr"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Заметка</label><input class="inp" type="text" id="pf_note" placeholder="Паспорт, место работы и т.п."/></div><div id="pfWarn" class="cr" style="font-size:var(--fs-xs);min-height:16px"></div><div class="mft"><button class="btn bgh" onclick="closeM('mPerson')">Отмена</button><button class="btn bg" id="pfSave" onclick="savePerson()">Сохранить</button></div></div></div>
+<div class="mover" id="mPerson"><div class="modal msm"><div class="mtitle" id="mpfTitle">Клиент</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">ФИО *</label><input class="inp" type="text" id="pf_name" placeholder="Иванов Иван Иванович"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сотовые телефоны</label><div id="pfPhones"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_wa">Номер WhatsApp</label><input class="inp" type="tel" id="pf_wa"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_addr">Адрес по прописке</label><input class="inp" type="text" id="pf_addr"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_actual">Фактический адрес</label><input class="inp" type="text" id="pf_actual"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Заметка</label><input class="inp" type="text" id="pf_note" placeholder="Паспорт, место работы и т.п."/></div><div id="pfWarn" class="cr" style="font-size:var(--fs-xs);min-height:16px"></div><div class="mft"><button class="btn bgh" onclick="closeM('mPerson')">Отмена</button><button class="btn bg" id="pfSave" onclick="savePerson()">Сохранить</button></div></div></div>
 <div class="mover" id="mDefer"><div class="modal msm">
 <div class="mtitle">Отсрочка платежа</div>
 <div class="inv-hint" id="dfInfo"></div>
@@ -1520,7 +1520,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='11.11.2026 · 20';
+const CRM_VERSION='11.11.2026 · 21';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1532,7 +1532,7 @@ window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enter
 
 function initApp(){if(_inited)return;_inited=true;installPermGuards();applyPerms();const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
 async function startAll(){const{live,liveTombs,checkEpoch}=window.DB;await checkEpoch();loadSettings();await liveTombs();if(typeof startInv==='function')startInv();
-  live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
+  live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();if(pageOn('client')&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
 // Открыта ли страница. Скрытые страницы не перерисовываются — их рисует переход на страницу (goTo)
 function pageOn(p){const e=document.getElementById('page-'+p);return!!e&&e.style.display!=='none';}
 function refreshAll(){if(pageOn('finance'))renderFinance();if(typeof renderInvIfVisible==='function')renderInvIfVisible();renderDash();renderClients();renderKassa();if(typeof renderReminders==='function')renderReminders();{const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();}if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
@@ -2391,7 +2391,7 @@ function renderDetail(c){
   // Шапка: «+ Оплата» и «Ещё»; ниже — позвонить и WhatsApp (просто чат, без готового текста). Остальное — в меню «Ещё»
   const id=c.id,phs=(c.phones||[]).filter(Boolean),t1=phs.length?waPhone(phs[0]):'';
   const callBtn=phs.length?(t1?'<a class="btn bgh cd-call" href="tel:+'+t1+'">':'<span class="btn bgh cd-call">')+TEL_ICO+'<span>'+esc(fmtPhone(phs[0]))+'</span>'+(t1?'</a>':'</span>'):'';
-  const waB=t1?'<button class="btn bwa cd-wa" onclick="openChat(\''+id+'\')" title="Открыть чат WhatsApp">'+WA_ICO+'WhatsApp</button>':'';
+  const waB=dealWhatsApp(c)?'<button class="btn bwa cd-wa" onclick="openChat(\''+id+'\')" title="Открыть чат WhatsApp">'+WA_ICO+'WhatsApp</button>':'';
   const mi=(on,label,cls)=>'<button class="cd-mi'+(cls?' '+cls:'')+'" onclick="'+on+'">'+label+'</button>';
   const menu=(st!=='завершён'?mi("openDisc('"+id+"')",'Скидка'):'')+mi("openComment('"+id+"')",'Комментарий')+mi("openEdit('"+id+"')",'Изменить')+
     (c.archived?mi("archiveClient('"+id+"',false)",'Из архива'):mi("archiveClient('"+id+"',true)",'В архив'))+(clientHasMoney(id)?'':mi("delClient('"+id+"')",'Удалить','cd-del'))+
@@ -2401,7 +2401,8 @@ function renderDetail(c){
   const dupsBlock=dups.length?'<div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:10px 14px;margin-bottom:14px;font-size:var(--fs-xs)"><div style="color:var(--yellow);font-weight:700;margin-bottom:6px">Другие договоры клиента</div>'+dups.map(d=>'<div class="cd-dup" role="button" tabindex="0" onclick="openC(\''+d.id+'\')">№'+esc(d.contractId||'—')+' — '+esc(d.product||'—')+' ('+effStatus(d)+')</div>').join('')+'</div>':'';
   // Данные клиента и поручителя
   const _pi=personIndex(),_pl=(n,k)=>'<a href="#" class="plink" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
-  const clientCard='<div class="card"><div class="ct">Данные клиента</div><div class="ig2"><div class="ii"><div class="il">ФИО</div><div class="iv">'+_pl(c.name||'—',dealClientKey(c))+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+ph+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">'+esc(c.addr||'—')+'</div></div></div></div>';
+  const contact=c.clientPid&&pMaps().byId.get(c.clientPid);
+  const clientCard='<div class="card"><div class="ct">Данные клиента</div><div class="ig2"><div class="ii"><div class="il">ФИО</div><div class="iv">'+_pl(c.name||'—',dealClientKey(c))+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+ph+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Номер WhatsApp</div><div class="iv">'+esc(fmtPhone(dealWhatsApp(c))||'—')+'</div></div><div class="ii"><div class="il">Фактический адрес</div><div class="iv">'+esc(contact&&contact.actualAddr||'—')+'</div></div><div class="ii"><div class="il">Адрес по прописке</div><div class="iv">'+esc(c.addr||'—')+'</div></div></div></div>';
   const _gs=dealGuarantorRefs(c);
   const guarantorCard='<div class="card"><div class="ct">'+(_gs.length>1?'Поручители':'Поручитель')+'</div>'+(_gs.length?_gs.map((g,i)=>{const n=g.name,p=_pi.get(refKey(g.name,g.pid))||{phones:[],addr:''};return'<div class="ig2"'+(i?' style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd2)"':'')+'><div class="ii"><div class="il">ФИО</div><div class="iv">'+_pl(n,refKey(g.name,g.pid))+'</div></div><div class="ii"><div class="il">Телефоны</div><div class="iv">'+(p.phones.map(fmtPhone).filter(Boolean).join(', ')||'—')+'</div></div><div class="ii" style="grid-column:1/-1"><div class="il">Адрес</div><div class="iv">'+esc(p.addr||'—')+'</div></div></div>';}).join(''):'<div class="inv-muted">Нет</div>')+'</div>';
   // Товар и финансы
@@ -2584,10 +2585,19 @@ function waText(c,x){
   const v={'имя':waFirstName(c.name),'фио':c.name||'','договор':c.contractId||'','сумма':fmt(x.left),'дата':x.due?fmtD(x.due):x.it.date,'дней':String(Math.max(0,x.days)),'остаток':fmt(x.s.balance),'просрочено':fmt(x.s.overdue>0.004?x.s.overdue:x.left),'товар':c.product||'товар'};
   return String(tpl||'').replace(/\{([а-яё]+)\}/gi,(m,k)=>v[k.toLowerCase()]!==undefined?v[k.toLowerCase()]:m);
 }
+// До появления отдельного поля чаты открывались по первому действующему телефону.
+function personWhatsApp(person){
+  return person.whatsapp===undefined?(person.phones||[]).map(waPhone).find(Boolean)||'':person.whatsapp;
+}
+function dealWhatsApp(c){
+  const person=c.clientPid?pMaps().byId.get(c.clientPid):c;
+  if(!person)return '';
+  return person.whatsapp===undefined?personWhatsApp(c):personWhatsApp(person);
+}
 function openWA(cid,month){
   const c=S.clients.find(x=>x.id===cid);if(!c)return;
-  const ph=(c.phones||[]).map(waPhone).find(Boolean);
-  if(!ph){toast('У клиента нет номера телефона','ter');return;}
+  const ph=dealWhatsApp(c);
+  if(!ph){toast('В карточке клиента не указан номер WhatsApp','ter');return;}
   const x=waItem(c,month);
   if(!x){toast('Неоплаченных платежей нет','ter');return;}
   window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(waText(c,x)),'_blank');
@@ -2597,7 +2607,7 @@ function openWA(cid,month){
 }
 const WA_ICO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>';
 // Просто открыть чат WhatsApp с клиентом — без готового текста (кнопка в сделке)
-function openChat(cid){const c=S.clients.find(x=>x.id===cid);if(!c)return;const ph=(c.phones||[]).map(waPhone).find(Boolean);if(!ph){toast('У клиента нет номера телефона','ter');return;}window.open('https://wa.me/'+ph,'_blank');}
+function openChat(cid){const c=S.clients.find(x=>x.id===cid);if(!c)return;const ph=dealWhatsApp(c);if(!ph){toast('В карточке клиента не указан номер WhatsApp','ter');return;}window.open('https://wa.me/'+ph,'_blank');}
 const TEL_ICO='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>';
 function waBtn(cid,month,compact){return'<button class="btn bwa bsm" onclick="event.stopPropagation();openWA(\''+cid+'\''+(month?','+month:'')+')" title="Открыть WhatsApp с готовым текстом">'+WA_ICO+(compact?'':'WhatsApp')+'</button>';}
 function renderWaTpl(){WA_KEYS.forEach(k=>{const el=document.getElementById(WA_IDS[k]);if(el&&document.activeElement!==el)el.value=S.wa[k];});}
@@ -3447,7 +3457,7 @@ function guarPhone(c){const g=dealGuarantorRefs(c)[0],p=g&&g.pid&&pMaps().byId.g
 // Все клиенты (карточки)
 function personIndex(){
   const m=new Map();
-  (S.persons||[]).forEach(d=>m.set('p:'+d.id,{key:'p:'+d.id,id:d.id,no:d.no||'',oldNo:d.oldNo||'',name:cleanName(d.name),phones:(d.phones||[]).filter(Boolean),addr:d.addr||'',note:d.note||''}));
+  (S.persons||[]).forEach(d=>m.set('p:'+d.id,{key:'p:'+d.id,id:d.id,no:d.no||'',oldNo:d.oldNo||'',name:cleanName(d.name),phones:(d.phones||[]).filter(Boolean),addr:d.addr||'',actualAddr:d.actualAddr||'',whatsapp:d.whatsapp,note:d.note||''}));
   return m;
 }
 const pLabel=p=>(p.no?p.no+' · ':'')+p.name;
@@ -3611,7 +3621,7 @@ function renderPerson(){
   const phones=g.phones.map(ph=>esc(fmtPhone(ph))).join(', ')||'—';
   const K=encodeURIComponent(g.key);
   let h='<button class="btn bgh bsm" style="margin-bottom:12px" onclick="goBase(\'people\')">← Все клиенты</button>'+
-    '<div class="ph"><div><div class="pt">'+esc(g.name)+(g.no?' <span class="badge bd" style="vertical-align:middle">'+g.no+'</span>':'')+(g.oldNo&&g.oldNo!==g.no?' <span class="inv-muted" style="font-size:var(--fs-xs);font-weight:400">было '+esc(g.oldNo)+'</span>':'')+'</div><div class="cd-tels" style="margin-top:6px">'+(g.phones.length?g.phones.map(p=>{const t=waPhone(p);return t?'<a class="cd-tel" href="tel:+'+t+'">'+esc(fmtPhone(p))+'</a>':'<span class="cd-tel">'+esc(fmtPhone(p))+'</span>';}).join(''):'<span class="ps">телефон не указан</span>')+'</div>'+(g.addr?'<div class="ps">'+esc(g.addr)+'</div>':'')+(g.note?'<div class="ps" style="color:var(--t2)">'+esc(g.note)+'</div>':'')+'</div>'+
+    '<div class="ph"><div><div class="pt">'+esc(g.name)+(g.no?' <span class="badge bd" style="vertical-align:middle">'+g.no+'</span>':'')+(g.oldNo&&g.oldNo!==g.no?' <span class="inv-muted" style="font-size:var(--fs-xs);font-weight:400">было '+esc(g.oldNo)+'</span>':'')+'</div><div class="cd-tels" style="margin-top:6px">'+(g.phones.length?g.phones.map(p=>{const t=waPhone(p);return t?'<a class="cd-tel" href="tel:+'+t+'">'+esc(fmtPhone(p))+'</a>':'<span class="cd-tel">'+esc(fmtPhone(p))+'</span>';}).join(''):'<span class="ps">телефон не указан</span>')+'</div>'+(g.actualAddr?'<div class="ps">Фактический адрес: '+esc(g.actualAddr)+'</div>':'')+(personWhatsApp(g)?'<div class="ps">Номер WhatsApp — '+esc(fmtPhone(personWhatsApp(g)))+'</div>':'')+(g.addr?'<div class="ps">Адрес по прописке: '+esc(g.addr)+'</div>':'')+(g.note?'<div class="ps" style="color:var(--t2)">'+esc(g.note)+'</div>':'')+'</div>'+
     '<div class="pa">'+(!g.deals.length&&!g.guar.length&&g.id?'<button class="btn br" onclick="delPerson(\''+g.id+'\')">Удалить</button>':'')+'<button class="btn bgh" onclick="openPersonForm(decodeURIComponent(\''+K+'\'))">Изменить</button><button class="btn bg" onclick="openNew(decodeURIComponent(\''+K+'\'))">+ Сделка</button></div></div>'+
     '<div class="sg4">'+
       '<div class="sc"><div class="sl">Сделок</div><div class="sv">'+g.deals.length+'</div><div class="ss">активных '+g.active+' · завершённых '+g.done+'</div></div>'+
@@ -3649,6 +3659,9 @@ function openPersonForm(key,prefill,cb){
   document.getElementById('mpfTitle').textContent=p?('Клиент'+(p.no?' '+p.no:'')):'Новый клиент';
   document.getElementById('pf_name').value=p?p.name:(prefill||'');
   document.getElementById('pf_addr').value=p?p.addr:'';
+  document.getElementById('pf_actual').value=p?p.actualAddr:'';
+  const wa=p&&personWhatsApp(p);
+  document.getElementById('pf_wa').value=wa?'+'+fmtPhone(wa):'';
   document.getElementById('pf_note').value=p?p.note:'';
   const ph=p&&p.phones.length?p.phones:[''];
   document.getElementById('pfPhones').innerHTML=ph.map((x,i)=>'<div class="phr"><input class="inp" type="tel" placeholder="8 900 123 45 67" value="'+esc(fmtPhone(x))+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'pfPhones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');
@@ -3661,7 +3674,11 @@ async function savePerson(){
   const name=cleanName(document.getElementById('pf_name').value),nk=personKey(name);
   const phones=[...document.querySelectorAll('#pfPhones input')].map(i=>i.value.replace(/[^\d+]/g,'')).filter(Boolean);
   const addr=document.getElementById('pf_addr').value.trim(),note=document.getElementById('pf_note').value.trim();
+  const actualAddr=document.getElementById('pf_actual').value.trim();
+  const waInput=document.getElementById('pf_wa').value.trim();
+  const whatsapp=waInput.startsWith('+')?waInput.replace(/\D/g,''):waPhone(waInput);
   const warn=t=>{document.getElementById('pfWarn').innerHTML=t;};
+  if(waInput&&(!/^[+\d()\s-]+$/.test(waInput)||!/^([1-9]\d{6,14})$/.test(whatsapp))){warn('Проверьте номер WhatsApp');return;}
   if(name.split(' ').length<2){warn('Укажите фамилию и имя');return;}
   const idx=personIndex(),old=_pf.key?idx.get(_pf.key):null;
   // Тёзки: ФИО может повторяться, но переспрашиваем, что это другой человек
@@ -3674,7 +3691,7 @@ async function savePerson(){
   try{
     const{db,collection,doc,writeBatch,nextCounter}=window.DB;
     const ref=old?doc(db,'persons',old.id):doc(collection(db,'persons'));
-    const data={name,phones,addr,note,updatedAt:new Date()};
+    const data={name,phones,addr,actualAddr,whatsapp,note,updatedAt:new Date()};
     if(!old){data.createdAt=new Date();}
     const pid=ref.id;let no=old?old.no:'';
     // карточка + все сделки, где человек клиент или поручитель (пачками по 400)
