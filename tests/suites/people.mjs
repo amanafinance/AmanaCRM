@@ -35,6 +35,7 @@ export default async function(){
   check('чат и напоминание открывают WhatsApp клиента, звонок сохраняет сотовый',contact.urls[0]==='https://wa.me/79991234567'&&contact.urls[1]?.startsWith('https://wa.me/79991234567?text=')&&contact.mobile==='89990000005',contact);
   check('форма редактирования сохраняет оба адреса и номер WhatsApp',contact.reg==='Псков'&&contact.actual==='Москва'&&contact.wa==='79991234567',contact);
   await p.fill('#pf_wa','');await p.evaluate(()=>savePerson());
+  if(await p.isVisible('#pfSave') && /другой человек/.test(await p.textContent('#pfSave'))) await p.evaluate(()=>savePerson());
   await p.waitForFunction(pid=>S.persons.find(x=>x.id===pid)?.whatsapp==='',nw.id);
   check('очищенный номер WhatsApp не заменяется сотовым',await p.evaluate(pid=>dealWhatsApp(S.clients.find(c=>c.clientPid===pid))==='',nw.id));
   const cnt=await p.evaluate(ids=>{const g=groupPeople();return ids.map(id=>g.find(x=>x.id===id).deals.length);},[old.id,nw.id]);
