@@ -128,6 +128,11 @@ body.light .fdo-apply{color:#ffffff}
 #page-clients .tbl{min-width:1200px}
 #page-clients .tbl .sum-row td{position:sticky;top:0;z-index:3;background:var(--bg3)}
 #page-clients .tbl thead th{top:0;z-index:2;background:var(--card)}
+@media(min-width:769px){
+#page-clients > .card > .tbl-wrap{overflow-y:auto;scrollbar-width:auto;scrollbar-color:var(--t3) var(--bg3)}
+#page-clients .tbl thead{position:sticky;top:0;z-index:3}
+#page-clients .tbl thead th,#page-clients .tbl .sum-row td{position:static}
+}
 #page-reminders > .card > .tbl-wrap{overflow:auto;max-height:calc(100vh - 200px);-webkit-overflow-scrolling:touch}
 #page-reminders .tbl{min-width:1200px}
 #page-reminders .tbl thead th{top:0;z-index:2;background:var(--card);position:sticky}
@@ -1274,10 +1279,10 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 </main></div>
 
 <div class="mover" id="mClient"><div class="modal"><div class="mtitle" id="mCTitle">Новый договор</div>
-<div class="sdiv">Основное</div><div class="fg"><div class="fgp ff"><label class="lbl">Дата оформления</label><input class="inp" type="date" id="f_date" oninput="onDateChange()"/></div></div>
+<div class="sdiv">Основное</div><div class="fg"><div class="fgp ff"><label class="lbl">Дата оформления</label><input class="inp" type="date" id="f_date" oninput="onDateChange()" autocomplete="off"/></div></div>
 <div class="sdiv">Клиент</div><div class="fg"><div class="fgp ff"><label class="lbl">Клиент *</label><div id="pk_client"></div></div></div>
 <div class="sdiv sdiv-sched"><span>Поручители</span><span class="sched-acts"><button class="btn bgh bsm" onclick="addGuarRow()">+ Поручитель</button></span></div><div id="guarRows" style="margin-bottom:6px"></div>
-<div class="sdiv">Товар и финансы</div><div class="fg"><div class="fgp"><label class="lbl">Товар *</label><input class="inp" type="text" id="f_product"/></div><div class="fgp"><label class="lbl">Поставщик</label><select class="inp sel" id="f_partner" onchange="partPhoneSync()"></select></div><div class="fgp"><label class="lbl">Телефон поставщика</label><input class="inp" type="tel" id="f_partnerPhone"/></div><div class="fgp"><label class="lbl">Себестоимость (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_cost"/></div><div class="fgp"><label class="lbl">Цена продажи (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_price" oninput="schedAuto()"/></div><div class="fgp"><label class="lbl">Предоплата (&#8381;)</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_prepay" oninput="schedAuto()"/></div><div class="fgp"><label class="lbl">Кол-во месяцев *</label><input class="inp" type="number" inputmode="numeric" min="1" max="120" step="1" id="f_months" value="3" oninput="monthsInput()" onchange="monthsInput(true)"/></div><div class="fgp"><label class="lbl">Число оплаты (1–31)</label><input class="inp" type="number" id="f_payDay" min="1" max="31" placeholder="Авто" oninput="schedAuto()"/></div><div class="fgp"><label class="lbl">Способ оплаты предоплаты</label><select class="inp sel" id="f_prepayPt"></select></div></div>
+<div class="sdiv">Товар и финансы</div><div class="fg"><div class="fgp"><label class="lbl">Товар *</label><input class="inp" type="text" id="f_product" autocomplete="off"/></div><div class="fgp"><label class="lbl">Поставщик</label><select class="inp sel" id="f_partner" onchange="partPhoneSync()"></select></div><div class="fgp"><label class="lbl">Телефон поставщика</label><input class="inp" type="tel" id="f_partnerPhone" autocomplete="off"/></div><div class="fgp"><label class="lbl">Себестоимость (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_cost" autocomplete="off"/></div><div class="fgp"><label class="lbl">Цена продажи (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_price" oninput="schedAuto()" autocomplete="off"/></div><div class="fgp"><label class="lbl">Предоплата (&#8381;)</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_prepay" oninput="schedAuto()" autocomplete="off"/></div><div class="fgp"><label class="lbl">Кол-во месяцев *</label><input class="inp" type="number" inputmode="numeric" min="1" max="120" step="1" id="f_months" value="3" oninput="monthsInput()" onchange="monthsInput(true)" autocomplete="off"/></div><div class="fgp"><label class="lbl">Число оплаты (1–31)</label><input class="inp" type="number" id="f_payDay" min="1" max="31" placeholder="Авто" oninput="schedAuto()" autocomplete="off"/></div><div class="fgp"><label class="lbl">Способ оплаты предоплаты</label><select class="inp sel" id="f_prepayPt"></select></div></div>
 <div id="schedWarn" class="sched-warn"></div><div class="sdiv sdiv-sched"><span>График платежей</span><span class="sched-acts"><button class="btn bgh bsm" onclick="recalcSched()">Пересчитать суммы</button><button class="btn bgh bsm" onclick="recalcDates()">Пересчитать даты</button></span></div>
 <table class="stbl"><thead><tr><th>&#8470;</th><th>Сумма</th><th>Дата</th></tr></thead><tbody id="schedBody"></tbody></table>
 <div class="mft"><button class="btn bgh" onclick="closeM('mClient')">Отмена</button><button class="btn bg" id="mCBtn" onclick="saveClient()">Сохранить</button></div></div></div>
@@ -2178,7 +2183,7 @@ function renderClientsPaged(){
   const hasMore=_clientsShown<total;
   document.getElementById('cCount').textContent=total+' '+invPlural(total,'сделка','сделки','сделок')+(hasMore?' (показано '+_clientsShown+')':'');
   const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="clients"></div>':'';
-  document.getElementById('cList').innerHTML=clTableHtml(visible)+mobileCardsHtml(visible)+loadMoreBtn;
+  document.getElementById('cList').innerHTML=clTableHtml(visible,list)+mobileCardsHtml(visible)+loadMoreBtn;
   setupInfiniteScroll();
 }
 function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
@@ -5267,9 +5272,21 @@ function uiApplyRemote(d){
   const pr=document.getElementById('page-reminders');if(pr&&pr.style.display!=='none'&&typeof renderReminders==='function')renderReminders();
   const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();
 }
-function clTableHtml(visible){
-  const cols=S.ui.cols.filter(x=>x.on&&CL_COLS[x.k]).map(x=>CL_COLS[x.k]);
-  const thead='<thead><tr>'+cols.map(c=>c.f?thF(c.f,c.h||c.n,'clients'):'<th><div class="th-cell"><span class="th-name">'+(c.h||c.n)+'</span></div></th>').join('')+'</tr></thead>';
+function clTotals(list,key){
+  const sum=fn=>R2(list.reduce((a,c)=>a+(Number(fn(c))||0),0));
+  const money=fn=>fmt(sum(fn))+' ₽';
+  const f={bal:c=>c._bal,over:c=>c._over,next:c=>{const p=clNextPay(c);return p?p.size-p.paid:0;},paid:c=>_clS(c).totalPaid+(parseFloat(c.prepay)||0),lastpay:c=>{const p=clLastPay(c);return p?p.amount:0;},price:c=>c.price,prepay:c=>c.prepay,cost:c=>c.cost,margin:c=>clMargin(c)};
+  if(key==='months')return fmt(sum(c=>c.months));
+  if(key==='monthly')return list.some(c=>!c._mi.uniform)?'—':money(c=>c._mi.value);
+  if(key==='pricecost')return money(c=>c.price)+'<br>'+money(c=>c.prepay)+(can('v_cost')?'<br>'+money(c=>c.cost):'');
+  if((key==='cost'||key==='margin')&&!can('v_cost'))return '';
+  return f[key]?money(f[key]):'';
+}
+function clTableHtml(visible,list=visible){
+  const keys=S.ui.cols.filter(x=>x.on&&CL_COLS[x.k]).map(x=>x.k);
+  const cols=keys.map(k=>CL_COLS[k]);
+  const sums='<tr class="sum-row">'+keys.map(k=>'<td style="font-weight:700;color:var(--green)">'+clTotals(list,k)+'</td>').join('')+'</tr>';
+  const thead='<thead>'+sums+'<tr>'+cols.map(c=>c.f?thF(c.f,c.h||c.n,'clients'):'<th><div class="th-cell"><span class="th-name">'+(c.h||c.n)+'</span></div></th>').join('')+'</tr></thead>';
   const tb=visible.length?'<tbody>'+visible.map(c=>'<tr>'+cols.map(col=>col.td(c)).join('')+'</tr>').join('')+'</tbody>':'<tbody><tr><td colspan="'+cols.length+'" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено'+(cfActive(S.CF)?'<button class="btn bgh bsm" style="margin-left:10px" onclick="resetMobileFilter(\'clients\')">Сбросить фильтры</button>':'')+'</td></tr></tbody>';
   return'<table class="tbl">'+thead+tb+'</table>';
 }
@@ -5422,3 +5439,4 @@ function blurInside(el){const a=document.activeElement;if(a&&a!==document.body&&
 
 </body>
 </html>
+
