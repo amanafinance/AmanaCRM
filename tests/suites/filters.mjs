@@ -52,7 +52,7 @@ export default async function(){
   const rp=await p.evaluate(()=>{const c=S.clients.find(x=>!x.archived&&findDups(x.name,x.id).length);S.CF={...CF_EMPTY,name:c.name};goBase('clients');renderClients();
     const row=document.querySelector('#cList tbody tr'),ic=row&&row.querySelector('.rep-ic'),nm=ic&&ic.closest('.nm-end');
     const r={icon:!!ic,label:ic&&ic.getAttribute('aria-label'),word:!!document.querySelector('#cList .rbadge')||/Повторный<\/span>/.test(row.innerHTML),glued:!!nm};
-    S.CF={...CF_EMPTY};renderClients();goTo('dashboard');r.wa=document.body.innerHTML.includes('WhatsApp: ');return r;});
+    S.CF={...CF_EMPTY};renderClients();goTo('dashboard');r.wa=document.querySelector('#page-dashboard').textContent.includes('WhatsApp: ');return r;});
   check('сделки: у повторного клиента значок рядом с именем, без надписи «Повторный»',rp.icon&&rp.glued&&!rp.word&&/договоров — \d/.test(rp.label),rp);
   check('под сроком платежа нет даты отправки в WhatsApp',!rp.wa,rp);
   // 8. Касса: по описанию оплаты клиента открывается его сделка, «Назад» возвращает в кассу
