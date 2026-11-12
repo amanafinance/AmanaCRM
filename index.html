@@ -1200,6 +1200,28 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 .chx-leg i{position:relative;width:12px;height:12px;border-radius:4px}
 .chx-vl{font-weight:700}
 @media(max-width:768px){.chx{--bw:8px}.chx-inv{--bw:30px}}
+/* The table scrolls inside its own viewport; the totals share its column widths. */
+#pplList,#kList,#page-clients > .card > .tbl-wrap {
+  overflow:auto;scrollbar-gutter:stable;scrollbar-width:auto;
+  scrollbar-color:var(--t3) var(--bg3);
+}
+#pplList,#kList {max-height:65dvh}
+#pplList .scroll-sentinel,#kList .scroll-sentinel,#cList .scroll-sentinel {height:2px}
+#page-clients > .card > .tbl-wrap {max-height:var(--deal-list-height,65dvh)}
+#page-clients .tbl tfoot .sum-row td {
+  position:sticky;top:auto;bottom:0;z-index:2;background:var(--bg3);
+  color:var(--green);font-weight:700;border-top:1px solid var(--brd);
+}
+.deal-mobile-totals {display:none}
+@media(max-width:768px) {
+  .deal-mobile-totals {display:block;position:sticky;top:0;z-index:2;background:var(--card);
+    border:1px solid var(--brd);border-radius:var(--rad-m);margin-bottom:8px;padding:0 12px}
+  .deal-mobile-totals summary {padding:12px 0;font-weight:700;cursor:pointer}
+  .deal-mobile-totals .values {max-height:24dvh;overflow:auto}
+}
+.vw-total {display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--t2);cursor:pointer}
+@media(max-width:768px){.vw-total{min-height:44px;min-width:44px}}
+.vw-total input {accent-color:var(--green);width:17px;height:17px}
 </style>
 
 </head>
@@ -2163,6 +2185,15 @@ function renderClients(){
   _clientsShown=_clientsPageSize; // сброс при перерисовке
   renderClientsPaged();
 }
+function sizeDealList(){
+  const box=document.querySelector('#page-clients > .card > .tbl-wrap');
+  if(!box || !box.getClientRects().length)return;
+  const nav=document.querySelector('.sidebar');
+  const bottom=window.innerWidth<=768 && nav ? nav.getBoundingClientRect().top : window.innerHeight;
+  const height=Math.max(108,bottom-box.getBoundingClientRect().top-12);
+  box.style.setProperty('--deal-list-height',height+'px');
+}
+window.addEventListener('resize',sizeDealList);
 function renderClientsPaged(){
   const cf=S.CF;
   let list=S.clients.filter(c=>S.tab==='archive'?c.archived:!c.archived).map(c=>{const s=getStats(c),st=effStatus(c,s),mi=getMonthlyInfo(c);return{...c,_st:st,_bal:s.balance,_over:s.overdue,_mi:mi,_s:s};});
@@ -2183,7 +2214,10 @@ function renderClientsPaged(){
   const hasMore=_clientsShown<total;
   document.getElementById('cCount').textContent=total+' '+invPlural(total,'сделка','сделки','сделок')+(hasMore?' (показано '+_clientsShown+')':'');
   const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="clients"></div>':'';
-  document.getElementById('cList').innerHTML=clTableHtml(visible,list)+mobileCardsHtml(visible)+loadMoreBtn;
+  const container=document.getElementById('cList');
+  const expanded=!!container.querySelector('.deal-mobile-totals[open]');
+  container.innerHTML=clTableHtml(visible,list)+mobileDealTotals(list,expanded)+mobileCardsHtml(visible)+loadMoreBtn;
+  sizeDealList();
   setupInfiniteScroll();
 }
 function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
@@ -5254,12 +5288,20 @@ const VW_META={
   card:{reg:CARD_F,def:CARD_DEF,hint:'Строки карточки сделки на телефоне (раздел «Сделки»). ФИО, телефоны и № договора видны всегда. Порядок — зажмите строку пальцем и перетащите.'},
   pcols:{reg:PCOLS,def:PCOLS_DEF,hint:'Колонки таблицы клиентов (на телефоне — строки карточки клиента). ФИО видно всегда. Галочка — показывать. Порядок — перетащите строку (на телефоне — зажмите пальцем).'}
 };
+const totalFields=new Set(['bal','over','next','monthly','pricecost','months','paid','lastpay','price','prepay','cost','margin']);
+function supportsTotal(kind,key){
+  return (kind==='cols'||kind==='card') && totalFields.has(key);
+}
+function totalEnabled(field){
+  return field.on && totalFields.has(field.k) && field.total!==false &&
+    (!['cost','margin'].includes(field.k) || can('v_cost'));
+}
 function uiNorm(saved,kind){
   const {reg,def}=VW_META[kind],all=Object.keys(reg);
   // карточка, сохранённая со старым набором «по умолчанию», переходит на новый компактный
   if(kind==='card'&&Array.isArray(saved)&&saved.filter(x=>x&&x.on).map(x=>x.k).join()===CARD_DEF_OLD.join())saved=null;
   if(!Array.isArray(saved)||!saved.length)return def.map(k=>({k,on:true})).concat(all.filter(k=>!def.includes(k)).map(k=>({k,on:false})));
-  const out=[];saved.forEach(x=>{if(x&&reg[x.k]&&!out.some(o=>o.k===x.k))out.push({k:x.k,on:!!x.on});});
+  const out=[];saved.forEach(x=>{if(x&&reg[x.k]&&!out.some(o=>o.k===x.k))out.push(supportsTotal(kind,x.k)?{k:x.k,on:!!x.on,total:x.total!==false}:{k:x.k,on:!!x.on});});
   all.forEach(k=>{if(!out.some(o=>o.k===k))out.push({k,on:false});});
   if(!out.some(o=>o.on))out.forEach(o=>{if(def.includes(o.k))o.on=true;});
   return out;
@@ -5282,13 +5324,22 @@ function clTotals(list,key){
   if((key==='cost'||key==='margin')&&!can('v_cost'))return '';
   return f[key]?money(f[key]):'';
 }
+function mobileDealTotals(list,expanded){
+  const fields=S.ui.card.filter(totalEnabled);
+  if(!fields.length)return '';
+  const rows=fields.map(f=>'<div class="mcard-row"><span>'+esc(CARD_F[f.k].n)+'</span><b>'+clTotals(list,f.k)+'</b></div>').join('');
+  return '<details class="deal-mobile-totals"'+(expanded?' open':'')+'><summary>Итоги · '+list.length+' '+invPlural(list.length,'сделка','сделки','сделок')+'</summary><div class="values">'+rows+'</div></details>';
+}
 function clTableHtml(visible,list=visible){
   const keys=S.ui.cols.filter(x=>x.on&&CL_COLS[x.k]).map(x=>x.k);
   const cols=keys.map(k=>CL_COLS[k]);
-  const sums='<tr class="sum-row">'+keys.map(k=>'<td style="font-weight:700;color:var(--green)">'+clTotals(list,k)+'</td>').join('')+'</tr>';
-  const thead='<thead>'+sums+'<tr>'+cols.map(c=>c.f?thF(c.f,c.h||c.n,'clients'):'<th><div class="th-cell"><span class="th-name">'+(c.h||c.n)+'</span></div></th>').join('')+'</tr></thead>';
+  const selected=new Set(S.ui.cols.filter(totalEnabled).map(field=>field.k));
+  const labelKey=keys.find(k=>!totalFields.has(k));
+  const cells=keys.map(k=>'<td>'+(selected.has(k)?clTotals(list,k):k===labelKey?'Итого':'')+'</td>').join('');
+  const footer=selected.size?'<tfoot><tr class="sum-row">'+cells+'</tr></tfoot>':'';
+  const thead='<thead><tr>'+cols.map(c=>c.f?thF(c.f,c.h||c.n,'clients'):'<th><div class="th-cell"><span class="th-name">'+(c.h||c.n)+'</span></div></th>').join('')+'</tr></thead>';
   const tb=visible.length?'<tbody>'+visible.map(c=>'<tr>'+cols.map(col=>col.td(c)).join('')+'</tr>').join('')+'</tbody>':'<tbody><tr><td colspan="'+cols.length+'" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено'+(cfActive(S.CF)?'<button class="btn bgh bsm" style="margin-left:10px" onclick="resetMobileFilter(\'clients\')">Сбросить фильтры</button>':'')+'</td></tr></tbody>';
-  return'<table class="tbl">'+thead+tb+'</table>';
+  return'<table class="tbl">'+thead+tb+footer+'</table>';
 }
 // ---------- Модалка ----------
 let _vw={kind:'cols',tmp:null};
@@ -5302,8 +5353,12 @@ function vwRender(){
   document.getElementById('vwTabs').innerHTML=ks.map(x=>'<button class="ft'+(x===_vw.kind?' on':'')+'" onclick="vwTab(\''+x+'\')">'+VW_LABEL[x]+'</button>').join('');
   document.getElementById('vwHint').textContent=meta.hint;
   const grip='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
-  document.getElementById('vwList').innerHTML=list.map((x,i)=>'<div class="vw-row'+(x.on?' on':'')+'" data-i="'+i+'"><label class="vw-chk"><input type="checkbox"'+(x.on?' checked':'')+' onchange="vwToggle('+i+',this.checked)"><span>'+meta.reg[x.k].n+'</span></label><div class="vw-grip" title="Перетащите">'+grip+'</div></div>').join('');
+  const totalBox=(field,index)=>supportsTotal(k,field.k) && (!['cost','margin'].includes(field.k)||can('v_cost'))
+    ? '<label class="vw-total"><input type="checkbox" aria-label="Итог: '+esc(meta.reg[field.k].n)+'" '+(field.on?'':'disabled ')+(field.on&&field.total!==false?'checked ':'')+'onchange="vwSetTotal('+index+',this.checked)">Итог</label>'
+    : '';
+  document.getElementById('vwList').innerHTML=list.map((x,i)=>'<div class="vw-row'+(x.on?' on':'')+'" data-i="'+i+'"><label class="vw-chk"><input type="checkbox"'+(x.on?' checked':'')+' onchange="vwToggle('+i+',this.checked)"><span>'+meta.reg[x.k].n+'</span></label>'+totalBox(x,i)+'<div class="vw-grip" title="Перетащите">'+grip+'</div></div>').join('');
 }
+function vwSetTotal(index,checked){_vw.tmp[_vw.kind][index].total=checked;}
 function vwToggle(i,on){const l=_vw.tmp[_vw.kind];if(!on&&l.filter(x=>x.on).length<=1){toast('Нужно оставить хотя бы одно поле','ter');vwRender();return;}l[i].on=on;vwRender();}
 // Порядок строк — перетаскиванием: мышью сразу, пальцем — после удержания (или сразу за значок ⋮⋮)
 let _vd=null,_vdNoClick=false;
