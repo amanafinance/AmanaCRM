@@ -4350,7 +4350,7 @@ function contractDefinition(d){
     {text:'3. Условия рассрочки',style:'heading'},{text:'Предоплата: '+amount(d.prepay)+'\nСрок рассрочки: '+d.months+' мес.\nРазмеры платежей указаны в графике.',margin:[0,0,0,8]},
     {text:'4. Особые условия',style:'heading'},{text:'Договор составлен с учётом норм Ислама, исключающих начисление процентов.\nДоговор вступает в силу с момента передачи товара Покупателю.\nЗаключён дистанционно путём обмена электронными документами или сообщениями.',margin:[0,0,0,8]},
     {text:'5. Реквизиты сторон',style:'heading'},{text:'Продавец: Занкиев Б.С.\nНомер продавца: 8928 022 21 14',margin:[0,0,0,5]});
-  d.persons.forEach(p=>content.push({text:p.role+': '+p.name+'\nПаспорт: '+p.passport+'\nКем выдан: '+p.issuer+'\nДата выдачи: '+(p.issued?fmtD(safeDateFromInput(p.issued)):'—')+'\nАдрес по прописке: '+(p.addr||'—')+'\nТелефон WhatsApp'+': '+(p.phone?fmtPhone(p.phone):'—'),margin:[0,0,0,7]}));
+  d.persons.forEach(p=>content.push({text:p.role+': '+p.name+'\nПаспорт: '+p.passport+'\nКем выдан: '+p.issuer+'\nДата выдачи: '+(p.issued?fmtD(safeDateFromInput(p.issued)):'—')+'\nАдрес по прописке: '+(p.addr||'—')+'\nТелефон WhatsApp: '+(p.phone?fmtPhone(p.phone):'—'),margin:[0,0,0,7]}));
   content.push({text:'График платежей',style:'heading'},{table:{headerRows:1,widths:[35,'*','*'],body:[['№','Дата платежа','Размер платежа (руб.)'],...d.schedule.map((p,i)=>[String(i+1),p.date,fmt(p.amount)])]},layout:'lightHorizontalLines'});
   return {content,defaultStyle:{font:'Roboto',fontSize:10},styles:{title:{fontSize:13,bold:true,alignment:'center',margin:[0,0,0,10]},heading:{fontSize:11,bold:true,margin:[0,4,0,4]}},pageMargins:[45,40,45,40]};
 }
@@ -4389,7 +4389,7 @@ function renderContractSend(){
 function contractOpenWhatsApp(index){
   const p=contractDraft&&contractDraft.persons[index];if(!p)return;
   const raw=String(p.sendPhone||'').trim(),phone=raw.startsWith('+')?raw.replace(/\D/g,''):waPhone(raw);
-  if(!/^[1-9]\d{6,14}$/.test(phone)){toast('Укажите корректный номер WhatsApp' + ': '+p.role,'ter');return;}
+  if(!/^[1-9]\d{6,14}$/.test(phone)){toast('Укажите корректный номер WhatsApp: '+p.role,'ter');return;}
   window.open('https://wa.me/'+phone+'?text='+encodeURIComponent('Здравствуйте! Направляю договор № '+contractDraft.number+'.'),'_blank','noopener');
 }
 async function shareContract(){
