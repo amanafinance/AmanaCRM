@@ -4389,7 +4389,7 @@ function renderContractSend(){
 function contractOpenWhatsApp(index){
   const p=contractDraft&&contractDraft.persons[index];if(!p)return;
   const raw=String(p.sendPhone||'').trim(),phone=raw.startsWith('+')?raw.replace(/\D/g,''):waPhone(raw);
-  if(!/^[1-9]\d{6,14}$/.test(phone)){toast('Укажите корректный номер WhatsApp: '+p.role,'ter');return;}
+  if(!/^[1-9]\d{6,14}$/.test(phone)){toast('Укажите корректный номер WhatsApp' + ': '+p.role,'ter');return;}
   window.open('https://wa.me/'+phone+'?text='+encodeURIComponent('Здравствуйте! Направляю договор № '+contractDraft.number+'.'),'_blank','noopener');
 }
 async function shareContract(){
