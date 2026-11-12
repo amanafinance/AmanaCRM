@@ -4329,7 +4329,8 @@ function openContract(id){
   dealGuarantorRefs(c).forEach((g,i)=>persons.push(contractPerson(g.name,byId.get(g.pid),'Поручитель '+(i+1))));
   const schedule=[];
   for(let i=1;i<=(parseInt(c.months)||0);i++)schedule.push({date:c['дата'+i]||'',amount:parseFloat(c['размер'+i])||0});
-  contractDraft={id:c.id,number:c.contractId||'',date:c.date||'',product:c.product||'',price:parseFloat(c.price)||0,prepay:parseFloat(c.prepay)||0,months:parseInt(c.months)||0,schedule,persons,blob:null,url:null};
+  const prepayRecord=paysOf(c.id).find(p=>p.type==='prepay');
+  contractDraft={prepayDate:prepayRecord&&prepayRecord.dateStr||'',id:c.id,number:c.contractId||'',date:c.date||'',product:c.product||'',price:parseFloat(c.price)||0,prepay:parseFloat(c.prepay)||0,months:parseInt(c.months)||0,schedule,persons,blob:null,url:null};
   const el=document.createElement('div');el.id='mContract';el.className='mover on';el.addEventListener('click',e=>{if(e.target===el)closeContract();});document.body.appendChild(el);
   renderContractForm();
 }
@@ -4347,7 +4348,7 @@ function contractDefinition(d){
     {text:'Продавец: Занкиев Б.С.\nПокупатель: '+customer.name,margin:[0,0,0,8]}];
   if(guarantors.length){content.push({text:'1. Поручительство',style:'heading'});content.push({text:'Покупатель предоставляет поручител'+(guarantors.length===1?'я: ':'ей: ')+guarantors.map(p=>p.name).join(', ')+'. '+(guarantors.length===1?'Поручитель гарантирует':'Поручители гарантируют')+' своевременное исполнение обязательств Покупателя. В случае невыполнения Покупателем своих обязательств их исполнение переходит на '+(guarantors.length===1?'поручителя.':'поручителей.'),margin:[0,0,0,8]});}
   content.push({text:'2. Предмет договора',style:'heading'},{text:'Продавец обязуется передать в собственность Покупателю товар, а Покупатель обязуется принять и оплатить его.\nНаименование товара: '+d.product+'\nОбщая стоимость: '+amount(d.price),margin:[0,0,0,8]},
-    {text:'3. Условия рассрочки',style:'heading'},{text:'Предоплата: '+amount(d.prepay)+'\nСрок рассрочки: '+d.months+' мес.\nРазмеры платежей указаны в графике.',margin:[0,0,0,8]},
+    {text:'3. Условия рассрочки',style:'heading'},{text:'Предоплата: '+amount(d.prepay)+(d.prepayDate?' · дата внесения: '+d.prepayDate:'')+'\nСрок рассрочки: '+d.months+' мес.\nРазмеры платежей указаны в графике.',margin:[0,0,0,8]},
     {text:'4. Особые условия',style:'heading'},{text:'Договор составлен с учётом норм Ислама, исключающих начисление процентов.\nДоговор вступает в силу с момента передачи товара Покупателю.\nЗаключён дистанционно путём обмена электронными документами или сообщениями.',margin:[0,0,0,8]},
     {text:'5. Реквизиты сторон',style:'heading'},{text:'Продавец: Занкиев Б.С.\nНомер продавца: 8928 022 21 14',margin:[0,0,0,5]});
   d.persons.forEach(p=>content.push({text:p.role+': '+p.name+'\nПаспорт: '+p.passport+'\nКем выдан: '+p.issuer+'\nДата выдачи: '+(p.issued?fmtD(safeDateFromInput(p.issued)):'—')+'\nАдрес по прописке: '+(p.addr||'—')+'\nТелефон WhatsApp: '+(p.phone?fmtPhone(p.phone):'—'),margin:[0,0,0,7]}));
