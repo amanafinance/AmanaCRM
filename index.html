@@ -4349,10 +4349,10 @@ function contractDefinition(d){
   const source=CONTRACT_TEMPLATE;
   const hasGuarantors=d.persons.length>1;
   const multiple=d.persons.length>2;
-  const shift=hasGuarantors?0:1;
+  const sectionNumber=number=>!hasGuarantors&&number>2?number-1:number;
   const fixRefs=text=>hasGuarantors?text:text.replace('разделом 5 настоящего договора','разделом 4 настоящего договора');
-  const section=(originalIndex,number)=>({text:source[originalIndex].replace(/^\d+\./,(number-shift)+'.'),style:'heading'});
-  const paragraph=(originalIndex,number,text)=>({text:[{text:(number-shift)+'.'+source[originalIndex].match(/^\d+\.(\d+)\./)[1]+'. ',bold:true},{text:fixRefs((text||source[originalIndex]).replace(/^\d+\.\d+\.\s*/,''))}],style:'paragraph'});
+  const section=(originalIndex,number)=>({text:source[originalIndex].replace(/^\d+\./,sectionNumber(number)+'.'),style:'heading'});
+  const paragraph=(originalIndex,number,text)=>({text:[{text:sectionNumber(number)+'.'+source[originalIndex].match(/^\d+\.(\d+)\./)[1]+'. ',bold:true},{text:fixRefs((text||source[originalIndex]).replace(/^\d+\.\d+\.\s*/,''))}],style:'paragraph'});
   const f=value=>fmt(value)+' руб.';
   const date=value=>{
     const match=String(value||'').match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
