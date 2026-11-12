@@ -1233,6 +1233,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 .contract-recipient{display:flex;align-items:end;gap:10px;justify-content:space-between;border-bottom:1px solid var(--brd2);padding:10px 0}
 .contract-recipient>div{flex:1;min-width:0}.contract-recipient label{margin-top:7px}
 .contract-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.contract-sign-option{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}.contract-sign-option input{width:18px;height:18px;accent-color:var(--green)}
 .contract-preview{width:100%;height:55vh;background:white;border:0;border-radius:8px}
 @media(max-width:768px){.contract-fields{grid-template-columns:1fr 1fr}.contract-fields label:nth-child(2){grid-column:1/-1}.contract-recipient{align-items:stretch;flex-direction:column}.contract-preview{height:45vh}}
 </style>
@@ -4305,10 +4306,11 @@ function delKassaOp(id){
 // Договор формируется на устройстве. Паспортные данные не записываются в базу.
 let contractDraft=null,contractPdfLib=null;
 function loadContractPdf(){
-  if(window.pdfMake&&window.pdfMake.vfs)return Promise.resolve();
+  if(window.pdfMake&&window.pdfMake.fonts&&window.pdfMake.fonts.ContractSerif)return Promise.resolve();
   if(!contractPdfLib){
     const load=src=>new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(new Error('Не удалось загрузить создание PDF'));document.head.appendChild(script);});
-    contractPdfLib=load('./vendor/pdfmake-0.2.20/pdfmake.min.js').then(()=>load('./vendor/pdfmake-0.2.20/vfs_fonts.js')).catch(error=>{contractPdfLib=null;throw error;});
+    const core=window.pdfMake?Promise.resolve():load('./vendor/pdfmake-0.2.20/pdfmake.min.js').then(()=>load('./vendor/pdfmake-0.2.20/vfs_fonts.js'));
+    contractPdfLib=core.then(()=>load('./vendor/contract-fonts/contract-fonts.js')).then(()=>{window.pdfMake.fonts=window.pdfMake.fonts||{};window.pdfMake.fonts.ContractSerif={normal:'ContractSerif-Regular.ttf',bold:'ContractSerif-Bold.ttf',italics:'ContractSerif-Regular.ttf',bolditalics:'ContractSerif-Bold.ttf'};}).catch(error=>{contractPdfLib=null;throw error;});
   }
   return contractPdfLib;
 }
@@ -4330,31 +4332,79 @@ function openContract(id){
   const schedule=[];
   for(let i=1;i<=(parseInt(c.months)||0);i++)schedule.push({date:c['дата'+i]||'',amount:parseFloat(c['размер'+i])||0});
   const prepayRecord=paysOf(c.id).find(p=>p.type==='prepay');
-  contractDraft={prepayDate:prepayRecord&&prepayRecord.dateStr||'',id:c.id,number:c.contractId||'',date:c.date||'',product:c.product||'',price:parseFloat(c.price)||0,prepay:parseFloat(c.prepay)||0,months:parseInt(c.months)||0,schedule,persons,blob:null,url:null};
+  contractDraft={prepayDate:prepayRecord&&prepayRecord.dateStr||'',id:c.id,number:c.contractId||'',date:c.date||'',product:c.product||'',price:parseFloat(c.price)||0,prepay:parseFloat(c.prepay)||0,months:parseInt(c.months)||0,schedule,persons,noSignatures:false,blob:null,url:null};
   const el=document.createElement('div');el.id='mContract';el.className='mover on';el.addEventListener('click',e=>{if(e.target===el)closeContract();});document.body.appendChild(el);
   renderContractForm();
 }
 function renderContractForm(){
   const d=contractDraft;if(!d)return;
   const fields=d.persons.map((p,i)=>'<div class="contract-person"><div class="contract-person-name">'+esc(p.role)+' · '+esc(p.name)+'</div><div class="contract-fields"><label>Серия и номер паспорта<input class="inp" autocomplete="off" data-person="'+i+'" data-field="passport" value="'+esc(p.passport)+'" placeholder="Серия и номер"/></label><label>Кем выдан<input class="inp" autocomplete="off" data-person="'+i+'" data-field="issuer" value="'+esc(p.issuer)+'" placeholder="Орган выдачи"/></label><label>Дата выдачи<input class="inp" type="date" data-person="'+i+'" data-field="issued" value="'+esc(p.issued)+'"/></label><label>WhatsApp в договоре<input class="inp" type="tel" autocomplete="off" data-person="'+i+'" data-field="phone" value="'+esc(p.phone)+'" placeholder="Номер WhatsApp"/></label></div></div>').join('');
-  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Подготовить договор</div><div class="contract-sub">Сделка № '+esc(d.number||'—')+'</div><div class="contract-person">Товар, суммы и график платежей — из сделки</div>'+fields+'<div class="contract-sub">Паспортные данные используются только при подготовке договора.</div><div class="mft"><button class="btn bgh" onclick="closeContract()">Отмена</button><button class="btn bg" onclick="previewContract()">Предпросмотр договора</button></div></div>';
+  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Подготовить договор</div><div class="contract-sub">Сделка № '+esc(d.number||'—')+'</div><div class="contract-person">Товар, суммы и график платежей — из сделки</div>'+fields+'<label class="contract-sign-option"><input type="checkbox" id="contractNoSignatures" '+(d.noSignatures?'checked':'')+'> Без строк для подписи</label><div class="contract-sub">Паспортные данные используются только при подготовке договора.</div><div class="mft"><button class="btn bgh" onclick="closeContract()">Отмена</button><button class="btn bg" onclick="previewContract()">Предпросмотр договора</button></div></div>';
+  document.getElementById('contractNoSignatures').addEventListener('change',event=>{if(contractDraft)contractDraft.noSignatures=event.target.checked;});
   document.querySelectorAll('#mContract [data-person]').forEach(input=>input.addEventListener('input',()=>{const p=contractDraft&&contractDraft.persons[+input.dataset.person];if(p){p[input.dataset.field]=input.value;if(input.dataset.field==='phone')p.sendPhone=input.value;}}));
 }
+const CONTRACT_TEMPLATE=["ДОГОВОР КУПЛИ-ПРОДАЖИ ТОВАРА С УСЛОВИЕМ РАССРОЧКИ","«____» ____________ 2026 г.","Гражданин Российской Федерации Занкиев Бексолта Сулейманович, именуемый в дальнейшем «Продавец», с одной стороны, и гражданин Российской Федерации","___________________________________________________________________________________________","именуемый в дальнейшем «Покупатель», с другой стороны, руководствуясь нормами Ислама и действуя в соответствии с законодательством Российской Федерации, заключили настоящий договор о нижеследующем:","1. Предмет договора","1.1. Продавец обязуется передать в собственность Покупателю, а Покупатель обязуется принять и оплатить товар по цене, указанной в настоящем договоре.","1.2. Наименование товара: ____________________________________________________________________","1.3. Общая стоимость товара: _______________ руб.","1.4. Общая стоимость товара является окончательной, зафиксирована в момент заключения договора и не подлежит изменению ни при каких обстоятельствах, в том числе при просрочке платежей или досрочном погашении. Проценты, пени и штрафы на сумму долга не начисляются.","2. Поручительство","2.1. Покупатель предоставляет поручителя, данные которого указаны в разделе 9 настоящего договора.","2.2. Поручитель гарантирует своевременное исполнение обязательств Покупателя и несёт с ним солидарную ответственность: в случае неисполнения Покупателем обязательств Продавец вправе требовать оплату как с Покупателя, так и с Поручителя.","3. Обязанности сторон","3.1. Продавец обязуется передать товар Покупателю в согласованные сроки.","3.2. Покупатель обязуется принять товар и производить оплату в порядке и сроки, установленные разделом 5 настоящего договора.","4. Особые условия","4.1. Настоящий договор составлен с учётом норм Ислама, исключающих начисление процентов на сумму долга.","4.2. С момента передачи товара Покупателю право собственности на товар переходит к Покупателю в полном объёме.","4.3. При просрочке Покупателем двух и более платежей подряд Продавец вправе потребовать досрочной оплаты всей оставшейся суммы долга. Сумма долга при этом не увеличивается.","4.4. Покупатель вправе погасить рассрочку досрочно. Сумма долга при досрочном погашении не изменяется.","5. Условия рассрочки","5.1. Предоплата в размере _______________ руб. внесена «____» ____________ 2026 г.","5.2. Срок рассрочки составляет _______ месяцев. Остаток стоимости оплачивается ежемесячными платежами согласно графику:","","","6. Ответственность сторон","6.1. За неисполнение или ненадлежащее исполнение обязательств стороны несут ответственность в соответствии с нормами Ислама.","7. Расчёты","7.1. Расчёты производятся наличными в кассу Продавца либо переводом на счёт, указанный Продавцом. Факт оплаты каждого платежа подтверждается подписью Продавца в графе «Оплачено» графика платежей.","8. Прочие условия","8.1. Договор вступает в силу с момента подписания обеими сторонами и передачи товара Покупателю.","8.2. Договор составлен в двух экземплярах, имеющих равную силу, — по одному для каждой из сторон.","9. Подписи, адреса и реквизиты сторон","Дата подписания: «____» ____________ 2026 г."];
+// Текст взят из предоставленного образца договора, кроме подставляемых значений.
 function contractDefinition(d){
-  const customer=d.persons[0],guarantors=d.persons.slice(1);
-  const amount=x=>fmt(x)+' руб.';
-  const content=[{text:'ДОГОВОР КУПЛИ-ПРОДАЖИ ТОВАРА С УСЛОВИЕМ РАССРОЧКИ',style:'title'},
-    {text:'№ '+(d.number||'—')+'     '+(d.date||'—'),margin:[0,0,0,10]},
-    {text:'Продавец: Занкиев Б.С.\nПокупатель: '+customer.name,margin:[0,0,0,8]}];
-  if(guarantors.length){content.push({text:'1. Поручительство',style:'heading'});content.push({text:'Покупатель предоставляет поручител'+(guarantors.length===1?'я: ':'ей: ')+guarantors.map(p=>p.name).join(', ')+'. '+(guarantors.length===1?'Поручитель гарантирует':'Поручители гарантируют')+' своевременное исполнение обязательств Покупателя. В случае невыполнения Покупателем своих обязательств их исполнение переходит на '+(guarantors.length===1?'поручителя.':'поручителей.'),margin:[0,0,0,8]});}
-  content.push({text:'2. Предмет договора',style:'heading'},{text:'Продавец обязуется передать в собственность Покупателю товар, а Покупатель обязуется принять и оплатить его.\nНаименование товара: '+d.product+'\nОбщая стоимость: '+amount(d.price),margin:[0,0,0,8]},
-    {text:'3. Условия рассрочки',style:'heading'},{text:'Предоплата: '+amount(d.prepay)+(d.prepayDate?' · дата внесения: '+d.prepayDate:'')+'\nСрок рассрочки: '+d.months+' мес.\nРазмеры платежей указаны в графике.',margin:[0,0,0,8]},
-    {text:'4. Особые условия',style:'heading'},{text:'Договор составлен с учётом норм Ислама, исключающих начисление процентов.\nДоговор вступает в силу с момента передачи товара Покупателю.\nЗаключён дистанционно путём обмена электронными документами или сообщениями.',margin:[0,0,0,8]},
-    {text:'5. Реквизиты сторон',style:'heading'},{text:'Продавец: Занкиев Б.С.\nНомер продавца: 8928 022 21 14',margin:[0,0,0,5]});
-  d.persons.forEach(p=>content.push({text:p.role+': '+p.name+'\nПаспорт: '+p.passport+'\nКем выдан: '+p.issuer+'\nДата выдачи: '+(p.issued?fmtD(safeDateFromInput(p.issued)):'—')+'\nАдрес по прописке: '+(p.addr||'—')+'\nТелефон WhatsApp: '+(p.phone?fmtPhone(p.phone):'—'),margin:[0,0,0,7]}));
-  content.push({text:'График платежей',style:'heading'},{table:{headerRows:1,widths:[35,'*','*'],body:[['№','Дата платежа','Размер платежа (руб.)'],...d.schedule.map((p,i)=>[String(i+1),p.date,fmt(p.amount)])]},layout:'lightHorizontalLines'});
-  return {content,defaultStyle:{font:'Roboto',fontSize:10},styles:{title:{fontSize:13,bold:true,alignment:'center',margin:[0,0,0,10]},heading:{fontSize:11,bold:true,margin:[0,4,0,4]}},pageMargins:[45,40,45,40]};
+  const source=CONTRACT_TEMPLATE;
+  const hasGuarantors=d.persons.length>1;
+  const multiple=d.persons.length>2;
+  const sectionNumber=number=>!hasGuarantors&&number>2?number-1:number;
+  const fixRefs=text=>hasGuarantors?text:text.replace('разделом 5 настоящего договора','разделом 4 настоящего договора');
+  const section=(originalIndex,number)=>({text:source[originalIndex].replace(/^\d+\./,sectionNumber(number)+'.'),style:'heading'});
+  const paragraph=(originalIndex,number,text)=>({text:[{text:sectionNumber(number)+'.'+source[originalIndex].match(/^\d+\.(\d+)\./)[1]+'. ',bold:true},{text:fixRefs((text||source[originalIndex]).replace(/^\d+\.\d+\.\s*/,''))}],style:'paragraph'});
+  const f=value=>fmt(value)+' руб.';
+  const date=value=>{
+    const match=String(value||'').match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    const months=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    return match&&months[Number(match[2])-1]?'«'+match[1]+'» '+months[Number(match[2])-1]+' '+match[3]+' г.':'«____» ____________ ____ г.';
+  };
+  const blank='____________________________________________';
+  const buyer=d.persons[0];
+  const content=[
+    {text:source[0],style:'title'},
+    {text:date(d.date),alignment:'right',margin:[0,0,0,10]},
+    {text:source[2],style:'paragraph'},
+    {text:buyer.name,decoration:'underline',margin:[0,4,0,4]},
+    {text:source[4],style:'paragraph'},
+    section(5,1),paragraph(6,1),
+    paragraph(7,1,'1.2. Наименование товара: '+d.product),
+    paragraph(8,1,'1.3. Общая стоимость товара: '+f(d.price)),
+    paragraph(9,1)
+  ];
+  if(hasGuarantors){
+    content.push(section(10,2));
+    content.push(paragraph(11,2,multiple?'2.1. Покупатель предоставляет поручителей, данные которых указаны в разделе 9 настоящего договора.':source[11]));
+    content.push(paragraph(12,2,multiple?'2.2. Поручители гарантируют своевременное исполнение обязательств Покупателя и несут с ним солидарную ответственность: в случае неисполнения Покупателем обязательств Продавец вправе требовать оплату как с Покупателя, так и с Поручителей.':source[12]));
+  }
+  content.push(section(13,3),paragraph(14,3),paragraph(15,3),section(16,4),paragraph(17,4),paragraph(18,4),paragraph(19,4),paragraph(20,4),section(21,5),
+    paragraph(22,5,'5.1. Предоплата в размере '+f(d.prepay)+' внесена '+date(d.prepayDate).replace(/\.$/,'')+'.'),
+    paragraph(23,5,'5.2. Срок рассрочки составляет '+d.months+' месяцев. Остаток стоимости оплачивается ежемесячными платежами согласно графику:'));
+  const rows=[
+    [{text:'№',bold:true,alignment:'center'},{text:'Дата платежа',bold:true,alignment:'center'},{text:'Размер платежа (руб.)',bold:true,alignment:'center'},{text:'Оплачено (подпись)',bold:true,alignment:'center'}]
+  ];
+  for(let i=0;i<Math.max(12,d.schedule.length);i++){
+    const item=d.schedule[i];rows.push([{text:String(i+1),alignment:'center'},item?item.date:'«____» __________ 20___ г.',item?fmt(item.amount):'','']);
+  }
+  content.push({table:{headerRows:1,widths:[28,158,143,'*'],body:rows},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>3,paddingBottom:()=>3,paddingLeft:()=>6,paddingRight:()=>6,fillColor:i=>i===0?'#eeeeee':null},pageBreak:'before',margin:[0,0,0,10]});
+  content.push(section(26,6),paragraph(27,6),section(28,7),paragraph(29,7),section(30,8),paragraph(31,8),paragraph(32,8),section(33,9));
+  const signer=(label,lines)=>({stack:[{text:label.toUpperCase()+':',bold:true},...lines.map(line=>({text:line}))],margin:[2,2,2,2]});
+  const signature=d.noSignatures?[]:['Подпись: '+blank];
+  const parties=[
+    [signer('Продавец',['Занкиев Бексолта Сулейманович','Тел.: 8 928 022 21 14',...signature])]
+  ];
+  d.persons.forEach(p=>{
+    const passport=p.passport.trim().match(/^(\d{4})\s*(\d{6})$/);
+    const passportText=passport?'серия '+passport[1]+' № '+passport[2]:p.passport;
+    const issued=p.issued?' от '+fmtD(safeDateFromInput(p.issued)):'';
+    const role=p.role.startsWith('Поручитель')&&!multiple?'Поручитель':p.role;
+    parties.push([signer(role,['ФИО: '+p.name,'Паспорт: '+passportText+', выдан '+p.issuer+issued,'Адрес: '+(p.addr||blank),'Тел.: '+(p.phone?fmtPhone(p.phone):blank),...signature])]);
+  });
+  content.push({table:{dontBreakRows:true,widths:['*'],body:parties},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>2,paddingBottom:()=>2,paddingLeft:()=>4,paddingRight:()=>4},margin:[0,0,0,4]},
+    {text:source[34].replace('«____» ____________ 2026 г.','«____» ____________ ____ г.'),style:'paragraph'});
+  return {content,defaultStyle:{font:'ContractSerif',fontSize:11,lineHeight:1},styles:{title:{fontSize:13,bold:true,alignment:'center',margin:[0,0,0,8]},heading:{fontSize:11.5,bold:true,margin:[0,7,0,5]},paragraph:{margin:[0,0,0,6.5]}},pageMargins:[50,43,43,43]};
 }
+
 async function previewContract(){
   const d=contractDraft;if(!d)return;
   const missing=d.persons.find(p=>!p.passport.trim()||!p.issuer.trim()||!p.issued);
