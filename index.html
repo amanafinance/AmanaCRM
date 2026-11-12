@@ -4386,7 +4386,7 @@ function contractDefinition(d){
   for(let i=0;i<Math.max(12,d.schedule.length);i++){
     const item=d.schedule[i];rows.push([{text:String(i+1),alignment:'center'},item?item.date:'«____» __________ 20___ г.',item?fmt(item.amount):'','']);
   }
-  content.push({table:{headerRows:1,widths:[30,'*','*','*'],body:rows},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>2,paddingBottom:()=>2,paddingLeft:()=>6,paddingRight:()=>6,fillColor:i=>i===0?'#eeeeee':null},pageBreak:'before',margin:[0,0,0,10]});
+  content.push({table:{headerRows:1,widths:[28,158,143,'*'],body:rows},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>3,paddingBottom:()=>3,paddingLeft:()=>6,paddingRight:()=>6,fillColor:i=>i===0?'#eeeeee':null},pageBreak:'before',margin:[0,0,0,10]});
   content.push(section(26,6),paragraph(27,6),section(28,7),paragraph(29,7),section(30,8),paragraph(31,8),paragraph(32,8),section(33,9));
   const signer=(label,lines)=>({stack:[{text:label.toUpperCase()+':',bold:true},...lines.map(line=>({text:line}))],margin:[2,2,2,2]});
   const signature=d.noSignatures?[]:['Подпись: '+blank];
@@ -4402,7 +4402,7 @@ function contractDefinition(d){
   });
   content.push({table:{widths:['*'],body:parties},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>2,paddingBottom:()=>2,paddingLeft:()=>4,paddingRight:()=>4},margin:[0,0,0,4]},
     {text:source[34].replace('«____» ____________ 2026 г.','«____» ____________ ____ г.'),style:'paragraph'});
-  return {content,defaultStyle:{font:'ContractSerif',fontSize:9.2,lineHeight:1},styles:{title:{fontSize:13,bold:true,alignment:'center',margin:[0,0,0,8]},heading:{fontSize:10.5,bold:true,margin:[0,4,0,4]},paragraph:{margin:[0,0,0,4]}},pageMargins:[50,43,43,43]};
+  return {content,defaultStyle:{font:'ContractSerif',fontSize:11,lineHeight:1},styles:{title:{fontSize:13,bold:true,alignment:'center',margin:[0,0,0,8]},heading:{fontSize:11.5,bold:true,margin:[0,7,0,5]},paragraph:{margin:[0,0,0,6.5]}},pageMargins:[50,43,43,43]};
 }
 
 async function previewContract(){
