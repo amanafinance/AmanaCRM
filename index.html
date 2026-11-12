@@ -4400,7 +4400,7 @@ function contractDefinition(d){
     const role=p.role.startsWith('Поручитель')&&!multiple?'Поручитель':p.role;
     parties.push([signer(role,['ФИО: '+p.name,'Паспорт: '+passportText+', выдан '+p.issuer+issued,'Адрес: '+(p.addr||blank),'Тел.: '+(p.phone?fmtPhone(p.phone):blank),...signature])]);
   });
-  content.push({table:{widths:['*'],body:parties},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>2,paddingBottom:()=>2,paddingLeft:()=>4,paddingRight:()=>4},margin:[0,0,0,4]},
+  content.push({table:{dontBreakRows:true,widths:['*'],body:parties},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>2,paddingBottom:()=>2,paddingLeft:()=>4,paddingRight:()=>4},margin:[0,0,0,4]},
     {text:source[34].replace('«____» ____________ 2026 г.','«____» ____________ ____ г.'),style:'paragraph'});
   return {content,defaultStyle:{font:'ContractSerif',fontSize:11,lineHeight:1},styles:{title:{fontSize:13,bold:true,alignment:'center',margin:[0,0,0,8]},heading:{fontSize:11.5,bold:true,margin:[0,7,0,5]},paragraph:{margin:[0,0,0,6.5]}},pageMargins:[50,43,43,43]};
 }
