@@ -4332,14 +4332,15 @@ function openContract(id){
   const schedule=[];
   for(let i=1;i<=(parseInt(c.months)||0);i++)schedule.push({date:c['дата'+i]||'',amount:parseFloat(c['размер'+i])||0});
   const prepayRecord=paysOf(c.id).find(p=>p.type==='prepay');
-  contractDraft={prepayDate:prepayRecord&&prepayRecord.dateStr||'',id:c.id,number:c.contractId||'',date:c.date||'',product:c.product||'',price:parseFloat(c.price)||0,prepay:parseFloat(c.prepay)||0,months:parseInt(c.months)||0,schedule,persons,sellerName:'Занкиев Бексолта Сулейманович',addSignatures:false,showPaid:false,blob:null,url:null};
+  contractDraft={prepayDate:prepayRecord&&prepayRecord.dateStr||'',id:c.id,number:c.contractId||'',date:c.date||'',product:c.product||'',price:parseFloat(c.price)||0,prepay:parseFloat(c.prepay)||0,months:parseInt(c.months)||0,schedule,persons,saleType:'goods',sellerName:'Занкиев Бексолта Сулейманович',addSignatures:false,showPaid:false,blob:null,url:null};
   const el=document.createElement('div');el.id='mContract';el.className='mover on';el.addEventListener('click',e=>{if(e.target===el)closeContract();});document.body.appendChild(el);
   renderContractForm();
 }
 function renderContractForm(){
   const d=contractDraft;if(!d)return;
-  const fields=d.persons.map((p,i)=>'<div class="contract-person"><div class="contract-person-name">'+esc(p.role)+' · '+esc(p.name)+'</div><div class="contract-fields"><label>Серия и номер паспорта<input class="inp" autocomplete="off" data-person="'+i+'" data-field="passport" value="'+esc(p.passport)+'" placeholder="Серия и номер"/></label><label>Кем выдан<input class="inp" autocomplete="off" data-person="'+i+'" data-field="issuer" value="'+esc(p.issuer)+'" placeholder="Орган выдачи"/></label><label>Дата выдачи<input class="inp" type="date" data-person="'+i+'" data-field="issued" value="'+esc(p.issued)+'"/></label><label>WhatsApp в договоре<input class="inp" type="tel" autocomplete="off" data-person="'+i+'" data-field="phone" value="'+esc(p.phone)+'" placeholder="Номер WhatsApp"/></label></div></div>').join('');
-  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Подготовить договор</div><div class="contract-sub">Сделка № '+esc(d.number||'—')+'</div><div class="contract-person">Товар, суммы и график платежей — из сделки</div><div class="contract-person"><label>ФИО продавца<input class="inp" id="contractSellerName" autocomplete="off" value="'+esc(d.sellerName)+'" placeholder="Фамилия Имя Отчество"/></label></div>'+fields+'<label class="contract-sign-option"><input type="checkbox" id="contractAddSignatures" '+(d.addSignatures?'checked':'')+'> Добавить строку для подписи</label><label class="contract-sign-option"><input type="checkbox" id="contractShowPaid" '+(d.showPaid?'checked':'')+'> Добавить столбец «Оплачено» в график</label><div class="contract-sub">Паспортные данные используются только при подготовке договора.</div><div class="mft"><button class="btn bgh" onclick="closeContract()">Отмена</button><button class="btn bg" onclick="previewContract()">Предпросмотр договора</button></div></div>';
+  const fields=d.persons.map((p,i)=>'<div class="contract-person"><div class="contract-person-name">'+esc(contractParticipantRole(d,p.role))+' · '+esc(p.name)+'</div><div class="contract-fields"><label>Серия и номер паспорта<input class="inp" autocomplete="off" data-person="'+i+'" data-field="passport" value="'+esc(p.passport)+'" placeholder="Серия и номер"/></label><label>Кем выдан<input class="inp" autocomplete="off" data-person="'+i+'" data-field="issuer" value="'+esc(p.issuer)+'" placeholder="Орган выдачи"/></label><label>Дата выдачи<input class="inp" type="date" data-person="'+i+'" data-field="issued" value="'+esc(p.issued)+'"/></label><label>WhatsApp в договоре<input class="inp" type="tel" autocomplete="off" data-person="'+i+'" data-field="phone" value="'+esc(p.phone)+'" placeholder="Номер WhatsApp"/></label></div></div>').join('');
+  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Подготовить договор</div><label class="contract-sign-option">Тип продажи<select class="inp sel" id="contractSaleType" style="width:auto"><option value="goods" '+(d.saleType!=='service'?'selected':'')+'>Товар</option><option value="service" '+(d.saleType==='service'?'selected':'')+'>Услуга</option></select></label><div class="contract-sub">Сделка № '+esc(d.number||'—')+'</div><div class="contract-person">'+(d.saleType==='service'?'Услуга':'Товар')+', суммы и график платежей — из сделки</div><div class="contract-person"><label>'+(d.saleType==='service'?'ФИО исполнителя':'ФИО продавца')+'<input class="inp" id="contractSellerName" autocomplete="off" value="'+esc(d.sellerName)+'" placeholder="Фамилия Имя Отчество"/></label></div>'+fields+'<label class="contract-sign-option"><input type="checkbox" id="contractAddSignatures" '+(d.addSignatures?'checked':'')+'> Добавить строку для подписи</label><label class="contract-sign-option"><input type="checkbox" id="contractShowPaid" '+(d.showPaid?'checked':'')+'> Добавить столбец «Оплачено» в график</label><div class="contract-sub">Паспортные данные используются только при подготовке договора.</div><div class="mft"><button class="btn bgh" onclick="closeContract()">Отмена</button><button class="btn bg" onclick="previewContract()">Предпросмотр договора</button></div></div>';
+  document.getElementById('contractSaleType').addEventListener('change',event=>{if(contractDraft){contractDraft.saleType=event.target.value==='service'?'service':'goods';renderContractForm();}});
   document.getElementById('contractShowPaid').addEventListener('change',event=>{if(contractDraft)contractDraft.showPaid=event.target.checked;});
   document.getElementById('contractAddSignatures').addEventListener('change',event=>{if(contractDraft)contractDraft.addSignatures=event.target.checked;});
   document.getElementById('contractSellerName').addEventListener('input',event=>{if(contractDraft)contractDraft.sellerName=event.target.value;});
@@ -4347,14 +4348,36 @@ function renderContractForm(){
 }
 const CONTRACT_TEMPLATE=["ДОГОВОР КУПЛИ-ПРОДАЖИ ТОВАРА С УСЛОВИЕМ РАССРОЧКИ","«____» ____________ 2026 г.","Гражданин Российской Федерации Занкиев Бексолта Сулейманович, именуемый в дальнейшем «Продавец», с одной стороны, и гражданин Российской Федерации","___________________________________________________________________________________________","именуемый в дальнейшем «Покупатель», с другой стороны, руководствуясь нормами Ислама и действуя в соответствии с законодательством Российской Федерации, заключили настоящий договор о нижеследующем:","1. Предмет договора","1.1. Продавец обязуется передать в собственность Покупателю, а Покупатель обязуется принять и оплатить товар по цене, указанной в настоящем договоре.","1.2. Наименование товара: ____________________________________________________________________","1.3. Общая стоимость товара: _______________ руб.","1.4. Общая стоимость товара является окончательной, зафиксирована в момент заключения договора и не подлежит изменению ни при каких обстоятельствах, в том числе при просрочке платежей или досрочном погашении. Проценты, пени и штрафы на сумму долга не начисляются.","2. Поручительство","2.1. Покупатель предоставляет поручителя, данные которого указаны в разделе 9 настоящего договора.","2.2. Поручитель гарантирует своевременное исполнение обязательств Покупателя и несёт с ним солидарную ответственность: в случае неисполнения Покупателем обязательств Продавец вправе требовать оплату как с Покупателя, так и с Поручителя.","3. Обязанности сторон","3.1. Продавец обязуется передать товар Покупателю в согласованные сроки.","3.2. Покупатель обязуется принять товар и производить оплату в порядке и сроки, установленные разделом 5 настоящего договора.","4. Особые условия","4.1. Настоящий договор составлен с учётом норм Ислама, исключающих начисление процентов на сумму долга.","4.2. С момента передачи товара Покупателю право собственности на товар переходит к Покупателю в полном объёме.","4.3. При просрочке Покупателем двух и более платежей подряд Продавец вправе потребовать досрочной оплаты всей оставшейся суммы долга. Сумма долга при этом не увеличивается.","4.4. Покупатель вправе погасить рассрочку досрочно. Сумма долга при досрочном погашении не изменяется.","5. Условия рассрочки","5.1. Предоплата в размере _______________ руб. внесена «____» ____________ 2026 г.","5.2. Срок рассрочки составляет _______ месяцев. Остаток стоимости оплачивается ежемесячными платежами согласно графику:","","","6. Ответственность сторон","6.1. За неисполнение или ненадлежащее исполнение обязательств стороны несут ответственность в соответствии с нормами Ислама.","7. Расчёты","7.1. Расчёты производятся наличными в кассу Продавца либо переводом на счёт, указанный Продавцом. Факт оплаты каждого платежа подтверждается подписью Продавца в графе «Оплачено» графика платежей.","8. Прочие условия","8.1. Договор вступает в силу с момента подписания обеими сторонами и передачи товара Покупателю.","8.2. Договор составлен в двух экземплярах, имеющих равную силу, — по одному для каждой из сторон.","9. Подписи, адреса и реквизиты сторон","Дата подписания: «____» ____________ 2026 г."];
 // Текст взят из предоставленного образца договора, кроме подставляемых значений.
+
+function contractServiceText(text){
+  const terms={'Продавец':'Исполнитель','Продавца':'Исполнителя','Продавцу':'Исполнителю','Продавцом':'Исполнителем','Покупатель':'Заказчик','Покупателя':'Заказчика','Покупателю':'Заказчику','Покупателем':'Заказчиком','товара':'услуги','товар':'услугу'};
+  return text.replace(/Продавец|Продавца|Продавцу|Продавцом|Покупатель|Покупателя|Покупателю|Покупателем|товара|товар/g,word=>terms[word]);
+}
+function contractParticipantRole(d,role){
+  return d.saleType==='service'?contractServiceText(role):role;
+}
+function contractSource(d){
+  if(d.saleType!=='service')return CONTRACT_TEMPLATE;
+  const source=CONTRACT_TEMPLATE.map(contractServiceText);
+  source[0]='ДОГОВОР ОКАЗАНИЯ УСЛУГ С УСЛОВИЕМ РАССРОЧКИ';
+  source[6]='1.1. Исполнитель обязуется по заданию Заказчика оказать услугу, а Заказчик обязуется оплатить её на условиях настоящего договора.';
+  source[14]='3.1. Исполнитель обязуется оказать Заказчику услугу в согласованные сроки.';
+  source[15]='3.2. Заказчик обязуется принять надлежащим образом оказанную услугу и производить оплату в порядке и сроки, установленные разделом 5 настоящего договора.';
+  source[18]='4.2. Услуга оказывается в объёме, согласованном Исполнителем и Заказчиком.';
+  source[31]='8.1. Договор вступает в силу с момента подписания обеими сторонами.';
+  return source;
+}
+
 function contractDefinition(d){
-  const source=CONTRACT_TEMPLATE;
+  const source=contractSource(d);
+  const service=d.saleType==='service';
+  const wording=text=>service?contractServiceText(text):text;
   const hasGuarantors=d.persons.length>1;
   const multiple=d.persons.length>2;
   const sectionNumber=number=>{const moved=number===5?6:number===6?5:number;return !hasGuarantors&&moved>2?moved-1:moved;};
   const fixRefs=text=>text.replace('разделом 5 настоящего договора','разделом '+sectionNumber(5)+' настоящего договора');
   const section=(originalIndex,number)=>({text:source[originalIndex].replace(/^\d+\./,sectionNumber(number)+'.'),style:'heading'});
-  const paragraph=(originalIndex,number,text)=>({text:[{text:sectionNumber(number)+'.'+source[originalIndex].match(/^\d+\.(\d+)\./)[1]+'. ',bold:true},{text:fixRefs((text||source[originalIndex]).replace(/^\d+\.\d+\.\s*/,''))}],style:'paragraph'});
+  const paragraph=(originalIndex,number,text)=>({text:[{text:sectionNumber(number)+'.'+source[originalIndex].match(/^\d+\.(\d+)\./)[1]+'. ',bold:true},{text:fixRefs(wording(text||source[originalIndex]).replace(/^\d+\.\d+\.\s*/,''))}],style:'paragraph'});
   const blue='#0000FF';
   const f=value=>fmt(value)+' руб.';
   const date=value=>{
@@ -4367,11 +4390,11 @@ function contractDefinition(d){
   const content=[
     {text:source[0],style:'title'},
     {text:date(d.date),alignment:'right',margin:[0,0,0,10]},
-    {text:[{text:source[2].replace('Занкиев Бексолта Сулейманович','') .split(', именуемый')[0]},{text:d.sellerName.trim(),color:blue},{text:', именуемый в дальнейшем «Продавец», с одной стороны, и гражданин Российской Федерации '},{text:buyer.name,color:blue}],style:'paragraph'},
+    {text:[{text:source[2].replace('Занкиев Бексолта Сулейманович','') .split(', именуемый')[0]},{text:d.sellerName.trim(),color:blue},{text:wording(', именуемый в дальнейшем «Продавец», с одной стороны, и гражданин Российской Федерации ')},{text:buyer.name,color:blue}],style:'paragraph'},
     {text:source[4],style:'paragraph'},
     section(5,1),paragraph(6,1),
-    {text:[{text:'1.2. ',bold:true},'Наименование товара: ',{text:d.product,color:blue}],style:'paragraph'},
-    {text:[{text:'1.3. ',bold:true},'Общая стоимость товара: ',{text:f(d.price),color:blue}],style:'paragraph'},
+    {text:[{text:'1.2. ',bold:true},(service?'Наименование услуги: ':'Наименование товара: '),{text:d.product,color:blue}],style:'paragraph'},
+    {text:[{text:'1.3. ',bold:true},(service?'Общая стоимость услуги: ':'Общая стоимость товара: '),{text:f(d.price),color:blue}],style:'paragraph'},
     paragraph(9,1)
   ];
   if(hasGuarantors){
@@ -4389,18 +4412,18 @@ function contractDefinition(d){
     const item=d.schedule[i];rows.push([{text:String(i+1),alignment:'center'},item?item.date:'',item?fmt(item.amount):'',...(d.showPaid?['']:[])]);
   }
   content.push({table:{headerRows:1,widths:d.showPaid?[28,158,143,'*']:[28,'*','*'],body:rows},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>3,paddingBottom:()=>3,paddingLeft:()=>6,paddingRight:()=>6,fillColor:i=>i===0?'#eeeeee':null},pageBreak:'before',margin:[0,0,0,10]});
-  content.push(section(28,7),paragraph(29,7,d.showPaid?source[29]:source[29].replace(' Факт оплаты каждого платежа подтверждается подписью Продавца в графе «Оплачено» графика платежей.','')),section(30,8),paragraph(31,8),paragraph(32,8),section(33,9));
+  content.push(section(28,7),paragraph(29,7,d.showPaid?source[29]:source[29].replace(wording(' Факт оплаты каждого платежа подтверждается подписью Продавца в графе «Оплачено» графика платежей.'),'')),section(30,8),paragraph(31,8),paragraph(32,8),section(33,9));
   const signer=(label,lines)=>({stack:[{text:label.toUpperCase()+':',bold:true},...lines.map(line=>typeof line==='string'?{text:line}:line)],margin:[2,2,2,2]});
   const signature=d.addSignatures?['Подпись: '+blank]:[];
   const parties=[
-    [signer('Продавец',[d.sellerName.trim(),'Тел.: 8 928 022 21 14',...signature])]
+    [signer(service?'Исполнитель':'Продавец',[d.sellerName.trim(),'Тел.: 8 928 022 21 14',...signature])]
   ];
   d.persons.forEach(p=>{
     const passport=p.passport.trim().match(/^(\d{4})\s*(\d{6})$/);
     const passportText=passport?'серия '+passport[1]+' № '+passport[2]:p.passport;
     const issued=p.issued?' от '+fmtD(safeDateFromInput(p.issued)):'';
     const role=p.role.startsWith('Поручитель')&&!multiple?'Поручитель':p.role;
-    parties.push([signer(role,['ФИО: '+p.name,'Паспорт: '+passportText+', выдан '+p.issuer+issued,'Адрес: '+(p.addr||blank),'Тел.: '+(p.phone?fmtPhone(p.phone):blank),...signature])]);
+    parties.push([signer(contractParticipantRole(d,role),['ФИО: '+p.name,'Паспорт: '+passportText+', выдан '+p.issuer+issued,'Адрес: '+(p.addr||blank),'Тел.: '+(p.phone?fmtPhone(p.phone):blank),...signature])]);
   });
   content.push({table:{dontBreakRows:true,widths:['*'],body:parties},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>2,paddingBottom:()=>2,paddingLeft:()=>4,paddingRight:()=>4},margin:[0,0,0,4]},
     {text:date(d.date),style:'paragraph'});
@@ -4409,11 +4432,11 @@ function contractDefinition(d){
 
 async function previewContract(){
   const d=contractDraft;if(!d)return;
-  if(!d.sellerName.trim()){toast('Укажите ФИО продавца','ter');return;}
+  if(!d.sellerName.trim()){toast(d.saleType==='service'?'Укажите ФИО исполнителя':'Укажите ФИО продавца','ter');return;}
   const missing=d.persons.find(p=>!p.passport.trim()||!p.issuer.trim()||!p.issued);
   if(missing){toast('Заполните паспортные данные: '+missing.role,'ter');return;}
   const total=R2(d.schedule.reduce((sum,p)=>sum+p.amount,0)+d.prepay);
-  if(!d.product||!d.date||!d.months||d.schedule.some(p=>!p.date||p.date==='—'||p.amount<=0)){toast('Проверьте дату, товар и график платежей в сделке','ter');return;}
+  if(!d.product||!d.date||!d.months||d.schedule.some(p=>!p.date||p.date==='—'||p.amount<=0)){toast(d.saleType==='service'?'Проверьте дату, услугу и график платежей в сделке':'Проверьте дату, товар и график платежей в сделке','ter');return;}
   if(Math.abs(total-d.price)>0.01){toast('Сумма графика и предоплаты не совпадает с ценой сделки','ter');return;}
   try{
     await loadContractPdf();
@@ -4437,8 +4460,8 @@ function downloadContract(){
 }
 function renderContractSend(){
   const d=contractDraft;if(!d||!d.blob)return;
-  const recipients=d.persons.map((p,i)=>'<div class="contract-recipient"><div><b>'+esc(p.role)+' · '+esc(p.name)+'</b><label>Номер WhatsApp для отправки<input class="inp" type="tel" autocomplete="off" data-phone="'+i+'" value="'+esc(fmtPhone(p.sendPhone)||p.sendPhone||'')+'" placeholder="Укажите номер WhatsApp"/></label></div><button class="btn bwa" onclick="contractOpenWhatsApp('+i+')">Открыть WhatsApp</button></div>').join('');
-  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Отправить договор</div><div class="contract-sub">Один PDF для покупателя и всех поручителей.</div><div class="contract-person"><b>'+esc(contractFileName(d))+'</b><div class="contract-actions"><button class="btn bgh" onclick="openContractPdf()">Открыть PDF</button><button class="btn bgh" onclick="downloadContract()">Скачать PDF</button><button class="btn bgh" onclick="shareContract()">Поделиться PDF</button></div></div>'+recipients+'<div class="contract-sub">При открытии чата прикрепите скачанный PDF. На телефоне можно выбрать «Поделиться PDF», WhatsApp и получателя. Изменение номера на этом шаге не меняет готовый PDF.</div><div class="mft"><button class="btn bgh" onclick="renderContractPreview()">Назад</button><button class="btn bg" onclick="closeContract()">Готово</button></div></div>';
+  const recipients=d.persons.map((p,i)=>'<div class="contract-recipient"><div><b>'+esc(contractParticipantRole(d,p.role))+' · '+esc(p.name)+'</b><label>Номер WhatsApp для отправки<input class="inp" type="tel" autocomplete="off" data-phone="'+i+'" value="'+esc(fmtPhone(p.sendPhone)||p.sendPhone||'')+'" placeholder="Укажите номер WhatsApp"/></label></div><button class="btn bwa" onclick="contractOpenWhatsApp('+i+')">Открыть WhatsApp</button></div>').join('');
+  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Отправить договор</div><div class="contract-sub">Один PDF для '+(d.saleType==='service'?'заказчика':'покупателя')+' и всех поручителей.</div><div class="contract-person"><b>'+esc(contractFileName(d))+'</b><div class="contract-actions"><button class="btn bgh" onclick="openContractPdf()">Открыть PDF</button><button class="btn bgh" onclick="downloadContract()">Скачать PDF</button><button class="btn bgh" onclick="shareContract()">Поделиться PDF</button></div></div>'+recipients+'<div class="contract-sub">При открытии чата прикрепите скачанный PDF. На телефоне можно выбрать «Поделиться PDF», WhatsApp и получателя. Изменение номера на этом шаге не меняет готовый PDF.</div><div class="mft"><button class="btn bgh" onclick="renderContractPreview()">Назад</button><button class="btn bg" onclick="closeContract()">Готово</button></div></div>';
   document.querySelectorAll('#mContract [data-phone]').forEach(input=>input.addEventListener('input',()=>{const p=contractDraft&&contractDraft.persons[+input.dataset.phone];if(p)p.sendPhone=input.value;}));
 }
 function contractOpenWhatsApp(index){
