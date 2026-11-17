@@ -338,7 +338,7 @@ async function resyncAll() { closing = true; await idbClear(); location.reload()
 
 // ---------- Резервная копия ----------
 // Формат файла совпадает с хранением на сервере: даты — {"$date": ISO}, id сохраняются.
-const BK_COLS = ['clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings','returns'], BK_LOGS = ['journal', 'trash'];
+const BK_COLS = ['clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings'], BK_LOGS = ['journal', 'trash'];
 const bkSkip = (c, id) => c === 'settings' && id === 'meta';
 async function bkDump() {
   const all = [...BK_COLS, ...BK_LOGS];
@@ -364,7 +364,6 @@ function bkCheck(B) {
   if (!B || B.format !== 'amana-crm-backup' || !B.collections || typeof B.collections !== 'object') return 'Это не файл копии Amana CRM';
   if (B.version !== 1) return 'Копия сделана более новой версией CRM — обновите страницу и попробуйте снова';
   if (B.source !== 'server' || B.partial) return 'Для восстановления нужна полная копия с сервера';
-  if(B.collections.returns===undefined){B.collections.returns={};B.counts=B.counts||{};B.counts.returns=0;}
   for (const c of BK_COLS) {
     const o = B.collections[c];
     if (o === undefined) return 'В копии отсутствует раздел ' + c;
@@ -454,6 +453,5 @@ window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: update
 window.DB.reconcile=(id,balance)=>commitOps([{t:'update',c:'wallets',id,d:{balance}}],null,null,'reconcile');
 window.DB.note=type=>staffCall('POST','/api/amana/note',{type});
 window.DB.mail={get:()=>staffCall('GET','/api/amana/backup-mail'),save:data=>staffCall('POST','/api/amana/backup-mail',data),send:()=>staffCall('POST','/api/amana/backup-mail/send')};
-window.DB.returnDeal=async data=>{await netCheck();const r=await api('/api/amana/commit',{return:data});applyServerDocs(r.docs||[]);return r.result;};
 window.AUTH = AUTH; window.SIGN_IN = SIGN_IN;window.VERIFY_CODE=VERIFY_CODE; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
 window.dispatchEvent(new Event('dbReady'));

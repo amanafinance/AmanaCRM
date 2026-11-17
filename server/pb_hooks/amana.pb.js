@@ -28,7 +28,7 @@ routerAdd('DELETE', '/api/amana/staff/{id}', (e) => require(`${__hooks}/amana_li
 onRecordAuthRequest((e) => { e.next(); try { require(`${__hooks}/amana_lib.js`).noteDevice(e, $app); } catch (x) { console.log('devices:', x); } }, 'users');
 
 // Себестоимость в договорах — только тем, у кого есть право её видеть
-onRecordEnrich((e) => { require(`${__hooks}/amana_lib.js`).enrichClient(e); e.next(); }, 'clients','returns','trash');
+onRecordEnrich((e) => { require(`${__hooks}/amana_lib.js`).enrichClient(e); e.next(); }, 'clients','trash');
 
 // Только для автотестов (переменная окружения AMANA_TEST=1, на настоящем сервере её нет):
 // очистить базу и записать тестовые данные напрямую, без проверок. Доступно только администратору.
@@ -41,7 +41,7 @@ if ($os.getenv('AMANA_TEST') === '1') {
   routerAdd('POST','/api/amana/test/reset-login-limits',e=>{$app.store().remove('__pbRateLimiters__');const email=(e.requestInfo().body||{}).email;if(email)$app.store().remove('testotp_'+email);return e.json(200,{ok:true});},$apis.requireSuperuserAuth());
   routerAdd('POST','/api/amana/test/backup-tick',e=>{const b=e.requestInfo().body||{};$app.store().set('testmailfail',!!b.fail);require(`${__hooks}/amana_mail.js`).send($app,false,null,b.now);return e.json(200,{ok:true});},$apis.requireSuperuserAuth());
   routerAdd('POST', '/api/amana/test/wipe', (e) => {
-    ['clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings', 'journal', 'trash', 'deleted', 'returns','amanaBackup']
+    ['clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings', 'journal', 'trash', 'deleted','amanaBackup']
       .forEach((c) => $app.db().newQuery('DELETE FROM `' + c + '`').execute());
     return e.json(200, { ok: true });
   }, $apis.requireSuperuserAuth());

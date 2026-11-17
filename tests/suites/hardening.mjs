@@ -1,4 +1,5 @@
 import {reseed,device,login,check,noErrors,PB_URL,pbAdmin,authToken,testCode,resetTestLogin} from '../lib.mjs';
+import fs from 'node:fs';
 import {pbkdf2Sync,createDecipheriv} from 'node:crypto';
 const api=async(method,path,body,token)=>{const r=await fetch(PB_URL+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:token}:{})},...(body?{body:JSON.stringify(body)}:{})});let data;try{data=await r.json();}catch{data={};}return {status:r.status,data};};
 const decode=(text,pw)=>{const e=JSON.parse(text),salt=Buffer.from(e.kdf.salt,'base64'),iv=Buffer.from(e.cipher.iv,'base64'),body=Buffer.from(e.data,'base64'),key=pbkdf2Sync(pw,salt,e.kdf.iterations,32,'sha256'),d=createDecipheriv('aes-256-gcm',key,iv);d.setAuthTag(body.subarray(-16));return JSON.parse(Buffer.concat([d.update(body.subarray(0,-16)),d.final()]).toString());};
@@ -32,19 +33,11 @@ export default async function(){
  check('инвестора с остатком нельзя скрыть в архиве',(await post({ops:[{t:'update',c:'investors',id:'INV1',d:{archived:true}}]})).status>=400);
  const cashOp=(await api('GET','/api/collections/kassaOps/records?perPage=1&filter='+encodeURIComponent('data.type="payment_in"'),null,token)).data.items[0];
  check('связанную оплату нельзя превратить в обычный расход',(await post({ops:[{t:'update',c:'kassaOps',id:cashOp.id,d:{type:'opex'}}]})).status>=400);
- const c=(await get('clients','c3')).data.data,oldWallet=(await get('wallets','w2')).data.data.balance;
- const receipts=(await api('GET','/api/collections/payments/records?perPage=100&filter='+encodeURIComponent('data.clientId="c3"'),null,token)).data.items;
- const returnAmount=c.price-c.prepay-receipts.filter(r=>r.data.type==='payment').reduce((n,r)=>n+r.data.amount,0)+10000;
- const body={return:{clientId:'c3',requestId:'return_test_0001',amount:returnAmount,wallet:'w2',reason:'Частичный возврат товара'}};
- const returned=await post(body);check('отдельная операция возврата сохраняется',returned.status===200,returned);
- if(returned.status===200){
-  const result=returned.data.result,latest=(await get('clients','c3')).data.data;
-  check('возврат уменьшает обязательство, исходная цена сохранена',latest.price===c.price&&latest.returnedAmount===returnAmount);
-  check('счёт уменьшился на фактически возвращённые деньги',result.refundAmount>0&&(await get('wallets','w2')).data.data.balance===oldWallet-result.refundAmount);
-  const repeated=await post(body);check('повтор запроса не выдаёт деньги второй раз',repeated.status===200&&(await get('wallets','w2')).data.data.balance===oldWallet-result.refundAmount);
-  check('корзина не используется вместо истории реального возврата',(await get('returns','return_test_0001')).status===200);
-  check('изменение суммы с тем же номером возврата отклоняется',(await post({return:{...body.return,amount:1}})).status>=400);
- }
+ check('отдельная операция возврата удалена с сервера',(await post({return:{clientId:'c3',amount:1}})).status===400);
+ const initialPlain=await api('POST','/api/amana/backup-mail',{enabled:true,email:'backup@invalid.invalid',time:'00:00',encrypt:false},token);
+ await api('POST','/api/amana/test/backup-tick',{now:Date.now()},admin);
+ const initialMail=(await api('GET','/api/amana/test/mail',null,admin)).data;
+ check('ежедневная отправка работает с самого начала без заданного пароля',initialPlain.status===200&&!initialPlain.data.hasPassword&&JSON.parse(Object.values(initialMail.attachments||{})[0]||'{}').format==='amana-crm-backup');
  const settings=await api('POST','/api/amana/backup-mail',{enabled:true,email:'backup@invalid.invalid',time:'00:00',password:'backup-secret-123'},token);
  check('почта и время ежедневной отправки сохраняются',settings.status===200&&settings.data.enabled&&settings.data.time==='00:00',settings);
  check('пароль копии не возвращается в настройках',!JSON.stringify(settings.data).includes('backup-secret-123')&&!('password' in settings.data));
@@ -53,7 +46,7 @@ export default async function(){
  if(sent.status===200){
   const mail=(await api('GET','/api/amana/test/mail',null,admin)).data,attachments=Object.values(mail.attachments||{});
   check('письмо содержит один зашифрованный файл',attachments.length===1&&JSON.parse(attachments[0]).format==='amana-crm-backup-encrypted');
-  if(attachments.length){const backup=decode(attachments[0],'backup-secret-123');check('почтовая копия расшифровывается в обычный формат восстановления',backup.format==='amana-crm-backup'&&backup.counts.clients===200&&backup.collections.returns.return_test_0001);check('в почтовой копии нет пароля отправки и настроек SMTP',!backup.collections.amanaBackup&&!JSON.stringify(backup).includes('backup-secret-123'));}
+  if(attachments.length){const backup=decode(attachments[0],'backup-secret-123');check('почтовая копия расшифровывается в обычный формат восстановления',backup.format==='amana-crm-backup'&&backup.counts.clients===200&&!backup.collections.returns);check('в почтовой копии нет пароля отправки и настроек SMTP',!backup.collections.amanaBackup&&!JSON.stringify(backup).includes('backup-secret-123'));}
   const tick=now=>api('POST','/api/amana/test/backup-tick',{now},admin),count=async()=> (await api('GET','/api/amana/test/mail',null,admin)).data.sentCount;
   const initial=await count(),tomorrow=Date.now()+86400000;
   await tick(tomorrow);check('на следующий день cron отправляет копию без браузера',(await count())===initial+1);
@@ -73,13 +66,13 @@ export default async function(){
  check('владелец может создать сотрудника с ограниченными правами',viewer.status===200,viewer);
  const limited=await authToken('restricted@test.ru','restricted-123');
  check('сотрудник не читает почтовые настройки и хранимый секрет',(await api('GET','/api/amana/backup-mail',null,limited)).status===403&&(await api('GET','/api/collections/amanaBackup/records/daily',null,limited)).status>=400);
- const hiddenReturn=await api('GET','/api/collections/returns/records/return_test_0001',null,limited);
- check('себестоимость возврата скрыта без права на неё',hiddenReturn.status===200&&!('cost' in hiddenReturn.data.data));
- const limitedReturn=await api('POST','/api/amana/commit',{return:{clientId:'c4',requestId:'limited_return',amount:1,wallet:'w2',reason:'Проверка прав'}},limited);
- check('результат возврата и ответ записи тоже не раскрывают себестоимость',limitedReturn.status===200&&!('cost' in limitedReturn.data.result)&&limitedReturn.data.docs.every(d=>!d.data||(!('cost' in d.data)&&!('returnedCost' in d.data))),limitedReturn.status);
- await api('POST','/api/amana/test/seed',{docs:[{c:'trash',id:'hidden_cost',data:{coll:'clients',data:{cost:12345,returnedCost:123}}},{c:'trash',id:'hidden_investor',data:{coll:'invOps',data:{amount:12345}}}]},admin);
+ const hiddenDeal=await api('GET','/api/collections/clients/records/c3',null,limited);
+ check('себестоимость договора скрыта без права на неё',hiddenDeal.status===200&&!('cost' in hiddenDeal.data.data));
+ const edited=await api('POST','/api/amana/commit',{ops:[{t:'update',c:'clients',id:'c3',d:{comment:'Проверка скрытых данных'}}]},limited);
+ check('ответ записи тоже не раскрывает себестоимость',edited.status===200&&edited.data.docs.every(d=>!d.data||!('cost' in d.data)),edited.status);
+ await api('POST','/api/amana/test/seed',{docs:[{c:'trash',id:'hidden_cost',data:{coll:'clients',data:{cost:12345}}},{c:'trash',id:'hidden_investor',data:{coll:'invOps',data:{amount:12345}}}]},admin);
  const trash=(await api('GET','/api/collections/trash/records',null,limited)).data.items;
- check('корзина соблюдает права на инвесторов и себестоимость',trash.some(r=>r.id==='hidden_cost'&&!('cost' in r.data.data)&&!('returnedCost' in r.data.data))&&!trash.some(r=>r.id==='hidden_investor'));
+ check('корзина соблюдает права на инвесторов и себестоимость',trash.some(r=>r.id==='hidden_cost'&&!('cost' in r.data.data))&&!trash.some(r=>r.id==='hidden_investor'));
  check('без права на создание нельзя менять счётчик договоров',(await api('POST','/api/amana/commit',{ops:[{t:'counter',c:'settings',id:'counter-26'}]},limited)).status===403);
  await api('POST','/api/amana/staff/'+viewer.data.id,{perms:['v_journal','deal_edit','pay_cancel','inv_ops']},token);
  const opsOnly=await authToken('restricted@test.ru','restricted-123');
@@ -87,16 +80,29 @@ export default async function(){
  const D=await device();await login(D.p);await D.p.waitForTimeout(800);
  const unnamed=await D.p.evaluate(()=>window.AmanaModel.build({kassaOps:[{type:'opex',amount:1,date:{$date:new Date().toISOString()}}]}).events);
  check('расход без описания не нарушает общий расчёт прибыли',unnamed.length===1&&unnamed[0].amount===-1&&!!unnamed[0].ref,unnamed);
- await D.p.evaluate(()=>{goTo('security');document.getElementById('bkPw').value='';});await D.p.click('#bkDl');await D.p.waitForSelector('#bkSt .bk-err');
- check('ручная выгрузка без пароля не создаёт файл',/пароль/i.test(await D.p.textContent('#bkSt')));
- const stats=await D.p.evaluate(()=>{const c=S.clients.find(c=>c.id==='c3');return {balance:getStats(c).balance,received:getStats(c).received};});
- check('после частичного возврата долг и полученные деньги сходятся',stats.balance===0&&stats.received===c.price-returnAmount,stats);
- await D.p.evaluate(()=>{openC('c3');openReturn('c3');document.getElementById('returnWallet').value='w2';document.getElementById('returnReason').value='Полный возврат остатка';});
- await D.p.click('#returnSave');await D.p.waitForFunction(()=>!document.getElementById('mReturn'));
- const finished=await D.p.evaluate(()=>{const c=S.clients.find(c=>c.id==='c3');return {balance:getStats(c).balance,received:getStats(c).received,profit:dealProfitSplit(c,dealProfitList(c)).got,count:S.returns.filter(r=>r.clientId==='c3').length};});
- check('полный возврат через форму обнуляет долг, полученные деньги и прибыль',finished.balance===0&&finished.received===0&&Math.abs(finished.profit)<0.01&&finished.count===2,finished);
- const discounted=await D.p.evaluate(()=>{const c={id:'return_loss',price:100,cost:80,prepay:0},a=new Date(Date.now()-3000),b=new Date(Date.now()-2000),r=new Date(Date.now()-1000),payments=[{clientId:c.id,type:'payment',amount:50,date:a},{clientId:c.id,type:'discount',amount:50,date:b}],returns=[{clientId:c.id,amount:50,cost:80,date:r}];const ui=dealProfitSplit(c,[{p:payments[0],d:a},{p:payments[1],d:b},{p:{type:'return',amount:50,cost:80},d:r}]).got,server=window.AmanaModel.build({clients:[c],payments,returns}).events.reduce((n,e)=>n+e.amount,0);return {ui,server};});
- check('полный возврат отменяет и убыток прежней скидки ниже себестоимости',Math.abs(discounted.ui)<0.01&&Math.abs(discounted.server)<0.01,discounted);
+ await D.p.evaluate(()=>{openC('c3');});
+ check('в карточке и интерфейсе нет оформления возврата',await D.p.evaluate(()=>!document.querySelector('#cDetail').textContent.includes('Возврат товара / денег')&&typeof window.openReturn==='undefined'&&!window.DB.returnDeal));
+ await D.p.evaluate(()=>{goTo('security');document.getElementById('bkPw').value='';});
+ const [plainDownload]=await Promise.all([D.p.waitForEvent('download'),D.p.click('#bkDl')]);
+ const plainManual=JSON.parse(fs.readFileSync(await plainDownload.path(),'utf8'));
+ check('ручная выгрузка без пароля создаёт обычную копию',plainManual.format==='amana-crm-backup'&&plainManual.counts.clients===200);
+ check('копия без пароля подходит для восстановления',await D.p.evaluate(b=>window.DB.bkCheck(b)==='',plainManual));
+ await D.p.evaluate(()=>goTo('settings'));await D.p.waitForSelector('#mailEncrypt');
+ await D.p.evaluate(async()=>{document.getElementById('mailEncrypt').checked=false;mailProtectionChanged();await saveMailSettings();});
+ let mode=await api('GET','/api/amana/backup-mail',null,token);
+ check('форма позволяет отключить защиту и убирает старый пароль',mode.data.encrypt===false&&mode.data.hasPassword===false&&await D.p.isDisabled('#mailPassword'));
+ const plainSent=await api('POST','/api/amana/backup-mail/send',{},token),plainMail=(await api('GET','/api/amana/test/mail',null,admin)).data;
+ const plainAttachment=JSON.parse(Object.values(plainMail.attachments)[0]);
+ check('почтовая копия без пароля отправляется обычным файлом',plainSent.status===200&&plainAttachment.format==='amana-crm-backup'&&plainAttachment.counts.clients===200);
+ check('обычная почтовая копия не содержит секреты отправки',!plainAttachment.collections.amanaBackup&&!JSON.stringify(plainAttachment).includes('backup-secret-123'));
+ const noSecret=await api('POST','/api/amana/backup-mail',{enabled:true,email:'backup@invalid.invalid',time:'10:30',encrypt:true},token);
+ check('повторное включение защиты требует новый пароль',noSecret.status===400);
+ await D.p.evaluate(async()=>{document.getElementById('mailEncrypt').checked=true;mailProtectionChanged();document.getElementById('mailPassword').value='new-secret-123';await saveMailSettings();});
+ mode=await api('GET','/api/amana/backup-mail',null,token);
+ check('форма позволяет снова включить пароль',mode.data.encrypt===true&&mode.data.hasPassword===true&&!await D.p.isDisabled('#mailPassword'));
+ await api('POST','/api/amana/backup-mail/send',{},token);
+ const reprotected=(await api('GET','/api/amana/test/mail',null,admin)).data;
+ check('после включения защиты почтовый файл снова зашифрован',decode(Object.values(reprotected.attachments)[0],'new-secret-123').counts.clients===200);
  const other=await D.ctx.newPage();await other.goto(D.p.url());await other.waitForFunction(()=>window.AUTH?.currentUser&&typeof S!=='undefined'&&S.clients.length>0);
  await D.p.evaluate(()=>doLogout());await D.p.waitForSelector('#lemail:visible');await other.waitForSelector('#lemail:visible');
  check('выход закрывает доступ и в другой открытой вкладке',await other.evaluate(()=>!window.AUTH.currentUser));

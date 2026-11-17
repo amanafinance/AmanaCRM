@@ -3,9 +3,9 @@ const cents = v => Math.round(Number(v || 0) * 100);
 const day = v => { const ms = v && v.$date ? Date.parse(v.$date) : NaN; return Number.isFinite(ms) ? new Date(ms + 10800000).toISOString().slice(0, 10) : ''; };
 const isoDay = v => String(v || '').replace(/^(\d\d)\.(\d\d)\.(\d{4})$/, '$3-$2-$1');
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
-const dirs = {payment_in:1,prepay_in:1,inv_in:1,purchase:-1,opex:-1,salary:-1,other_exp:-1,inv_out:-1,inv_pay:-1,refund_out:-1,transfer:0};
+const dirs = {payment_in:1,prepay_in:1,inv_in:1,purchase:-1,opex:-1,salary:-1,other_exp:-1,inv_out:-1,inv_pay:-1,transfer:0};
 function validate(ctx) {
-  const {tx,cache,load,Fail,now,mode,isReturn} = ctx;
+  const {tx,cache,load,Fail,now,mode} = ctx;
   const bad = m => { throw new Fail('bad',m,400); };
   const changed = Object.values(cache).filter(s=>s.dirty);
   const rows = (c,original) => {
@@ -39,10 +39,10 @@ function validate(ctx) {
   }
   for(const s of changed){
     if(s.c==='kassaOps'){
-      const keys=['type','amount','wallet','walletTo','date','refId','refType','paymentId','invOpId','returnId'];
+      const keys=['type','amount','wallet','walletTo','date','refId','refType','paymentId','invOpId'];
       const moneyChanged=!s.existed||!s.exists||financialKeys(s.orig,s.data,keys);
       if(!moneyChanged)continue;
-      if(s.existed&&s.exists&&['payment_in','prepay_in','inv_in','inv_out','inv_pay','refund_out'].includes(s.orig.type)&&financialKeys(s.orig,s.data,['type','refId','refType','paymentId','invOpId','returnId']))bad('Связанную операцию нельзя переносить: отмените её целиком');
+      if(s.existed&&s.exists&&['payment_in','prepay_in','inv_in','inv_out','inv_pay'].includes(s.orig.type)&&financialKeys(s.orig,s.data,['type','refId','refType','paymentId','invOpId']))bad('Связанную операцию нельзя переносить: отмените её целиком');
       if(s.existed){checkDate(s.orig.date,'Исходная операция');effect(s.orig,-1);}
       if(s.exists){checkDate(s.data.date,'Операция кассы');effect(s.data,1);}
       const o=s.exists?s.data:s.orig;
@@ -55,7 +55,6 @@ function validate(ctx) {
         const p=load('invOps',o.invOpId||'missing'),d=s.exists?p.data:p.orig;
         if(!p.dirty||p.exists!==s.exists||d.kassaOpId!==s.id||d.invId!==o.refId||d.wallet!==o.wallet||cents(d.amount)!==cents(o.amount)||day(d.date)!==day(o.date)||o.type!==({deposit:'inv_in',withdraw:'inv_out',payout:'inv_pay'})[d.type])bad('Операция инвестора и касса должны совпадать');
       }
-      if(o.type==='refund_out'&&!isReturn)bad('Возврат оформляется отдельной операцией');
     }
     if(s.c==='wallets'){
       if(s.existed&&!s.exists){
@@ -80,12 +79,10 @@ function validate(ctx) {
     }
     if(s.c==='clients'){
       if(s.existed&&!s.exists){
-        if(cents(s.orig.prepay)>0||rows('payments',true).some(p=>p.clientId===s.id&&p.type!=='discount')||rows('kassaOps',true).some(o=>o.refType==='client'&&o.refId===s.id)||rows('returns',true).some(r=>r.clientId===s.id))bad('У договора есть история денег — удалить нельзя');
+        if(cents(s.orig.prepay)>0||rows('payments',true).some(p=>p.clientId===s.id&&p.type!=='discount')||rows('kassaOps',true).some(o=>o.refType==='client'&&o.refId===s.id))bad('У договора есть история денег — удалить нельзя');
         continue;
       }
       const d=s.data;
-      if(s.existed&&s.orig.returnedAmount>0&&financialKeys(s.orig,d,['price','cost','prepay']))bad('После возврата цену, себестоимость и предоплату не переписывают: оформите новый договор');
-      if(!isReturn&&financialKeys(s.orig,d,['returnedAmount','returnedCost','refundedAmount']))bad('Данные возврата меняет только сервер');
       const keys=['price','cost','prepay','months','date',...Array.from({length:120},(_,i)=>'размер'+(i+1)),...Array.from({length:120},(_,i)=>'дата'+(i+1))];
       if(!s.existed||financialKeys(s.orig,d,keys)){
         amount(d.price,'цена');amount(d.cost,'себестоимость');
@@ -99,11 +96,10 @@ function validate(ctx) {
         if((!s.existed||cents(d.prepay)!==cents(s.orig.prepay))&&cents(d.prepay)!==payments.filter(p=>p.clientId===s.id&&p.type==='prepay').reduce((n,p)=>n+cents(p.amount),0))bad('Предоплата и платёж договора должны совпадать');
       }
       const paid=payments.filter(p=>p.clientId===s.id&&['payment','discount'].includes(p.type)).reduce((n,p)=>n+cents(p.amount),0);
-      const debt=cents(d.price)-cents(d.returnedAmount)-cents(d.prepay)-paid+cents(d.refundedAmount);
-      if(debt<0)bad('Изменение создаёт переплату — оформите возврат');
+      const debt=cents(d.price)-cents(d.prepay)-paid;
+      if(debt<0)bad('Изменение создаёт переплату — проверьте сумму');
       if(d.archived&&(!s.existed||!s.orig.archived)&&debt>0)bad('Нельзя отправить в архив договор с долгом');
     }
-    if(s.c==='returns'&&!isReturn)bad('Возврат оформляется отдельной операцией');
   }
   for(const id of new Set([...Object.keys(expected),...changed.filter(s=>s.c==='wallets'&&s.exists).map(s=>s.id)])){
     const w=load('wallets',id),delta=cents(w.data.balance)-cents(w.orig.balance);
@@ -120,7 +116,7 @@ function validate(ctx) {
   }
   if(changed.some(s=>['investors','invOps','invMonths'].includes(s.c))){
     if(changed.some(s=>s.c==='invMonths')&&changed.some(s=>s.c!=='invMonths'&&(s.c!=='invOps'||!['profit','loss'].includes((s.exists?s.data:s.orig).type))))bad('Закрытие и отмена месяца выполняются отдельной операцией');
-    const data={};for(const c of ['clients','payments','kassaOps','investors','invOps','invMonths','wallets','returns'])data[c]=rows(c);
+    const data={};for(const c of ['clients','payments','kassaOps','investors','invOps','invMonths','wallets'])data[c]=rows(c);
     const model=require(`${__hooks}/amana_model.js`),before={...data,invOps:rows('invOps',true),invMonths:rows('invMonths',true)};
     const previous=model.build(before),next=model.build(data);
     for(const s of changed.filter(s=>s.c==='investors'&&s.exists&&s.data.archived&&(!s.existed||!s.orig.archived))){const b=next.bal[s.id]||{};if(cents(b.capital)||cents(b.payable))bad('Участника можно архивировать только с нулевым капиталом и прибылью к выплате');}

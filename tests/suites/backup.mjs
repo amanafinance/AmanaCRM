@@ -19,13 +19,14 @@ export default async function(){
   const B=await device();await login(B.p); // второе устройство: данные уже в его памяти
   await p.evaluate(()=>goTo('security'));await wait(p,300);
   check('в настройках есть карточка «Резервная копия»',await p.isVisible('#bkCard #bkDl'));
-  const before=await snap(p);await p.fill('#bkPw','backup-test-123');
+  const before=await snap(p);await p.fill('#bkPw','');
   const adminHeaders={'Content-Type':'application/json',Authorization:await pbAdmin()};
 
   // 1. Скачать копию (компьютер — файл скачивается сразу)
   const [dl]=await Promise.all([p.waitForEvent('download',{timeout:60000}),p.click('#bkDl')]);
   const file=path.join(tmp,dl.suggestedFilename());await dl.saveAs(file);
-  const txt=fs.readFileSync(file,'utf8'),J=decrypt(txt,'backup-test-123'),C=J.collections;
+  const txt=fs.readFileSync(file,'utf8'),J=JSON.parse(txt),C=J.collections;
+  check('пустой пароль позволяет скачать файл без шифрования',J.format==='amana-crm-backup');
   check('имя файла с датой и временем',/^amana-backup-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}\.json$/.test(dl.suggestedFilename()),dl.suggestedFilename());
   check('в файле вся база: договоры, платежи, касса, счета, клиенты, инвесторы, настройки, история',J.format==='amana-crm-backup'&&J.version===1&&J.source==='server'
     &&Object.keys(C.clients).length===before.n.c&&Object.keys(C.payments).length===before.n.p&&Object.keys(C.kassaOps).length===before.n.k
@@ -57,7 +58,7 @@ export default async function(){
   });
   check('восстановление требует все разделы и достоверные счётчики серверной копии',rejects);
   // 4. Восстановление: дата и состав копии, сначала сохранить текущие данные, потом восстановить
-  await p.setInputFiles('#bkFile',file);await p.waitForSelector('#bkOpenPw');await p.fill('#bkOpenPw','backup-test-123');await p.click('#bkOpenBtn');await p.waitForSelector('#bkPreBtn:not([disabled])',{timeout:60000});
+  await p.setInputFiles('#bkFile',file);await p.waitForSelector('#bkPreBtn:not([disabled])',{timeout:60000});
   const rs=await p.textContent('#bkRs');
   check('перед восстановлением видно дату копии и её состав',/Копия от \d\d\.\d\d\.\d{4} \d\d:\d\d/.test(rs)&&/200\sдоговоров/.test(rs),rs.slice(0,200));
   check('кнопка «Восстановить» недоступна, пока не сохранены текущие данные',await p.isDisabled('#bkGo'));

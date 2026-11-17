@@ -8,13 +8,12 @@
 //   {$op:'del'} — удалить поле, {$op:'union', v:[…]} / {$op:'remove', v:[…]} — добавить/убрать из списка.
 // Ответ: { u, docs: [{c, id, data, u, del}], counters: {id: первый номер} } или ошибка { code, message }.
 
-const COLS = { clients: 1, payments: 1, kassaOps: 1, wallets: 1, persons: 1, investors: 1, invOps: 1, invMonths: 1, settings: 1, journal: 1, trash: 1, returns:1 };
+const COLS = { clients: 1, payments: 1, kassaOps: 1, wallets: 1, persons: 1, investors: 1, invOps: 1, invMonths: 1, settings: 1, journal: 1, trash: 1 };
 const APPEND_ONLY = { journal: 1, trash: 1 };
 const ID_RE = /^[A-Za-z0-9_-]{1,100}$/;
 const MAX_OPS = 1000;
 
 const r2 = (v) => Math.round(v * 100) / 100;
-const centsReturn=v=>Math.round(Number(v)*100);
 // 12345.5 → «12 345,5» (toLocaleString на сервере недоступен)
 const money = (v) => { const n = r2(v), neg = n < 0, p = Math.abs(n).toFixed(2).replace(/\.?0+$/, '').split('.'); return (neg ? '-' : '') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + (p[1] ? ',' + p[1] : ''); };
 const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -66,6 +65,7 @@ const dateMs = (data) => { const v = data && data.date; if (isDate(v)) { const t
 
 function commit(e, app) {
   const req = e.requestInfo().body || {};
+  if(req.return!==undefined)return e.json(400,{code:'bad',message:'Такая операция не поддерживается'});
   // Корзину формирует сервер из исходной записи, а не из присланной браузером копии.
   const ops = (Array.isArray(req.ops) ? req.ops : []).filter(o=>o&&o.c!=='trash');
   const checks = isPlain(req.checks) ? req.checks : {};
@@ -102,36 +102,12 @@ function commit(e, app) {
         return cache[k];
       };
 
-      if(req.return){
-        if(!has(perms,'deal_edit')||!has(perms,'pay_cancel'))throw new Fail('denied','Нет права на возврат',403);
-        if(ops.length)throw new Fail('bad','Возврат должен быть отдельной операцией',400);
-        const r=req.return,c=load('clients',r.clientId),receipt=load('returns',r.requestId);
-        if(receipt.exists){if(receipt.data.clientId!==r.clientId||centsReturn(receipt.data.amount)!==centsReturn(r.amount)||receipt.data.reason!==String(r.reason||'').trim()||(receipt.data.refundAmount>0&&receipt.data.wallet!==r.wallet))throw new Fail('bad','Этот номер возврата уже использован для другой операции',400);out.result=has(perms,'v_cost')?receipt.data:stripCost(receipt.data);return;}
-        if(!c.exists)throw new Fail('missing','Договор не найден',404);
-        const p=tx.findRecordsByFilter('payments','data.clientId = {:id}','',0,0,{id:c.id}).map(x=>JSON.parse(x.getString('data')));
-        const sum=t=>p.filter(x=>x.type===t).reduce((a,x)=>a+Math.round(x.amount*100),0);
-        const total=Math.round(c.data.price*100)-sum('discount')-Math.round((c.data.returnedAmount||0)*100);
-        const amount=Math.round(Number(r.amount)*100);
-        if(!Number.isFinite(r.amount)||r.amount<=0||Math.abs(r.amount*100-amount)>0.000001||amount>total)throw new Fail('bad','Стоимость возврата больше оставшейся стоимости договора',400);
-        if(typeof r.reason!=='string'||!r.reason.trim()||r.reason.length>2000)throw new Fail('bad','Укажите причину возврата',400);
-        const received=Math.round((c.data.prepay||0)*100)+sum('payment')-Math.round((c.data.refundedAmount||0)*100);
-        const refund=Math.max(0,received-(total-amount));
-        const remainingCost=Math.round((c.data.cost-(c.data.returnedCost||0))*100),cost=amount===total?remainingCost:Math.round(remainingCost*amount/total);
-        const stamp={$date:nowIso},data={clientId:c.id,contractId:c.data.contractId,amount:amount/100,cost:cost/100,refundAmount:refund/100,reason:r.reason.trim(),date:stamp,wallet:refund?r.wallet:'',createdBy:e.auth.id};
-        const set=(state,d)=>{state.data=d;state.exists=true;state.dirty=true;};
-        if(refund){const wallet=load('wallets',r.wallet);if(!wallet.exists)throw new Fail('bad','Выберите счёт возврата',400);const k=load('kassaOps','ret_'+r.requestId);data.kassaOpId=k.id;
-          set(k,{type:'refund_out',amount:refund/100,wallet:wallet.id,walletName:wallet.data.name,auto:true,refType:'client',refId:c.id,returnId:receipt.id,desc:'Возврат по договору №'+c.data.contractId,date:stamp,dateStr:nowIso.slice(0,10).split('-').reverse().join('.')});
-          set(wallet,{...wallet.data,balance:r2(wallet.data.balance-refund/100)});
-        }
-        set(receipt,data);set(c,{...c.data,returnedAmount:r2((c.data.returnedAmount||0)+amount/100),returnedCost:r2((c.data.returnedCost||0)+cost/100),refundedAmount:r2((c.data.refundedAmount||0)+refund/100),paySeq:(c.data.paySeq||0)+1});out.result=has(perms,'v_cost')?data:stripCost(data);
-      }
-
       // 1. Проверки до записи
       (Array.isArray(checks.expect) ? checks.expect : []).forEach((x) => {
         if ((x.c === 'wallets' || x.c === 'kassaOps') && !has(perms, 'v_kassa')) throw new Fail('denied', 'Нет права на просмотр кассы', 403);
         if(['investors','invOps','invMonths'].includes(x.c)&&!has(perms,'v_inv'))throw new Fail('denied','Нет права на просмотр инвесторов',403);
         if(['journal','trash'].includes(x.c)&&!has(perms,'v_journal'))throw new Fail('denied','Нет права на историю',403);
-        if(['cost','returnedCost'].includes(x.f)&&!has(perms,'v_cost'))throw new Fail('denied','Нет права на себестоимость',403);
+        if(x.f==='cost'&&!has(perms,'v_cost'))throw new Fail('denied','Нет права на себестоимость',403);
         const s = load(x.c, x.id);
         if (x.exists !== undefined && s.exists !== !!x.exists) throw new Fail(x.exists ? 'missing' : 'exists', x.exists ? 'Запись не найдена' : 'exists');
         if (x.f !== undefined) {
@@ -191,7 +167,7 @@ function commit(e, app) {
       if (req.mode === 'reconcile' && !has(perms,'settings')) throw new Fail('denied','Нет права на сверку',403);
       if (req.mode !== 'restore') {
         validateReceipts(tx, cache, load, dealSeq, now);
-        require(`${__hooks}/amana_finance.js`).validate({tx,cache,load,Fail,now,mode:req.mode,isReturn:!!req.return});
+        require(`${__hooks}/amana_finance.js`).validate({tx,cache,load,Fail,now,mode:req.mode});
       }
 
       // 3. Правило счетов: остаток не уходит в минус (пополнить счёт, который уже в минусе, можно)
@@ -209,9 +185,9 @@ function commit(e, app) {
           trash.set('data',{coll:s.c,docId:s.id,data:s.orig,deletedAt:{$date:nowIso},deletedBy:actor});trash.set('u',now);trash.set('d',now);tx.save(trash);
         });
         const journal=new Record(tx.findCollectionByNameOrId('journal'));
-        const labels={clients:'Договор',persons:'Клиент',kassaOps:'Операция кассы',wallets:'Счёт',investors:'Участник',invOps:'Операция инвестора',invMonths:'Месяц инвесторов',settings:'Настройки',payments:'Платёж',returns:'Возврат'};
+        const labels={clients:'Договор',persons:'Клиент',kassaOps:'Операция кассы',wallets:'Счёт',investors:'Участник',invOps:'Операция инвестора',invMonths:'Месяц инвесторов',settings:'Настройки',payments:'Платёж'};
         const businessTime=new Date(now+10800000).toISOString();
-        journal.set('data',{type:req.mode==='restore'?'Восстановление из резервной копии':req.return?'Возврат товара и денег':'Изменение базы',description:changes.map(s=>{const d=s.exists?s.data:s.orig;return (s.del?'Удалено: ':s.existed?'Изменено: ':'Создано: ')+(labels[s.c]||s.c)+' '+(d.contractId||d.name||s.id);}).join('; '),changes:changes.map(s=>({collection:s.c,id:s.id,action:s.del?'delete':s.existed?'update':'create'})),user:actor,userId:e.auth&&e.auth.id,date:{$date:nowIso},dateStr:businessTime.slice(0,10).split('-').reverse().join('.'),time:businessTime.slice(11,16)});
+        journal.set('data',{type:req.mode==='restore'?'Восстановление из резервной копии':'Изменение базы',description:changes.map(s=>{const d=s.exists?s.data:s.orig;return (s.del?'Удалено: ':s.existed?'Изменено: ':'Создано: ')+(labels[s.c]||s.c)+' '+(d.contractId||d.name||s.id);}).join('; '),changes:changes.map(s=>({collection:s.c,id:s.id,action:s.del?'delete':s.existed?'update':'create'})),user:actor,userId:e.auth&&e.auth.id,date:{$date:nowIso},dateStr:businessTime.slice(0,10).split('-').reverse().join('.'),time:businessTime.slice(11,16)});
         journal.set('u',now);journal.set('d',now);tx.save(journal);
       }
 
@@ -234,7 +210,7 @@ function commit(e, app) {
         tx.save(rec);
         if ((s.c === 'wallets' || s.c === 'kassaOps') && !has(perms, 'v_kassa')) return;
         if (['investors','invOps','invMonths'].includes(s.c) && !has(perms,'v_inv')) return;
-        out.docs.push({ c: s.c, id: s.id, data: ['clients','returns'].includes(s.c) && !has(perms, 'v_cost') ? stripCost(s.data) : s.data, u: now });
+        out.docs.push({ c: s.c, id: s.id, data: s.c === 'clients' && !has(perms, 'v_cost') ? stripCost(s.data) : s.data, u: now });
       });
   }
 }
@@ -310,7 +286,7 @@ function validateReceipts(tx, cache, load, dealSeq, now) {
   for (const [id, amount] of byDeal) {
     const deal = load('clients', id);
     const previous = tx.findRecordsByFilter('payments', 'data.clientId = {:id}', '', 0, 0, { id });
-    let left = cents(deal.orig.price) - cents(deal.orig.prepay || 0)-cents(deal.orig.returnedAmount||0)+cents(deal.orig.refundedAmount||0);
+    let left = cents(deal.orig.price) - cents(deal.orig.prepay || 0);
     for (const record of previous) {
       const p = JSON.parse(record.getString('data'));
       if (p.type === 'payment' || p.type === 'discount') left -= cents(p.amount);
@@ -334,7 +310,7 @@ const PERM_LABEL = {
 const PERMS = Object.keys(PERM_LABEL);
 const has = (perms, p) => perms === '*' || String(perms || '').indexOf(',' + p + ',') >= 0;
 const normPerms = (v) => { if (v === '*') return '*'; const a = (Array.isArray(v) ? v : String(v || '').split(',')).map((x) => String(x).trim()).filter((x) => PERMS.indexOf(x) >= 0); return a.length ? ',' + a.filter((x, i) => a.indexOf(x) === i).join(',') + ',' : ''; };
-const stripCost = (d) => { if (!isPlain(d)) return d; const o = Object.assign({}, d); delete o.cost;delete o.returnedCost; return o; };
+const stripCost = (d) => { if (!isPlain(d)) return d; const o = Object.assign({}, d); delete o.cost; return o; };
 const changed = (a, b) => { a = a || {}; b = b || {}; const ks = {}; Object.keys(a).forEach((k) => { ks[k] = 1; }); Object.keys(b).forEach((k) => { ks[k] = 1; }); return Object.keys(ks).filter((k) => !same(a[k], b[k])); };
 const only = (keys, allowed) => keys.every((k) => allowed.indexOf(k) >= 0);
 // Какие права нужны для этой транзакции: по тому, что и как меняется
@@ -348,7 +324,6 @@ function permsFor(ops, cache, perms) {
     const want = (p) => { need[p] = 1; };
     switch (o.c) {
       case 'journal': case 'trash': return; // только дописываются (проверено выше)
-      case 'returns': want('deal_edit');return want('pay_cancel');
       case 'settings':
         if (o.id === 'meta') { if (s.existed) want('restore'); return; } // метку базы меняет только восстановление из копии
         if (o.id==='ui') return;
@@ -438,7 +413,7 @@ function enrichClient(e) {
   const a = e.requestInfo && e.requestInfo.auth;
   if (a && a.collection().name === 'users' && !has(a.getString('perms'), 'v_cost')) {
     let d = null; try { d = JSON.parse(e.record.getString('data') || 'null'); } catch (x) { d = null; }
-    if (isPlain(d)) e.record.set('data', e.record.collection().name==='trash'&&['clients','returns'].includes(d.coll)?{...d,data:stripCost(d.data)}:stripCost(d));
+    if (isPlain(d)) e.record.set('data', e.record.collection().name==='trash'&&d.coll==='clients'?{...d,data:stripCost(d.data)}:stripCost(d));
   }
 }
 

@@ -1,7 +1,7 @@
 // Общий денежный расчёт для браузера и сервера. Все суммы округляются до копеек.
 (function(root){
 function engine(input){
-const S={...input,inv:input.inv||input.investors||[],clients:input.clients||[],payments:input.payments||[],kassaOps:input.kassaOps||[],invOps:input.invOps||[],invMonths:input.invMonths||[],wallets:input.wallets||[],returns:input.returns||[]};
+const S={...input,inv:input.inv||input.investors||[],clients:input.clients||[],payments:input.payments||[],kassaOps:input.kassaOps||[],invOps:input.invOps||[],invMonths:input.invMonths||[],wallets:input.wallets||[]};
 const invD=x=>{if(!x)return null;if(x instanceof Date)return x;if(x.$date)return new Date(x.$date);if(x.toDate)return x.toDate();const d=new Date(x);return isNaN(d)?null:d;};
 const dTs=invD,invR=n=>Math.round((n+Number.EPSILON)*100)/100;
 const biz=d=>new Date(d.getTime()+10800000);
@@ -20,7 +20,6 @@ function dealProfitList(c,pays){
     if(p.type!=='payment'&&p.type!=='discount')return;
     const d=invD(p.date);if(d)out.push({p,d});
   });
-  (S.returns||[]).filter(r=>r.clientId===c.id).forEach(r=>{const d=invD(r.date);if(d)out.push({p:{type:'return',amount:r.amount,cost:r.cost},d});});
   if(pre>0){const d=preD||dealDate(c);if(d)out.push({p:{type:'prepay',amount:pre},d});}
   return out;
 }
@@ -31,7 +30,6 @@ function dealProfitSplit(c,list){
   const ord=t=>t==='prepay'?0:1; // в один день сначала предоплата
   list.slice().sort((a,b)=>a.d-b.d||ord(a.p.type)-ord(b.p.type)).forEach(({p,d})=>{
     const a=parseFloat(p.amount)||0;if(a<=0)return;
-    if(p.type==='return'){const profit=a-(parseFloat(p.cost)||0),take=Math.min(Math.max(0,profit),profRem);profRem-=take;bodyRem=Math.max(0,bodyRem-(parseFloat(p.cost)||0));const loss=profit-take;if(loss>0.004){got-=loss;items.push({d,disc:loss,returned:true});}else if(loss< -0.004){got-=loss;items.push({d,prof:-loss,body:0,src:'return',returned:true});}return;}
     if(p.type==='discount'){const fromProf=Math.min(a,profRem);profRem-=fromProf;const loss=Math.min(a-fromProf,bodyRem);bodyRem-=loss;
       if(loss>0.004){got-=loss;items.push({d,disc:loss});}return;}
     const R=bodyRem+profRem;let prof,body;
