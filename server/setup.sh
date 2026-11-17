@@ -41,7 +41,7 @@ say "Пакеты и обновления системы"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade
-apt-get -y -q install curl ca-certificates unzip jq ufw fail2ban unattended-upgrades sqlite3 dnsutils git rsync python3 python3-cryptography
+apt-get -y -q install curl ca-certificates unzip jq ufw fail2ban unattended-upgrades sqlite3 dnsutils git rsync
 
 say "Проверка: домен $DOMAIN указывает на этот сервер"
 MYIPS="$(hostname -I 2>/dev/null || true) $(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || true)"

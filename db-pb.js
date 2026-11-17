@@ -391,23 +391,15 @@ async function bkRestore(B, prog) {
 }
 
 // ---------- Вход ----------
-// Вход действует 8 часов, подтверждение нового входа — пароль и код из письма.
+// Вход по почте и паролю; токен действует 8 часов.
 const AUTH = { get currentUser() { const r = pb.authStore.isValid && pb.authStore.record; return r ? { email: r.email, uid: r.id, name: r.name || '' } : null; },
   // права: "*" — владелец (всё), иначе ",право,право,"
   get perms() { const r = pb.authStore.isValid && pb.authStore.record; return r ? (r.perms || '') : ''; } };
 const hasRight = p => AUTH.perms === '*' || AUTH.perms.includes(',' + p + ',');
 const SIGN_IN = async (_a, email, pw) => {
   try { await pb.collection('users').authWithPassword(email, pw, { requestKey: null }); }
-  catch (e) {
-    if(e.response&&e.response.mfaId){
-      let otp;try{otp=await pb.collection('users').requestOTP(email,{requestKey:null});}catch(err){throw Object.assign(new Error('Не удалось отправить код'),{code:err.status===429?'auth/too-many-requests':'auth/mail-unavailable'});}
-      _loginChallenge={mfaId:e.response.mfaId,otpId:otp.otpId};return {needsCode:true};
-    }
-    const st = e && e.status; throw Object.assign(new Error('auth'), { code: st === 429 ? 'auth/too-many-requests' : !st ? 'auth/network-request-failed' : 'auth/invalid-credential' });
-  }
+  catch (e) { const st=e&&e.status;throw Object.assign(new Error('auth'),{code:st===429?'auth/too-many-requests':!st?'auth/network-request-failed':'auth/invalid-credential'}); }
 };
-let _loginChallenge=null;
-const VERIFY_CODE=async code=>{if(!_loginChallenge)throw new Error('Начните вход заново');const c=_loginChallenge;await pb.collection('users').authWithOTP(c.otpId,String(code).trim(),{mfaId:c.mfaId,requestKey:null});_loginChallenge=null;};
 // Вход перестал действовать (вход отключён, «Выйти на всех устройствах», сменён пароль): показываем экран входа
 let _authLost = false;
 let logoutChannel;try{logoutChannel=new BroadcastChannel('amana_private_logout');logoutChannel.onmessage=async()=>{closing=true;Object.values(cols).forEach(s=>{clearTimeout(s._s);clearTimeout(s._t);s.map.clear();});if(_idb){const d=await _idb;if(d)d.close();}_idb=null;pb.authStore.clear();location.reload();};}catch(e){}
@@ -419,7 +411,7 @@ async function clearPrivateData(){
   try{
     if(indexedDB.databases){const all=await indexedDB.databases();for(const d of all.filter(d=>d.name&&d.name.startsWith('amana_pb_')))await new Promise((ok,no)=>{const timer=setTimeout(()=>no(new Error('Закройте другие вкладки CRM и повторите выход для очистки данных')),10000),r=indexedDB.deleteDatabase(d.name);r.onsuccess=()=>{clearTimeout(timer);ok();};r.onerror=()=>{clearTimeout(timer);no(r.error);};});}
     else await idbClear();
-  }finally{tombs.clear();_loginChallenge=null;pb.authStore.clear();}
+  }finally{tombs.clear();pb.authStore.clear();}
 }
 function authLost() { if (_authLost) return; _authLost = true; clearPrivateData().finally(()=>{pb.authStore.clear();location.reload();}); }
 const SIGN_OUT = async () => {await clearPrivateData();};
@@ -452,6 +444,5 @@ window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: update
   bkDump, bkRestore, bkCheck, staff, deviceId: devId, backend: 'pocketbase', pb };
 window.DB.reconcile=(id,balance)=>commitOps([{t:'update',c:'wallets',id,d:{balance}}],null,null,'reconcile');
 window.DB.note=type=>staffCall('POST','/api/amana/note',{type});
-window.DB.mail={get:()=>staffCall('GET','/api/amana/backup-mail'),save:data=>staffCall('POST','/api/amana/backup-mail',data),send:()=>staffCall('POST','/api/amana/backup-mail/send')};
-window.AUTH = AUTH; window.SIGN_IN = SIGN_IN;window.VERIFY_CODE=VERIFY_CODE; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
+window.AUTH = AUTH; window.SIGN_IN = SIGN_IN; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
 window.dispatchEvent(new Event('dbReady'));

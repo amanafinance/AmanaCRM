@@ -1,9 +1,9 @@
 // Сотрудники и права (свой сервер): владелец заводит сотрудника, выбирает набор и галочки;
 // у сотрудника скрыты чужие разделы и кнопки, а сервер не выполняет действия без права и не отдаёт скрытые данные.
-import {reseed,device,login,check,noErrors,wait,autoConfirm,URL_CRM,completeCode,resetTestLogin} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,autoConfirm,URL_CRM} from '../lib.mjs';
 async function loginAs(p,email,pw){
   try{await p.goto(URL_CRM);}catch(e){if(!/ERR_ABORTED/.test(String(e)))throw e;await p.waitForLoadState('domcontentloaded');}await p.waitForSelector('#lemail:visible');await wait(p,200);
-  await resetTestLogin(email);await p.fill('#lemail',email);await p.fill('#lpass',pw);await p.click('#loginFields button');await completeCode(p,email);
+  await p.fill('#lemail',email);await p.fill('#lpass',pw);await p.click('#loginFields button');
   await p.waitForFunction(()=>typeof S!=='undefined'&&S.clients.length>0&&S.wallets.length>0,null,{timeout:90000});await wait(p,1500);
 }
 const vis=(p,sel)=>p.evaluate(s=>{const e=document.querySelector(s);return!!e&&getComputedStyle(e).display!=='none'&&e.offsetParent!==null;},sel);

@@ -9,7 +9,6 @@ tests/.pb/
 !.env.example
 pb_data/
 server/pb_data/
-.amana-mail-key
 *.db
 *.db-shm
 *.db-wal

@@ -396,7 +396,7 @@ function staffSave(e, app) {
   if (perms !== undefined) r.set('perms', perms);
   if (b.disabled !== undefined) { r.set('disabled', !!b.disabled); if (b.disabled) r.refreshTokenKey(); }
   if (b.logoutAll && id) r.refreshTokenKey(); // все входы этого сотрудника перестают действовать
-  try { app.runInTransaction(tx=>{tx.save(r);require(`${__hooks}/amana_mail.js`).audit(tx,e,id?'Изменены права или вход сотрудника':'Создан сотрудник');}); } catch (x) { return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
+  try { app.runInTransaction(tx=>{tx.save(r);require(`${__hooks}/amana_audit.js`).audit(tx,e,id?'Изменены права или вход сотрудника':'Создан сотрудник');}); } catch (x) { return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
   return e.json(200, staffView(r));
 }
 function staffDelete(e, app) {
@@ -405,7 +405,7 @@ function staffDelete(e, app) {
   if (e.auth && id === e.auth.id) return e.json(400, { code: 'bad', message: 'Себя удалить нельзя' });
   let r; try { r = app.findRecordById('users', id); } catch (x) { return e.json(404, { code: 'missing', message: 'Сотрудник не найден' }); }
   if (r.getString('perms') === '*' && myPerms(e) !== '*') return e.json(403, { code: 'denied', message: 'Удалить владельца может только владелец' });
-  app.runInTransaction(tx=>{tx.delete(r);tx.findRecordsByFilter('devices','user = {:u}','',0,0,{u:id}).forEach(d=>tx.delete(d));require(`${__hooks}/amana_mail.js`).audit(tx,e,'Удалён сотрудник');});
+  app.runInTransaction(tx=>{tx.delete(r);tx.findRecordsByFilter('devices','user = {:u}','',0,0,{u:id}).forEach(d=>tx.delete(d));require(`${__hooks}/amana_audit.js`).audit(tx,e,'Удалён сотрудник');});
   return e.json(200, { ok: true });
 }
 // Себестоимость не уходит к тем, кому её видеть нельзя (списки, карточки, realtime)

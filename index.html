@@ -1241,7 +1241,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 
 </head>
 <body>
-<div id="loginWrap"><div class="lbox"><div class="llogo">AMANA FINANCE</div><div class="ltitle">CRM <span>Система</span></div><div id="loginFields"><label class="lbl">Email</label><input class="inp" type="email" id="lemail" placeholder="email@example.com" style="margin-bottom:10px"/><label class="lbl">Пароль</label><input class="inp" type="password" id="lpass" placeholder="Введите пароль" style="margin-bottom:10px"/><button class="btn bg" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">Войти</button></div><div id="loginCodeFields" style="display:none"><label class="lbl" for="loginCode">Код из письма</label><input class="inp" id="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 цифр" onkeydown="if(event.key==='Enter')verifyLoginCode()"/><p style="margin:10px 0">Проверьте почту и папку «Спам». Код действует 5 минут.</p><button class="btn bg" onclick="verifyLoginCode()">Подтвердить вход</button><button class="btn bgh" onclick="location.reload()">Начать заново</button><div id="loginCodeError" role="alert"></div></div><div id="loginLoading" style="display:none;text-align:center;padding:20px"><div class="spin" style="margin:0 auto"></div></div><div id="lerr" style="color:var(--red);font-size:var(--fs-xs);margin-top:6px;text-align:center;display:none"></div></div></div>
+<div id="loginWrap"><div class="lbox"><div class="llogo">AMANA FINANCE</div><div class="ltitle">CRM <span>Система</span></div><div id="loginFields"><label class="lbl">Email</label><input class="inp" type="email" id="lemail" placeholder="email@example.com" style="margin-bottom:10px"/><label class="lbl">Пароль</label><input class="inp" type="password" id="lpass" placeholder="Введите пароль" style="margin-bottom:10px"/><button class="btn bg" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">Войти</button></div><div id="loginLoading" style="display:none;text-align:center;padding:20px"><div class="spin" style="margin:0 auto"></div></div><div id="lerr" style="color:var(--red);font-size:var(--fs-xs);margin-top:6px;text-align:center;display:none"></div></div></div>
 <div id="app">
 <aside class="sidebar"><div>
 <div class="slogo">AMANA FINANCE</div><div class="sname">CRM</div>
@@ -1308,7 +1308,6 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="card perm-bk" id="bkCard"><div class="ct">Резервная копия</div><div id="bkBody"></div></div>
 </div></div>
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div><div class="pt">Справочники</div><div class="ps">Поставщики, счета, шаблоны WhatsApp</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-<div class="card perm-settings" id="mailSettingsCard" style="display:none"><div class="ct">Автоматические копии на почту</div><div id="mailSettingsBody"></div></div>
 <div class="card perm-settings"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
 <div class="card perm-settings"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
 <div class="card perm-settings" id="renumCard" style="display:none"><div class="ct">Номера в новом формате</div><div id="renumBody"></div></div>
@@ -1568,8 +1567,7 @@ const CRM_VERSION='17.11.2026 · защита и копии';
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';if(!window.SIGN_IN){document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Нет подключения к базе. Проверь интернет';er.style.display='block';return;}window.SIGN_IN(window.AUTH,em,pw).then(r=>{if(r&&r.needsCode){document.getElementById('loginLoading').style.display='none';document.getElementById('loginCodeFields').style.display='block';document.getElementById('lpass').value='';document.getElementById('loginCode').focus();}else enterApp();}).catch(e=>{document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';const c=e&&e.code;er.textContent=(c==='auth/too-many-requests'?'Слишком много попыток, подожди немного':(c==='auth/network-request-failed'?'Нет интернета':c==='auth/mail-unavailable'?'Не удалось отправить код. Проверьте подключение почты на сервере':'Неверный email или пароль'));er.style.display='block';});}
-async function verifyLoginCode(){const err=document.getElementById('loginCodeError');err.textContent='';try{await window.VERIFY_CODE(document.getElementById('loginCode').value);enterApp();}catch(e){err.textContent='Код неверный или истёк. Проверьте письмо или начните вход заново.';}}
+function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';if(!window.SIGN_IN){document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Нет подключения к базе. Проверь интернет';er.style.display='block';return;}window.SIGN_IN(window.AUTH,em,pw).then(()=>enterApp()).catch(e=>{document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';const c=e&&e.code;er.textContent=(c==='auth/too-many-requests'?'Слишком много попыток, подожди немного':(c==='auth/network-request-failed'?'Нет интернета':'Неверный email или пароль'));er.style.display='block';});}
 function enterApp(){document.getElementById('lpass').value='';document.getElementById('loginWrap').style.display='none';document.getElementById('app').classList.add('on');initApp();}
 async function doLogout(){try{if(window.SIGN_OUT)await window.SIGN_OUT(window.AUTH);location.reload();}catch(e){toast(e.message,'ter');}}
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
@@ -3082,7 +3080,7 @@ async function ensureCashWallet(){
   }
 }
 function renderSettings(){
-  renderRecon();renderWaTpl();renderRenum();if(typeof renderMailSettings==='function')renderMailSettings();
+  renderRecon();renderWaTpl();renderRenum();
   document.getElementById('partList').innerHTML=S.partners.map((p,i)=>{
     const locked=p==='Сторонний';
     return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:var(--fs-sm);font-weight:600">'+esc(p)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(fmtPhone(S.partnerPhones[p]||''))+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
@@ -3171,7 +3169,7 @@ function staffDevHtml(u){
     '<button class="btn bgh bsm" style="margin-top:6px" onclick="staffLogoutAll(\''+u.id+'\')">Выйти на всех устройствах</button></details>';
 }
 function staffLogoutAll(id){const u=_staff&&_staff.list.find(x=>x.id===id);if(!u)return;const me=u.id===_staff.me;
-  showConfirm('Выйти на всех устройствах?',esc(u.name||u.email)+': вход на всех телефонах и компьютерах перестанет действовать, войти можно будет заново с паролем и кодом из письма.'+(me?'<br><b>Это ваш вход — вас тоже попросит войти заново.</b>':''),async()=>{
+  showConfirm('Выйти на всех устройствах?',esc(u.name||u.email)+': вход на всех телефонах и компьютерах перестанет действовать, войти можно будет заново с паролем.'+(me?'<br><b>Это ваш вход — вас тоже попросит войти заново.</b>':''),async()=>{
     try{await window.DB.staff.save(id,{logoutAll:true});await logA('Выход на всех устройствах',u.email).catch(()=>{});toast('Готово: все входы сброшены','tok');if(me)setTimeout(()=>location.reload(),800);else renderStaff();}catch(e){toast('Ошибка: '+e.message,'ter');}});}
 const presetOf=perms=>{if(perms==='*')return PERM_PRESETS[0];const set=PERM_KEYS.filter(k=>perms.indexOf(','+k+',')>=0).sort().join();return PERM_PRESETS.find(p=>p[2]!=='*'&&p[2].slice().sort().join()===set)||null;};
 function openStaff(id){
@@ -5556,6 +5554,5 @@ function blurInside(el){const a=document.activeElement;if(a&&a!==document.body&&
 })();
 </script>
 
-<script src="./vendor/amana-model/security-ui.js"></script>
 </body>
 </html>

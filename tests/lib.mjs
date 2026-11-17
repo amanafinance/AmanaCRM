@@ -29,19 +29,14 @@ async function startPB(){
 }
 let _pbTok=null;
 export async function pbAdmin(){return _pbTok;}
-export async function resetTestLogin(email){await fetch(PB_URL+'/api/amana/test/reset-login-limits',{method:'POST',headers:{Authorization:await pbAdmin(),'Content-Type':'application/json'},body:JSON.stringify({email})});}
-export async function testCode(email){for(let i=0;i<100;i++){const r=await fetch(PB_URL+'/api/amana/test/otp/'+encodeURIComponent(email),{headers:{Authorization:await pbAdmin()}}),code=(await r.json()).code;if(code)return code;await new Promise(r=>setTimeout(r,50));}throw new Error('Не получено тестовое письмо с кодом');}
 export async function authToken(email,password){
- await resetTestLogin(email);
- const req=async(path,body)=>await (await fetch(PB_URL+'/api/collections/users/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
- const first=await req('auth-with-password',{identity:email,password});if(first.token)return first.token;
- if(!first.mfaId)throw new Error('Пароль не принят');const otp=await req('request-otp',{email});if(!otp.otpId)throw new Error('Код не запрошен: '+JSON.stringify(otp));
- const last=await req('auth-with-otp',{otpId:otp.otpId,password:await testCode(email),mfaId:first.mfaId});if(!last.token)throw new Error('Код не принят: '+JSON.stringify(last));return last.token;
+ const r=await fetch(PB_URL+'/api/collections/users/auth-with-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identity:email,password})});
+ const data=await r.json();if(!data.token)throw new Error('Пароль не принят');return data.token;
 }
 
 let server=null,browser=null;
 const devices=[];
-export async function debugDevices(){for(const d of devices)if(!d.p.isClosed())console.log('Диагностика тестового устройства:',{errors:d.errs.slice(-3),state:await d.p.evaluate(()=>({toast:document.getElementById('toast')?.textContent,codeError:document.getElementById('loginCodeError')?.textContent,loginError:document.getElementById('lerr')?.textContent})).catch(()=>null)});}
+export async function debugDevices(){for(const d of devices)if(!d.p.isClosed())console.log('Диагностика тестового устройства:',{errors:d.errs.slice(-3),state:await d.p.evaluate(()=>({toast:document.getElementById('toast')?.textContent,loginError:document.getElementById('lerr')?.textContent})).catch(()=>null)});}
 export async function start(){
   await startPB();
   server=http.createServer((req,res)=>{
@@ -70,20 +65,13 @@ export async function device(o={}){
 }
 export async function login(p,{again=false}={}){
   await p.goto(URL_CRM);await p.waitForTimeout(800);
-  if(!again&&await p.$('#lemail:visible')){await resetTestLogin('a@test.ru');await p.fill('#lemail','a@test.ru');await p.fill('#lpass','test12345');await p.click('#loginFields button');}
-  await completeCode(p,'a@test.ru');
+  if(!again&&await p.$('#lemail:visible')){await p.fill('#lemail','a@test.ru');await p.fill('#lpass','test12345');await p.click('#loginFields button');}
   // после очистки базы CRM сама перезагружает страницу — ожидание переживает эту перезагрузку
   for(let i=0;;i++){
     try{await p.waitForFunction(()=>typeof S!=='undefined'&&S.clients.length>0&&S.payments.length>0&&S.wallets.length>0,null,{timeout:90000});break;}
-    catch(e){if(i>=2||!/context|navigat/i.test(String(e))){console.log('Состояние входа:',await p.evaluate(()=>({code:!!document.querySelector('#loginCode')?.offsetParent,error:document.getElementById('loginCodeError')?.textContent,loginError:document.getElementById('lerr')?.textContent,logged:!!window.AUTH?.currentUser,clients:typeof S!=='undefined'?S.clients.length:-1,payments:typeof S!=='undefined'?S.payments.length:-1,wallets:typeof S!=='undefined'?S.wallets.length:-1})));throw e;}await p.waitForTimeout(1000);}
+    catch(e){if(i>=2||!/context|navigat/i.test(String(e))){console.log('Состояние входа:',await p.evaluate(()=>({loginError:document.getElementById('lerr')?.textContent,logged:!!window.AUTH?.currentUser,clients:typeof S!=='undefined'?S.clients.length:-1,payments:typeof S!=='undefined'?S.payments.length:-1,wallets:typeof S!=='undefined'?S.wallets.length:-1})));throw e;}await p.waitForTimeout(1000);}
   }
   await p.waitForTimeout(800);
-}
-export async function completeCode(p,email){
- try{await p.waitForFunction(()=>document.getElementById('loginCode')?.offsetParent||document.getElementById('app')?.classList.contains('on')||document.getElementById('lerr')?.offsetParent,null,{timeout:10000});}catch{return;}
- if(!await p.isVisible('#loginCode'))return;
- await fetch(PB_URL+'/api/amana/test/reset-login-limits',{method:'POST',headers:{Authorization:await pbAdmin()}});
- await p.fill('#loginCode',await testCode(email));await p.click('#loginCodeFields button');
 }
 export const wait=(p,ms)=>p.waitForTimeout(ms);
 // Подтверждения в CRM — свои окна; в тестах подтверждаем сразу
