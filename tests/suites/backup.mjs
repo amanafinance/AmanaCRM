@@ -1,6 +1,8 @@
 // Резервная копия: скачать всю базу файлом, испортить данные, восстановить из файла — всё как было
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
-import {reseed,device,login,check,noErrors,wait,autoConfirm,BACKEND} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,autoConfirm,PB_URL,pbAdmin} from '../lib.mjs';
+import {pbkdf2Sync,createDecipheriv} from 'node:crypto';
+const decrypt=(txt,pw)=>{const e=JSON.parse(txt);if(e.format!=='amana-crm-backup-encrypted')return e;const data=Buffer.from(e.data,'base64'),key=pbkdf2Sync(pw,Buffer.from(e.kdf.salt,'base64'),e.kdf.iterations,32,'sha256'),d=createDecipheriv('aes-256-gcm',key,Buffer.from(e.cipher.iv,'base64'));d.setAuthTag(data.subarray(-16));return JSON.parse(Buffer.concat([d.update(data.subarray(0,-16)),d.final()]).toString());};
 const snap=p=>p.evaluate(async()=>{
   const clean=o=>o&&JSON.parse(JSON.stringify(o,(k,v)=>k==='_u'?undefined:v));
   const{db,doc,getDoc}=window.DB,pc=await getDoc(doc(db,'settings','pcounter'));
@@ -17,12 +19,13 @@ export default async function(){
   const B=await device();await login(B.p); // второе устройство: данные уже в его памяти
   await p.evaluate(()=>goTo('security'));await wait(p,300);
   check('в настройках есть карточка «Резервная копия»',await p.isVisible('#bkCard #bkDl'));
-  const before=await snap(p);
+  const before=await snap(p);await p.fill('#bkPw','backup-test-123');
+  const adminHeaders={'Content-Type':'application/json',Authorization:await pbAdmin()};
 
   // 1. Скачать копию (компьютер — файл скачивается сразу)
   const [dl]=await Promise.all([p.waitForEvent('download',{timeout:60000}),p.click('#bkDl')]);
   const file=path.join(tmp,dl.suggestedFilename());await dl.saveAs(file);
-  const txt=fs.readFileSync(file,'utf8'),J=JSON.parse(txt),C=J.collections;
+  const txt=fs.readFileSync(file,'utf8'),J=decrypt(txt,'backup-test-123'),C=J.collections;
   check('имя файла с датой и временем',/^amana-backup-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}\.json$/.test(dl.suggestedFilename()),dl.suggestedFilename());
   check('в файле вся база: договоры, платежи, касса, счета, клиенты, инвесторы, настройки, история',J.format==='amana-crm-backup'&&J.version===1&&J.source==='server'
     &&Object.keys(C.clients).length===before.n.c&&Object.keys(C.payments).length===before.n.p&&Object.keys(C.kassaOps).length===before.n.k
@@ -33,8 +36,9 @@ export default async function(){
   check('после скачивания видно, что вошло в копию',/200\sдоговоров/.test(st)&&/150\sклиентов/.test(st),st);
 
   // 2. Меняем данные после копии
-  await p.evaluate(async()=>{const{db,doc,collection,deleteDoc,updateDoc,addDoc,setDoc}=window.DB;
-    await deleteDoc(doc(db,'clients','c5'));const w=S.wallets.find(x=>x.id==='w1');await updateDoc(doc(db,'wallets','w1'),{balance:w.balance+12345});
+  await fetch(PB_URL+'/api/collections/clients/records/c5',{method:'DELETE',headers:adminHeaders});
+  const wr=await (await fetch(PB_URL+'/api/collections/wallets/records/w1',{headers:adminHeaders})).json();await fetch(PB_URL+'/api/collections/wallets/records/w1',{method:'PATCH',headers:adminHeaders,body:JSON.stringify({data:{...wr.data,balance:wr.data.balance+12345},u:Date.now()})});
+  await p.evaluate(async()=>{const{db,doc,collection,updateDoc,addDoc,setDoc}=window.DB;
     await addDoc(collection(db,'persons'),{name:'Появился после копии',phones:[],no:'К-00999'});await setDoc(doc(db,'settings','pcounter'),{lastId:999});
     await updateDoc(doc(db,'payments','p3_1'),{note:'Уточнение после резервной копии'});});
   await p.waitForFunction(()=>!S.clients.some(c=>c.id==='c5')&&S.persons.some(x=>x.name==='Появился после копии'),null,{timeout:20000});
@@ -53,12 +57,12 @@ export default async function(){
   });
   check('восстановление требует все разделы и достоверные счётчики серверной копии',rejects);
   // 4. Восстановление: дата и состав копии, сначала сохранить текущие данные, потом восстановить
-  await p.setInputFiles('#bkFile',file);await p.waitForSelector('#bkPreBtn:not([disabled])',{timeout:60000});
+  await p.setInputFiles('#bkFile',file);await p.waitForSelector('#bkOpenPw');await p.fill('#bkOpenPw','backup-test-123');await p.click('#bkOpenBtn');await p.waitForSelector('#bkPreBtn:not([disabled])',{timeout:60000});
   const rs=await p.textContent('#bkRs');
   check('перед восстановлением видно дату копии и её состав',/Копия от \d\d\.\d\d\.\d{4} \d\d:\d\d/.test(rs)&&/200\sдоговоров/.test(rs),rs.slice(0,200));
   check('кнопка «Восстановить» недоступна, пока не сохранены текущие данные',await p.isDisabled('#bkGo'));
   const [pre]=await Promise.all([p.waitForEvent('download',{timeout:60000}),p.click('#bkPreBtn')]);
-  const preJ=JSON.parse(fs.readFileSync(await pre.path(),'utf8'));
+  const preJ=decrypt(fs.readFileSync(await pre.path(),'utf8'),'backup-test-123');
   check('текущие данные сохранены в отдельный файл (с изменениями после копии)',preJ.format==='amana-crm-backup'&&!preJ.collections.clients.c5&&preJ.collections.settings.pcounter.lastId===999);
   check('после сохранения кнопка «Восстановить» доступна',!(await p.isDisabled('#bkGo')));
   await Promise.all([p.waitForEvent('framenavigated',{timeout:180000}),p.click('#bkGo')]);
@@ -93,9 +97,9 @@ export default async function(){
   check('«Отмена» закрывает восстановление',(await p.textContent('#bkRs')).trim()==='');
 
   // 6. Нет интернета (или сервер лежит): копия делается из данных на устройстве, с предупреждением
-  await ctx.setOffline(true);
+  await p.fill('#bkPw','backup-test-123');await ctx.setOffline(true);
   const [dl3]=await Promise.all([p.waitForEvent('download',{timeout:60000}),p.click('#bkDl')]);
-  const off=JSON.parse(fs.readFileSync(await dl3.path(),'utf8'));
+  const off=decrypt(fs.readFileSync(await dl3.path(),'utf8'),'backup-test-123');
   check('без интернета копия всё равно скачивается — из памяти устройства',off.source==='device'&&Object.keys(off.collections.clients).length===before.n.c&&Object.keys(off.collections.payments).length===before.n.p,off.counts);
   check('без интернета показано предупреждение',/из данных на этом устройстве/.test(await p.textContent('#bkSt')));
   await ctx.setOffline(false);
@@ -106,23 +110,9 @@ export default async function(){
   await M.p.evaluate(()=>goTo('security'));await wait(M.p,300);
   const ov=await M.p.evaluate(()=>{const r=document.getElementById('bkCard').getBoundingClientRect();return{w:r.width,right:r.right,vw:innerWidth,sw:document.documentElement.scrollWidth};});
   check('телефон: карточка копии помещается в экран',ov.right<=ov.vw+0.5&&ov.sw<=ov.vw,ov);
-  await M.p.click('#bkDl');await M.p.waitForSelector('#bkSt button:has-text("Сохранить файл")',{timeout:60000});
+  await M.p.fill('#bkPw','backup-test-123');await M.p.click('#bkDl');await M.p.waitForSelector('#bkSt button:has-text("Сохранить файл")',{timeout:60000});
   const [dl4]=await Promise.all([M.p.waitForEvent('download',{timeout:60000}),M.p.click('#bkSt button:has-text("Сохранить файл")')]);
   check('телефон: «Сохранить файл» отдаёт файл копии',/^amana-backup-/.test(dl4.suggestedFilename()));
   noErrors('копия на телефоне',M.errs);
   await M.ctx.close();
-  // 8. Старый адрес после переезда (Firebase): только просмотр, но копию скачать можно
-  if(BACKEND==='fb'){
-    const O=await device();await O.ctx.addInitScript(()=>{window.__AMANA_MOVED=true;});await login(O.p);
-    const r=await O.p.evaluate(async()=>{const b=document.getElementById('movedBadge');let err='';
-      try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets','w1'),{name:'Взлом'});}catch(e){err=e.message;}
-      return{badge:!!b&&getComputedStyle(b).display!=='none'&&b.href.includes('crm-amana.ru'),err,name:S.wallets.find(w=>w.id==='w1').name};});
-    check('старый адрес: плашка «CRM переехала», изменения не сохраняются',r.badge&&/переехала/.test(r.err)&&r.name!=='Взлом',r);
-    await O.p.evaluate(()=>goTo('security'));
-    const [dl5]=await Promise.all([O.p.waitForEvent('download',{timeout:60000}),O.p.click('#bkDl')]);
-    const J5=JSON.parse(fs.readFileSync(await dl5.path(),'utf8'));
-    check('старый адрес: копию для переезда скачать можно',J5.format==='amana-crm-backup'&&Object.keys(J5.collections.clients).length===before.n.c);
-    noErrors('старый адрес',O.errs);await O.ctx.close();
-  }
-  fs.rmSync(tmp,{recursive:true,force:true});
 }

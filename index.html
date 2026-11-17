@@ -11,11 +11,12 @@
 <meta name="apple-mobile-web-app-title" content="Amana CRM"/>
 <meta name="theme-color" content="#060a07"/>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Roboto+Condensed:wght@500;600;700&display=swap" rel="stylesheet"/>
+<script src="./vendor/amana-model/model.js"></script>
 <script type="module">
-// База данных: на своём сервере (crm-amana.ru) — PocketBase, иначе — Firebase. Оба модуля отдают одинаковый window.DB.
-const AMANA_PB=window.__AMANA_PB||(/(^|\.)crm-amana\.ru$/.test(location.hostname)?location.origin:'');
+// CRM работает только со своим сервером. Старый публичный адрес ведёт на основной сайт.
 const v=encodeURIComponent(typeof CRM_VERSION==='string'?CRM_VERSION:'');
-if(AMANA_PB){window.__AMANA_PB=AMANA_PB;await import('./db-pb.js?v='+v);}else await import('./db-fb.js?v='+v);
+if(/\.github\.io$/.test(location.hostname)&&!window.__AMANA_PB)location.replace('https://crm-amana.ru/');
+else await import('./db-pb.js?v='+v);
 </script>
 <style>
 :root{
@@ -1240,7 +1241,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 
 </head>
 <body>
-<div id="loginWrap"><div class="lbox"><div class="llogo">AMANA FINANCE</div><div class="ltitle">CRM <span>Система</span></div><div id="loginFields"><label class="lbl">Email</label><input class="inp" type="email" id="lemail" placeholder="email@example.com" style="margin-bottom:10px"/><label class="lbl">Пароль</label><input class="inp" type="password" id="lpass" placeholder="Введите пароль" style="margin-bottom:10px"/><button class="btn bg" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">Войти</button></div><div id="loginLoading" style="display:none;text-align:center;padding:20px"><div class="spin" style="margin:0 auto"></div></div><div id="lerr" style="color:var(--red);font-size:var(--fs-xs);margin-top:6px;text-align:center;display:none"></div></div></div>
+<div id="loginWrap"><div class="lbox"><div class="llogo">AMANA FINANCE</div><div class="ltitle">CRM <span>Система</span></div><div id="loginFields"><label class="lbl">Email</label><input class="inp" type="email" id="lemail" placeholder="email@example.com" style="margin-bottom:10px"/><label class="lbl">Пароль</label><input class="inp" type="password" id="lpass" placeholder="Введите пароль" style="margin-bottom:10px"/><button class="btn bg" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">Войти</button></div><div id="loginCodeFields" style="display:none"><label class="lbl" for="loginCode">Код из письма</label><input class="inp" id="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 цифр" onkeydown="if(event.key==='Enter')verifyLoginCode()"/><p style="margin:10px 0">Проверьте почту и папку «Спам». Код действует 5 минут.</p><button class="btn bg" onclick="verifyLoginCode()">Подтвердить вход</button><button class="btn bgh" onclick="location.reload()">Начать заново</button><div id="loginCodeError" role="alert"></div></div><div id="loginLoading" style="display:none;text-align:center;padding:20px"><div class="spin" style="margin:0 auto"></div></div><div id="lerr" style="color:var(--red);font-size:var(--fs-xs);margin-top:6px;text-align:center;display:none"></div></div></div>
 <div id="app">
 <aside class="sidebar"><div>
 <div class="slogo">AMANA FINANCE</div><div class="sname">CRM</div>
@@ -1307,6 +1308,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="card perm-bk" id="bkCard"><div class="ct">Резервная копия</div><div id="bkBody"></div></div>
 </div></div>
 <div id="page-settings" class="page" style="display:none"><div class="ph"><div><div class="pt">Справочники</div><div class="ps">Поставщики, счета, шаблоны WhatsApp</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div class="card perm-settings" id="mailSettingsCard" style="display:none"><div class="ct">Автоматические копии на почту</div><div id="mailSettingsBody"></div></div>
 <div class="card perm-settings"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
 <div class="card perm-settings"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
 <div class="card perm-settings" id="renumCard" style="display:none"><div class="ct">Номера в новом формате</div><div id="renumBody"></div></div>
@@ -1418,7 +1420,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 // ---------- STATE ----------
 // Пустой фильтр сделок (и «Контроля платежей» на телефоне)
 const CF_EMPTY={id:'',date_from:'',date_to:'',date_q:'',name:'',phone:'',product:'',partner:'',price_q:'',price_from:'',price_to:'',cost_q:'',cost_from:'',cost_to:'',prepay_q:'',prepay_from:'',prepay_to:'',months_q:'',months_from:'',months_to:'',firstpay_q:'',firstpay_from:'',firstpay_to:'',addr:'',monthly:'',monthly_from:'',monthly_to:'',bal_q:'',bal_from:'',bal_to:'',over_q:'',over_from:'',over_to:''};
-const S={clients:[],payments:[],partners:['Сторонний'],partnerPhones:{},wallets:[],kassaOps:[],curClient:null,tab:'all',kTab:'all',
+const S={clients:[],payments:[],partners:['Сторонний'],partnerPhones:{},wallets:[],kassaOps:[],returns:[],curClient:null,tab:'all',kTab:'all',
   CF:{...CF_EMPTY},JF:{date_q:'',date_from:'',date_to:'',type:'',desc:''}};
 let _cid=null,_saving=false,_fdCol='',_fdPage='';
 
@@ -1510,10 +1512,11 @@ function getStats(c,ap){
   return s;
 }
 function calcStats(c,cp){
-  const t=today(),mo=parseInt(c.months)||0,price=parseFloat(c.price)||0,prepay=parseFloat(c.prepay)||0;
+  const t=today(),mo=parseInt(c.months)||0,price=(parseFloat(c.price)||0)-(parseFloat(c.returnedAmount)||0),prepay=parseFloat(c.prepay)||0;
   const tp=cp.filter(p=>p.type==='payment').reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
   const td=cp.filter(p=>p.type==='discount').reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
-  const bal=Math.max(0,price-prepay-tp-td);
+  const refunded=parseFloat(c.refundedAmount)||0,netTp=Math.max(0,tp-refunded),netPre=Math.max(0,prepay-Math.max(0,refunded-tp));
+  const bal=Math.max(0,price-netPre-netTp-td);
   // Скидка погашает платежи с конца (уменьшает плановые суммы), платежи - с начала
   // Соберём плановый график
   const rawSch=[];
@@ -1522,14 +1525,14 @@ function calcStats(c,cp){
     rawSch.push({month:m+1,date:ds||'—',origSize:sz});
   }
   // применим скидку: уменьшаем с конца
-  let discRem=td;
+  let discRem=td+(parseFloat(c.returnedAmount)||0);
   const effSizes=rawSch.map(r=>r.origSize);
   for(let i=effSizes.length-1;i>=0&&discRem>0;i--){
     const take=Math.min(effSizes[i],discRem);
     effSizes[i]-=take;discRem-=take;
   }
   // теперь распределяем оплаты с начала
-  let rem=tp;
+  let rem=netTp;
   const sch=rawSch.map((r,i)=>{
     const size=effSizes[i];
     const d=r.date&&r.date!=='—'?parseD(r.date):null;
@@ -1549,8 +1552,8 @@ function calcStats(c,cp){
   });
   let ov=sch.filter(p=>p.st==='overdue'||p.st==='partial').reduce((s,p)=>s+(p.size-p.paid),0);
   // переплата: пришло больше цены (например, одну сумму приняли одновременно на двух устройствах)
-  const overpaid=R2(Math.max(0,prepay+tp+td-price));
-  return{totalPaid:tp,totalDiscount:td,received:R2(tp+prepay),balance:bal,overdue:ov,overpaid,schedule:sch,cPays:cp};
+  const overpaid=R2(Math.max(0,netPre+netTp+td-price));
+  return{totalPaid:tp,totalDiscount:td,received:R2(tp+prepay-refunded),balance:bal,overdue:ov,overpaid,schedule:sch,cPays:cp};
 }
 function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=cs||getStats(c);if(s.balance<=0)return'завершён';}return'активный';}
 
@@ -1561,19 +1564,20 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='11.11.2026 · 21';
+const CRM_VERSION='17.11.2026 · защита и копии';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';if(!window.SIGN_IN){document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Нет подключения к базе. Проверь интернет';er.style.display='block';return;}window.SIGN_IN(window.AUTH,em,pw).then(()=>enterApp()).catch(e=>{document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';const c=e&&e.code;er.textContent=(c==='auth/configuration-not-found'||c==='auth/operation-not-allowed')?'В Firebase не включён вход по почте (Authentication → Email/Password)':(c==='auth/too-many-requests'?'Слишком много попыток, подожди немного':(c==='auth/network-request-failed'?'Нет интернета':'Неверный email или пароль'));er.style.display='block';});}
-function enterApp(){document.getElementById('loginWrap').style.display='none';document.getElementById('app').classList.add('on');initApp();}
-function doLogout(){if(window.SIGN_OUT)window.SIGN_OUT(window.AUTH).finally(()=>location.reload());else location.reload();}
+function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';if(!window.SIGN_IN){document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Нет подключения к базе. Проверь интернет';er.style.display='block';return;}window.SIGN_IN(window.AUTH,em,pw).then(r=>{if(r&&r.needsCode){document.getElementById('loginLoading').style.display='none';document.getElementById('loginCodeFields').style.display='block';document.getElementById('lpass').value='';document.getElementById('loginCode').focus();}else enterApp();}).catch(e=>{document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';const c=e&&e.code;er.textContent=(c==='auth/too-many-requests'?'Слишком много попыток, подожди немного':(c==='auth/network-request-failed'?'Нет интернета':c==='auth/mail-unavailable'?'Не удалось отправить код. Проверьте подключение почты на сервере':'Неверный email или пароль'));er.style.display='block';});}
+async function verifyLoginCode(){const err=document.getElementById('loginCodeError');err.textContent='';try{await window.VERIFY_CODE(document.getElementById('loginCode').value);enterApp();}catch(e){err.textContent='Код неверный или истёк. Проверьте письмо или начните вход заново.';}}
+function enterApp(){document.getElementById('lpass').value='';document.getElementById('loginWrap').style.display='none';document.getElementById('app').classList.add('on');initApp();}
+async function doLogout(){try{if(window.SIGN_OUT)await window.SIGN_OUT(window.AUTH);location.reload();}catch(e){toast(e.message,'ter');}}
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
 function initApp(){if(_inited)return;_inited=true;installPermGuards();applyPerms();const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
 async function startAll(){const{live,liveTombs,checkEpoch}=window.DB;await checkEpoch();loadSettings();await liveTombs();if(typeof startInv==='function')startInv();
-  live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();if(pageOn('client')&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
+  live('returns',{},s=>{S.returns=s.docs.map(d=>({id:d.id,...d.data()}));refreshAll();});live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();if(pageOn('client')&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
 // Открыта ли страница. Скрытые страницы не перерисовываются — их рисует переход на страницу (goTo)
 function pageOn(p){const e=document.getElementById('page-'+p);return!!e&&e.style.display!=='none';}
 function refreshAll(){if(pageOn('finance'))renderFinance();if(typeof renderInvIfVisible==='function')renderInvIfVisible();renderDash();renderClients();renderKassa();if(typeof renderReminders==='function')renderReminders();{const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();}if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
@@ -1657,7 +1661,7 @@ function initMenuGroups(){
 
 // ---------- DASHBOARD ----------
 // Коротко: портфель сейчас и главное по текущему месяцу. Всё остальное — во вкладке «Обзор».
-// Архивные договоры в портфель не входят (в архив уходят только договоры без долга).
+// Портфель учитывает и долги старых архивных договоров.
 function renderDashIfVisible(){
   const p=document.getElementById('page-dashboard');if(p&&p.style.display!=='none')renderDash();
   const f=document.getElementById('page-finance');if(f&&f.style.display!=='none')renderFinance();
@@ -1700,6 +1704,7 @@ function dealProfitList(c,pays){
     if(p.type!=='payment'&&p.type!=='discount')return;
     const d=invD(p.date);if(d)out.push({p,d});
   });
+  (S.returns||[]).filter(r=>r.clientId===c.id).forEach(r=>{const d=invD(r.date);if(d)out.push({p:{type:'return',amount:r.amount,cost:r.cost},d});});
   if(pre>0){const d=preD||dealDate(c);if(d)out.push({p:{type:'prepay',amount:pre},d});}
   return out;
 }
@@ -1714,6 +1719,7 @@ function dealProfitSplit(c,list){
   const ord=t=>t==='prepay'?0:1; // в один день сначала предоплата
   list.slice().sort((a,b)=>a.d-b.d||ord(a.p.type)-ord(b.p.type)).forEach(({p,d})=>{
     const a=parseFloat(p.amount)||0;if(a<=0)return;
+    if(p.type==='return'){const profit=a-(parseFloat(p.cost)||0),take=Math.min(Math.max(0,profit),profRem);profRem-=take;bodyRem=Math.max(0,bodyRem-(parseFloat(p.cost)||0));const loss=profit-take;if(loss>0.004){got-=loss;items.push({d,disc:loss,returned:true});}else if(loss< -0.004){got-=loss;items.push({d,prof:-loss,body:0,src:'return',returned:true});}return;}
     if(p.type==='discount'){const fromProf=Math.min(a,profRem);profRem-=fromProf;const loss=Math.min(a-fromProf,bodyRem);bodyRem-=loss;
       if(loss>0.004){got-=loss;items.push({d,disc:loss});}return;}
     const R=bodyRem+profRem;let prof,body;
@@ -1734,10 +1740,10 @@ function finCtx(){
   let M;try{M=invModel();}catch(e){console.error(e);M={events:[],profLeft:0,inDeals:0,bal:{},poolCap:0,closed:{}};}
   const rows=S.clients.map(c=>{const s=getStats(c);return{c,s,st:effStatus(c,s),rp:planRatio(c)};});
   const byId={};rows.forEach(x=>byId[x.c.id]=x);
-  const active=rows.filter(x=>!x.c.archived&&x.st==='активный');
+  const active=rows.filter(x=>x.st==='активный');
   const rem=remRows();
   // Всё, что нужно для ОПИУ, раскладываем по месяцам один раз — дальше каждый месяц считается по своей корзине
-  const bk={},B=d=>{if(!d||isNaN(d))return null;const k=monthKey(d);return bk[k]||(bk[k]={pays:[],deals:[],plan:[],due:[],ev:[],kassa:[],rem:[]});};
+  const bk={},B=d=>{if(!d||isNaN(d))return null;const k=monthKey(d);return bk[k]||(bk[k]={pays:[],deals:[],plan:[],due:[],ev:[],kassa:[],rem:[],returns:[]});};
   const lim=new Date(today().getTime()+86400000);
   S.payments.forEach(p=>{const b=B(dTs(p.date));if(b)b.pays.push(p);});
   rows.forEach(x=>{const b=B(dealDate(x.c));if(b)b.deals.push(x);
@@ -1745,6 +1751,7 @@ function finCtx(){
     x.s.schedule.forEach(it=>{if(!(it.size>0))return;const dc=parseD(it.date),df=deferOf(x.c,it.month),dp=df?safeDateFromInput(df.date):dc;
       const bp=B(dp);if(bp)bp.plan.push([it.size,it.size*x.rp,dp]);
       if(dc&&dc<lim){const bd=B(dc);if(bd)bd.due.push([it.size,Math.min(it.size,it.paid),dc]);}});});
+  (S.returns||[]).forEach(r=>{const b=B(dTs(r.date));if(b)b.returns.push(r);});
   M.events.forEach(e=>{const b=B(e.d);if(b)b.ev.push(e);});
   S.kassaOps.forEach(k=>{if(k.type==='transfer')return;const b=B(opDate(k));if(b)b.kassa.push(k);});
   rem.forEach(r=>{if(r.over)return;const b=B(r.eff);if(b)b.rem.push(r);});
@@ -1761,6 +1768,7 @@ function finFactF(mk,ctx,lo,hi){
   const o={deals:0,sales:0,cost:0,plan:0,planGross:0,pay:0,payCnt:0,prepay:0,gross:0,disc:0,salary:0,opex:0,otherExp:0,invShare:0,purchase:0,invIn:0,invOut:0,invPay:0,kIn:0,kOut:0,expLeft:0,expGross:0,deferLeft:0,planDue:0,planPaid:0};
   b.pays.forEach(p=>{if(lo&&!In(dTs(p.date)))return;const a=parseFloat(p.amount)||0;if(p.type==='payment'){o.pay+=a;o.payCnt++;}else if(p.type==='prepay')o.prepay+=a;});
   b.deals.forEach(x=>{if(lo&&!In(dealDate(x.c)))return;o.deals++;o.sales+=parseFloat(x.c.price)||0;o.cost+=parseFloat(x.c.cost)||0;});
+  (b.returns||[]).forEach(r=>{if(lo&&!In(dTs(r.date)))return;o.sales-=r.amount||0;o.cost-=r.cost||0;});
   b.plan.forEach(([s,g,d])=>{if(lo&&!In(d))return;o.plan+=s;o.planGross+=g;});
   b.due.forEach(([s,pd,d])=>{if(lo&&!In(d))return;o.planDue+=s;o.planPaid+=pd;});
   b.ev.forEach(e=>{if(lo&&!In(e.d))return;
@@ -1768,6 +1776,7 @@ function finFactF(mk,ctx,lo,hi){
     else if(e.kind==='fexpense')o.otherExp-=e.amount;else if(e.etype==='salary')o.salary-=e.amount;else o.opex-=e.amount;});
   b.kassa.forEach(k=>{if(lo&&!In(opDate(k)))return;const a=parseFloat(k.amount)||0,mt=kMeta(k.type);
     if(mt.dir==='in')o.kIn+=a;else if(mt.dir==='out')o.kOut+=a;
+    if(k.type==='refund_out')o.pay-=a;
     if(k.type==='purchase')o.purchase+=a;else if(k.type==='inv_in')o.invIn+=a;else if(k.type==='inv_out')o.invOut+=a;else if(k.type==='inv_pay')o.invPay+=a;});
   // Ещё ожидается в этом месяце (без просрочки). Отсроченный платёж ждём в дату отсрочки,
   // даже если по договору он уже просрочен.
@@ -2446,7 +2455,7 @@ function renderDetail(c){
   const callBtn=phs.length?(t1?'<a class="btn bgh cd-call" href="tel:+'+t1+'">':'<span class="btn bgh cd-call">')+TEL_ICO+'<span>'+esc(fmtPhone(phs[0]))+'</span>'+(t1?'</a>':'</span>'):'';
   const waB=dealWhatsApp(c)?'<button class="btn bwa cd-wa" onclick="openChat(\''+id+'\')" title="Открыть чат WhatsApp">'+WA_ICO+'WhatsApp</button>':'';
   const mi=(on,label,cls)=>'<button class="cd-mi'+(cls?' '+cls:'')+'" onclick="'+on+'">'+label+'</button>';
-  const menu=mi("openContract('"+id+"')",'Подготовить договор')+(st!=='завершён'?mi("openDisc('"+id+"')",'Скидка'):'')+mi("openComment('"+id+"')",'Комментарий')+mi("openEdit('"+id+"')",'Изменить')+
+  const menu=mi("openContract('"+id+"')",'Подготовить договор')+(st!=='завершён'?mi("openDisc('"+id+"')",'Скидка'):'')+(can('deal_edit')&&can('pay_cancel')?mi("openReturn('"+id+"')",'Возврат товара / денег'):'')+mi("openComment('"+id+"')",'Комментарий')+mi("openEdit('"+id+"')",'Изменить')+
     (c.archived?mi("archiveClient('"+id+"',false)",'Из архива'):mi("archiveClient('"+id+"',true)",'В архив'))+(clientHasMoney(id)?'':mi("delClient('"+id+"')",'Удалить','cd-del'))+
     phs.slice(1).map(p=>{const t=waPhone(p);return t?'<a class="cd-mi" href="tel:+'+t+'">Позвонить '+esc(fmtPhone(p))+'</a>':'';}).join('');
   const moreBtn='<details class="cd-more"><summary class="btn bgh">Ещё<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:6px"><polyline points="6 9 12 15 18 9"/></svg></summary><div class="cd-menu">'+menu+'</div></details>';
@@ -2475,7 +2484,7 @@ function renderDetail(c){
   // на телефоне — одна колонка: остаток и просрочка, затем график и история, потом данные клиента и товара
   const mob=window.innerWidth<=768;
   const leftCol='<div class="cd-main">'+(mob?schedBlock+histBlock+clientCard+guarantorCard+itemCard:clientCard+guarantorCard+itemCard+schedBlock+histBlock)+'</div>';
-  document.getElementById('cDetail').innerHTML=header+dupsBlock+'<div class="cd-grid">'+leftCol+rightCol.replace('<div>','<div class="cd-side">')+'</div>';
+  document.getElementById('cDetail').innerHTML=header+dupsBlock+returnHistoryHtml(c)+'<div class="cd-grid">'+leftCol+rightCol.replace('<div>','<div class="cd-side">')+'</div>';
 }
 document.addEventListener('click',e=>{document.querySelectorAll('details.cd-more[open]').forEach(d=>{if(!d.contains(e.target)||e.target.closest('.cd-mi'))d.open=false;});});
 function tog2(bid,aid){const b=document.getElementById(bid),a=document.getElementById(aid);if(!b)return;if(b.classList.contains('on')){b.classList.remove('on');a.innerHTML='<polyline points="6 9 12 15 18 9"/>';}else{b.classList.add('on');a.innerHTML='<polyline points="18 15 12 9 6 15"/>';}}
@@ -2533,7 +2542,7 @@ async function cancelPay(pid,cid,amt,pt){
 
 // ---------- JOURNAL (с разделением по дням) ----------
 let _jd=[];
-// История грузится порциями по 100 записей: вся она нужна редко, а каждая запись — это чтение из Firebase
+// История грузится порциями по 100 записей: вся она нужна редко, данные читаются с сервера
 const JOURNAL_PAGE=100;let _jLast=null,_jEnd=false;
 async function loadJournal(more){
   const{db,collection,query,orderBy,limit,startAfter,getDocs,where}=window.DB;
@@ -2574,7 +2583,7 @@ function renderJournal(){
   setupInfiniteScroll();
 }
 function loadMoreJournal(){_journalShown+=50;renderJournal();}
-async function logA(t,d){const{db,collection,addDoc}=window.DB;try{await addDoc(collection(db,'journal'),{type:t,description:d,user:curUser(),date:new Date(),dateStr:fmtD(new Date()),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});}catch(e){if(e&&e.code==='moved')return;console.error('Журнал не записан:',e);toast('Действие выполнено, но не записалось в историю: '+(e&&e.message||''),'ter');}}
+async function logA(t,d){if(t==='Скачана резервная копия'&&window.DB.note)await window.DB.note(t);}
 
 // ---------- COMMENT ----------
 function openComment(id){_cid=id;const c=S.clients.find(x=>x.id===id);document.getElementById('mcText').value=c?.comment||'';document.getElementById('mcDel').style.display=c?.comment?'inline-flex':'none';openM('mComment');}
@@ -2608,7 +2617,7 @@ function walletBlockT(t,msg){const l=document.getElementById('confirmLayer');
   l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+msg+'</div><div class="confirm-actions"><button class="btn bg" onclick="this.closest(\'.confirm-ov\').remove()">Понятно</button></div></div></div>';}
 const curUser=()=>{const u=window.AUTH&&window.AUTH.currentUser;return u?(u.email||u.uid):'';};
 // Перед удалением кладём копию документа в «корзину» (коллекция trash) — ничего не пропадает бесследно
-function trashPut(bt,coll,id,data){if(!data)return;const{db,doc,collection}=window.DB;const clean={};Object.keys(data).forEach(k=>{if(k!=='id'&&k[0]!=='_'&&data[k]!==undefined)clean[k]=data[k];});bt.set(doc(collection(db,'trash')),{coll,docId:id,data:clean,deletedAt:new Date(),deletedBy:curUser()});}
+function trashPut(){} // Исходную запись в корзину сохраняет сервер в транзакции.
 
 // ---------- WHATSAPP ----------
 // Шаблоны по умолчанию: платёж скоро, платёж сегодня, просрочка
@@ -2750,7 +2759,7 @@ function fixWallet(id){
   const w=S.wallets.find(x=>x.id===id);if(!w)return;
   const c=walletCalc()[id]||0,b=R2(w.balance);
   showConfirm('Исправить остаток?','<strong>'+esc(w.name)+'</strong><br>Сейчас в базе '+fmt(b)+' ₽, по операциям кассы '+fmt(c)+' ₽.<br><span class="cy">Если на счёте был стартовый остаток, внесённый не через кассу, сначала проведите его операцией, иначе он пропадёт.</span>',async()=>{
-    try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets',id),{balance:c});await logA('Сверка кассы','«'+w.name+'»: было '+fmt(b)+' ₽, стало '+fmt(c)+' ₽');toast('Остаток исправлен','tok');}
+    try{await window.DB.reconcile(id,c);await logA('Сверка кассы','«'+w.name+'»: было '+fmt(b)+' ₽, стало '+fmt(c)+' ₽');toast('Остаток исправлен','tok');}
     catch(e){toast('Ошибка: '+e.message,'ter');}
   });
 }
@@ -3011,8 +3020,8 @@ function cdDelBtn(c){
 function archiveClient(id,on){
   const c=S.clients.find(x=>x.id===id);if(!c)return;
   const s=getStats(c);
-  // В архив можно и с долгом: долг уходит из портфеля, просрочки и контроля платежей, история денег сохраняется
-  const debt=on&&R2(s.balance)>0.004?'<br><span class="cy">Долг '+fmt(s.balance)+' ₽ пропадёт из портфеля, просрочки и контроля платежей.</span>':'';
+  if(on&&R2(s.balance)>0.004){walletBlockT('Есть долг','Сначала закройте долг по договору. Договор с долгом нельзя скрывать в архиве.');return;}
+  const debt='';
   showConfirm(on?'Отправить договор в архив?':'Вернуть договор из архива?','<strong>№'+(c.contractId||'')+' · '+esc(c.name)+'</strong><br>'+(on?'История, платежи и касса сохранятся. Договор пропадёт из активных списков.'+debt:'Договор снова появится в списках.'),async()=>{
     try{
       const{db,doc,updateDoc}=window.DB;
@@ -3031,7 +3040,7 @@ function delClient(id){
   }
   const disc=S.payments.filter(p=>p.clientId===id&&p.type==='discount'),st=getStats(c);
   {const cm=disc.map(p=>closedMk(dTs(p.date))).find(Boolean);if(cm){walletBlockT('Удалить нельзя','По договору есть скидка в месяце <strong>'+mkLabel(cm)+'</strong>, уже закрытом у инвесторов. Договор можно отправить в архив.');return;}}
-  showConfirm('Удалить договор?','<strong>№'+esc(c.contractId||'')+' · '+esc(c.name)+'</strong><br>Платежей, предоплаты и закупок нет'+(R2(st.balance)>0.004?', долг '+fmt(st.balance)+' ₽ удалится вместе с договором':'')+'. Копия останется в корзине Firebase.',async()=>{
+  showConfirm('Удалить договор?','<strong>№'+esc(c.contractId||'')+' · '+esc(c.name)+'</strong><br>Платежей, предоплаты и закупок нет'+(R2(st.balance)>0.004?', долг '+fmt(st.balance)+' ₽ удалится вместе с договором':'')+'. Копия останется в корзине базы.',async()=>{
     try{
       const{db,doc,counterTx}=window.DB,m=String(c.contractId||'').match(dealNoRe);
       // если это последний выданный номер (в своём году) — следующий договор получит его снова
@@ -3079,7 +3088,7 @@ async function ensureCashWallet(){
   }
 }
 function renderSettings(){
-  renderRecon();renderWaTpl();renderRenum();
+  renderRecon();renderWaTpl();renderRenum();if(typeof renderMailSettings==='function')renderMailSettings();
   document.getElementById('partList').innerHTML=S.partners.map((p,i)=>{
     const locked=p==='Сторонний';
     return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:var(--fs-sm);font-weight:600">'+esc(p)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(fmtPhone(S.partnerPhones[p]||''))+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
@@ -3092,7 +3101,7 @@ function renderSettings(){
 // ---------- ПРАВА СОТРУДНИКОВ ----------
 // Права проверяет сервер (server/pb_hooks): без права действие не выполнится, даже в обход экрана.
 // Здесь — только чтобы не показывать сотруднику кнопки и разделы, которыми он пользоваться не может.
-// AUTH.perms: "*" — владелец (всё), иначе ",право,право,". В старой базе (Firebase) прав нет — всем всё.
+// AUTH.perms: "*" — владелец (всё), иначе ",право,право,".
 const PERM_GROUPS=[
   ['Просмотр',[['v_fin','Дашборд и «Обзор»: прибыль и показатели'],['v_kassa','Касса и остатки счетов'],['v_inv','Инвесторы'],['v_cost','Себестоимость и наценка в договорах'],['v_journal','История действий']]],
   ['Договоры и клиенты',[['deal_new','Создавать договоры'],['deal_edit','Редактировать договоры'],['deal_arch','Отправлять в архив и возвращать'],['deal_del','Удалять договоры'],['people','Добавлять и править карточки клиентов']]],
@@ -3168,7 +3177,7 @@ function staffDevHtml(u){
     '<button class="btn bgh bsm" style="margin-top:6px" onclick="staffLogoutAll(\''+u.id+'\')">Выйти на всех устройствах</button></details>';
 }
 function staffLogoutAll(id){const u=_staff&&_staff.list.find(x=>x.id===id);if(!u)return;const me=u.id===_staff.me;
-  showConfirm('Выйти на всех устройствах?',esc(u.name||u.email)+': вход на всех телефонах и компьютерах перестанет действовать, войти можно будет заново с паролем.'+(me?'<br><b>Это ваш вход — вас тоже попросит войти заново.</b>':''),async()=>{
+  showConfirm('Выйти на всех устройствах?',esc(u.name||u.email)+': вход на всех телефонах и компьютерах перестанет действовать, войти можно будет заново с паролем и кодом из письма.'+(me?'<br><b>Это ваш вход — вас тоже попросит войти заново.</b>':''),async()=>{
     try{await window.DB.staff.save(id,{logoutAll:true});await logA('Выход на всех устройствах',u.email).catch(()=>{});toast('Готово: все входы сброшены','tok');if(me)setTimeout(()=>location.reload(),800);else renderStaff();}catch(e){toast('Ошибка: '+e.message,'ter');}});}
 const presetOf=perms=>{if(perms==='*')return PERM_PRESETS[0];const set=PERM_KEYS.filter(k=>perms.indexOf(','+k+',')>=0).sort().join();return PERM_PRESETS.find(p=>p[2]!=='*'&&p[2].slice().sort().join()===set)||null;};
 function openStaff(id){
@@ -3215,7 +3224,7 @@ function staffDel(id){const u=_staff&&_staff.list.find(x=>x.id===id);if(!u)retur
   showConfirm('Удалить сотрудника?',esc(u.name||u.email)+' больше не сможет войти. Его действия в истории останутся. Если сотрудник может вернуться — лучше «Отключить вход».',async()=>{
     try{await window.DB.staff.remove(id);await logA('Сотрудник удалён',u.email);toast('Сотрудник удалён','tok');renderStaff();}catch(e){toast('Ошибка: '+e.message,'ter');}});}
 // ---------- РЕЗЕРВНАЯ КОПИЯ (Настройки) ----------
-// «Скачать копию» — вся база одним файлом; по желанию файл шифруется паролем (AES-256, ключ из пароля через PBKDF2).
+// «Скачать копию» — вся база одним файлом; файл обязательно шифруется паролем (AES-256, ключ из пароля через PBKDF2).
 // «Восстановить» — показывает дату и состав копии, просит сначала сохранить текущие данные, потом возвращает базу к копии.
 const BK_ITER=310000;let _bkFile=null,_bkB=null,_bkPre=null,_bkPw='',_bkPreSaved=false;
 const bkB64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s);};
@@ -3241,6 +3250,7 @@ async function bkDeliver(f){
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},10000);return true;
 }
 async function bkMake(pw){
+  if(!pw||pw.length<8)throw new Error('Укажите пароль копии — не меньше 8 символов');
   const B=await window.DB.bkDump();B.app=CRM_VERSION;B.createdBy=curUser();
   let text=JSON.stringify(B,null,1);if(pw)text=await bkEncrypt(text,pw);
   return{blob:new Blob([text],{type:'application/json'}),name:bkName(new Date(B.createdAt)),B,enc:!!pw};
@@ -3248,8 +3258,8 @@ async function bkMake(pw){
 function renderBackup(){
   const el=document.getElementById('bkBody');if(!el||el.dataset.on)return;el.dataset.on='1';
   el.innerHTML='<div class="bk-t">Вся база одним файлом: договоры, клиенты, платежи, касса, счета, инвесторы, закрытые месяцы, история действий и настройки. Храните файл не только на телефоне: например, на компьютере и в облаке. Этот же файл подойдёт для переезда CRM на другой сервер.</div>'+
-    '<div class="perm-backup"><label class="lbl" for="bkPw">Пароль для файла (необязательно)</label><input class="inp" type="password" id="bkPw" autocomplete="new-password" placeholder="Без пароля файл читается любым"/>'+
-    '<div class="bk-t bk-s">С паролем файл зашифрован. Забудете пароль — открыть копию будет нельзя, восстановить пароль невозможно.</div>'+
+    '<div class="perm-backup"><label class="lbl" for="bkPw">Пароль для файла (обязательно)</label><input class="inp" type="password" id="bkPw" autocomplete="new-password" placeholder="Не меньше 8 символов"/>'+
+    '<div class="bk-t bk-s">Копии всегда зашифрованы. Забудете пароль — открыть копию будет нельзя, восстановить пароль невозможно.</div>'+
     '<div class="bk-row"><button class="btn bg" id="bkDl" onclick="bkSave()">Скачать копию</button></div><div id="bkSt" class="bk-st" aria-live="polite"></div><div class="bk-sep"></div></div>'+
     '<div class="perm-restore"><div class="bk-t">Восстановление вернёт базу к моменту копии: всё, что внесли после, пропадёт. История действий остаётся как есть.</div>'+
     '<input type="file" id="bkFile" accept=".json,application/json" style="display:none" onchange="bkPick(this)"/>'+
@@ -3257,6 +3267,7 @@ function renderBackup(){
 }
 async function bkSave(){
   const btn=document.getElementById('bkDl'),st=document.getElementById('bkSt'),pw=document.getElementById('bkPw').value;
+  if(!pw||pw.length<8){st.innerHTML='<div class="bk-err">Укажите пароль копии — не меньше 8 символов.</div>';return;}
   if(btn.disabled)return;btn.disabled=true;btn.textContent='Готовлю копию…';st.innerHTML='';
   try{
     _bkFile=await bkMake(pw);const B=_bkFile.B;
@@ -3535,7 +3546,7 @@ function groupPeople(){
       g.deals.push({c,st,status});
       g.total+=parseFloat(c.price)||0;g.paid+=st.totalPaid+(parseFloat(c.prepay)||0);
       if(status==='завершён')g.done++;
-      if(!c.archived){g.debt+=st.balance;g.over+=st.overdue;if(status==='активный')g.active++;}
+      g.debt+=st.balance;g.over+=st.overdue;if(status==='активный')g.active++;
       const d=parseD(c.date);if(d&&(!g.lastDate||d>g.lastDate))g.lastDate=d;
       st.cPays.filter(x=>x.type==='payment').forEach(x=>{const pd=x.date&&x.date.toDate?x.date.toDate():new Date(x.date||0);if(!g.lastPay||pd>g.lastPay)g.lastPay=pd;});
     }
@@ -3720,7 +3731,7 @@ function openPersonForm(key,prefill,cb){
   document.getElementById('pfPhones').innerHTML=ph.map((x,i)=>'<div class="phr"><input class="inp" type="tel" placeholder="8 900 123 45 67" value="'+esc(fmtPhone(x))+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'pfPhones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');
   document.getElementById('pfWarn').innerHTML='';document.getElementById('pfSave').textContent='Сохранить';
   openM('mPerson');
-  setTimeout(()=>{const f=document.getElementById(p||!prefill?'pf_name':'pfPhones');const i=f.tagName==='INPUT'?f:f.querySelector('input');if(i)i.focus();},50);
+  {const f=document.getElementById(p||!prefill?'pf_name':'pfPhones');const i=f.tagName==='INPUT'?f:f.querySelector('input');if(i)i.focus();}
 }
 async function savePerson(){
   if(_saving)return;
@@ -3890,7 +3901,7 @@ async function removeDefer(){
 function remRows(){
   const now=today();const rows=[];
   S.clients.forEach(c=>{
-    if(c.archived)return;
+    if(c.archived&&getStats(c).balance<=0)return;
     const s=getStats(c);
     if(effStatus(c,s)==='завершён')return;
     s.schedule.forEach(it=>{
@@ -4504,10 +4515,11 @@ document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if
 //  • Прибыль фиксируется при закрытии месяца: плюс → «К выплате», минус → уменьшает капитал.
 //  • Реинвест переносит сумму из «К выплате» в капитал (доля растёт).
 //  • Вывод капитала и выплата — только если деньги есть в кошельке.
-// Коллекции Firestore: investors, invOps, invMonths
+// Коллекции: investors, invOps, invMonths
 // =====================================================================
 S.inv=[];S.invOps=[];S.invMonths=[];S.invTab='list';S.invOpsTab='all';S.curInv=null;S.invShowArch=false;
 
+kTypeMeta.refund_out={name:'Возврат клиенту',dir:'out',group:'payment',color:'bo',auto:true};
 kTypeMeta.inv_in={name:'Вклад в пул',dir:'in',group:'invest',color:'bd',auto:true};
 kTypeMeta.inv_out={name:'Возврат капитала',dir:'out',group:'invest',color:'by2',auto:true};
 kTypeMeta.inv_pay={name:'Выплата прибыли',dir:'out',group:'invest',color:'by2',auto:true};
@@ -4538,7 +4550,7 @@ function invRoleBadge(i){return i.role==='founder'?'<span class="badge ba">Уч�
 // ---------- ДАННЫЕ ----------
 function startInv(){
   const{live}=window.DB;
-  const err=e=>toast('Инвесторы: '+(e&&e.code==='permission-denied'?'нет доступа к базе — разреши коллекции investors, invOps, invMonths в правилах Firestore':(e&&e.message)),'ter');
+  const err=e=>toast('Инвесторы: '+(e&&e.code==='permission-denied'?'нет права на просмотр инвесторов':(e&&e.message)),'ter');
   live('investors',{},s=>{S.inv=s.docs.map(d=>({id:d.id,...d.data()}));renderInvIfVisible();},err);
   live('invOps',{},s=>{S.invOps=s.docs.map(d=>({id:d.id,...d.data()}));renderInvIfVisible();},err);
   live('invMonths',{},s=>{S.invMonths=s.docs.map(d=>({id:d.id,...d.data()}));renderInvIfVisible();},err);
@@ -4713,142 +4725,13 @@ function invRentFmt(x){if(x===null||x===undefined||!isFinite(x))return'—';cons
 // Модель считается заново, только когда изменились данные (или прошла минута)
 let _imC=null;
 function invModel(){
-  const k=[S.invOps,S.invMonths,S.inv,S.payments,S.clients,S.kassaOps,S.wallets],t=Math.floor(Date.now()/60000);
+  const k=[S.invOps,S.invMonths,S.inv,S.payments,S.clients,S.kassaOps,S.wallets,S.returns],t=Math.floor(Date.now()/60000);
   if(_imC&&_imC.t===t&&_imC.k.every((x,i)=>x===k[i]))return _imC.m;
   const m=invModelCalc();_imC={k,t,m};return m;
 }
-function invModelCalc(){
-  const now=new Date(),curMk=monthKey(now);
-  const ops=S.invOps.map(o=>({...o,_d:invD(o.date),_a:parseFloat(o.amount)||0})).filter(o=>o._d).sort((a,b)=>a._d-b._d);
-  const closed={};S.invMonths.forEach(m=>closed[m.id]=m);
-  const closedKeys=Object.keys(closed).sort();
-  const lastClosed=closedKeys.length?closedKeys[closedKeys.length-1]:null;
-  const invById={};S.inv.forEach(i=>invById[i.id]=i);
-  // Вклады, их капитал и «к выплате» по каждому вкладу
-  const tranches={},tcapNow={},tpay={},capEvents=[];
-  const pushCap=(d,depId,delta,src)=>{capEvents.push({_d:d,depId,delta,src});tcapNow[depId]=(tcapNow[depId]||0)+delta;};
-  const addPay=(depId,delta)=>{tpay[depId]=(tpay[depId]||0)+delta;};
-  const trOf=invId=>Object.values(tranches).filter(t=>t.invId===invId).sort((a,b)=>a.date-b.date);
-  const fifoPay=(invId,amt)=>{let rem=amt;const ts=trOf(invId);ts.forEach(t=>{if(rem<=0.004)return;const take=Math.min(rem,Math.max(0,tpay[t.id]||0));if(take>0){addPay(t.id,-take);rem-=take;}});if(rem>0.004&&ts.length)addPay(ts[0].id,-rem);};
-  const propPay=(invId,amt)=>{const ts=trOf(invId);if(!ts.length)return;const act=ts.filter(t=>(tcapNow[t.id]||0)>0.004);const tot=act.reduce((s,t)=>s+tcapNow[t.id],0);if(tot>0)act.forEach(t=>addPay(t.id,amt*tcapNow[t.id]/tot));else addPay(ts[0].id,amt);};
-  const newTranche=(o,inv,kind)=>{
-    const isF=inv.role==='founder';
-    const pct=isF?100:(parseFloat(o.pct)||0); // доля инвестору задаётся в каждом вкладе
-    const st=o._d;
-    let termEnd=null;
-    if(!isF){if(o.endDate!==undefined)termEnd=invD(o.endDate)||null;else if(parseInt(o.termMonths)>0)termEnd=invAddMonths(st,parseInt(o.termMonths));}
-    tranches[o.id]={id:o.id,invId:o.invId,kind,date:o._d,amount:o._a,pct,start:st,termEnd,op:o};
-    tpay[o.id]=tpay[o.id]||0;pushCap(o._d,o.id,o._a,o.id);
-  };
-  ops.forEach(o=>{
-    const inv=invById[o.invId];if(!inv)return;
-    const dep=o.depId&&tranches[o.depId]&&tranches[o.depId].invId===o.invId?o.depId:null;
-    if(o.type==='deposit')newTranche(o,inv,'deposit');
-    else if(o.type==='reinvest'){
-      if(dep){pushCap(o._d,dep,o._a,o.id);addPay(dep,-o._a);}
-      else{fifoPay(o.invId,o._a);newTranche(o,inv,'reinvest');}
-    }
-    else if(o.type==='payout'){if(dep)addPay(dep,-o._a);else fifoPay(o.invId,o._a);}
-    else if(o.type==='profit'){if(dep)addPay(dep,o._a);else propPay(o.invId,o._a);}
-    else if(o.type==='withdraw'){
-      if(dep){pushCap(o._d,dep,-o._a,o.id);return;}
-      let rem=o._a;trOf(o.invId).filter(t=>(tcapNow[t.id]||0)>0.004).forEach(t=>{if(rem<=0.004)return;const take=Math.min(rem,tcapNow[t.id]);pushCap(o._d,t.id,-take,o.id);rem-=take;});
-    }
-    else if(o.type==='loss'){
-      if(dep){pushCap(o._d,dep,-o._a,o.id);return;}
-      if(Array.isArray(o.deps)&&o.deps.length){o.deps.forEach(x=>{if(tranches[x.depId])pushCap(o._d,x.depId,-(parseFloat(x.amount)||0),o.id);});return;}
-      const ts=trOf(o.invId).filter(t=>(tcapNow[t.id]||0)>0.004);const tot=ts.reduce((s,t)=>s+tcapNow[t.id],0);
-      if(tot>0)ts.forEach(t=>pushCap(o._d,t.id,-o._a*tcapNow[t.id]/tot,o.id));
-    }
-  });
-  // события прибыли по договорам
-  const byClient={};
-  S.payments.forEach(p=>{if(p.type!=='payment'&&p.type!=='discount'&&p.type!=='prepay')return;(byClient[p.clientId]=byClient[p.clientId]||[]).push(p);});
-  const events=[];let inDeals=0,noCost=0,profLeft=0;
-  S.clients.forEach(c=>{
-    const cost=parseFloat(c.cost)||0,price=parseFloat(c.price)||0;
-    if(price<=0)return;
-    if(cost<=0){if(byClient[c.id])noCost++;return;}
-    const sp=dealProfitSplit(c,dealProfitList(c,byClient[c.id]||[]));
-    sp.items.forEach(x=>events.push(x.disc?{d:x.d,amount:-x.disc,body:0,kind:'profit',src:'discount',ref:'Скидка ниже себестоимости №'+(c.contractId||'—')+' '+(c.name||'')}:{d:x.d,amount:x.prof,body:x.body,kind:'profit',src:x.src,ref:(x.src==='prepay'?'Предоплата ':'')+'№'+(c.contractId||'—')+' '+(c.name||'')}));
-    if(!c.archived){inDeals+=Math.max(0,sp.bodyRem);profLeft+=Math.max(0,sp.profRem);}
-  });
-  S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type)&&!INV_FEXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:INV_FEXP_TYPES.includes(o.type)?'fexpense':'expense',etype:o.type,ref:o.desc||kMeta(o.type).name});});
-  events.sort((a,b)=>a.d-b.d);
-  // балансы участников
-  const bal={};
-  S.inv.forEach(i=>bal[i.id]={capital:0,payable:0,earned:0,deposited:0,withdrawn:0,paid:0,reinvested:0,ops:0});
-  ops.forEach(o=>{const b=bal[o.invId];const m=INV_OP[o.type];if(!b||!m)return;b.ops++;
-    if(o.type==='profit')b.earned+=o._a;if(o.type==='loss')b.earned-=o._a;if(o.type==='deposit')b.deposited+=o._a;if(o.type==='withdraw')b.withdrawn+=o._a;if(o.type==='payout')b.paid+=o._a;if(o.type==='reinvest')b.reinvested+=o._a;});
-  Object.values(tranches).forEach(t=>{if(bal[t.invId]){bal[t.invId].capital+=tcapNow[t.id]||0;bal[t.invId].payable+=tpay[t.id]||0;}});
-  Object.values(bal).forEach(b=>{['capital','payable','earned'].forEach(k=>b[k]=invR(b[k]));});
-  Object.keys(tcapNow).forEach(k=>tcapNow[k]=invR(tcapNow[k]));Object.keys(tpay).forEach(k=>tpay[k]=invR(tpay[k]));
-  const poolCap=invR(Object.values(bal).reduce((s,b)=>s+Math.max(0,b.capital),0));
-  const firstMk=ops.length?monthKey(ops[0]._d):null;
-  let startMk=firstMk;if(closedKeys.length&&(!startMk||closedKeys[0]<startMk))startMk=closedKeys[0];
-  const months=[];if(startMk){let mk=startMk;while(mk<=curMk){months.push(mk);mk=mkNext(mk);}}
-  const firstOpen=months.find(mk=>!closed[mk])||curMk;
-  const kassaTotal=S.wallets.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
-  capEvents.sort((a,b)=>a._d-b._d);
-  return{now,curMk,ops,tranches,tcapNow,tpay,capEvents,closed,closedKeys,lastClosed,events,inDeals:invR(inDeals),profLeft:invR(profLeft),noCost,bal,poolCap,months,firstOpen,kassaTotal,_mc:{}};
-}
+function invModelCalc(){return window.AmanaModel.build({clients:S.clients,payments:S.payments,kassaOps:S.kassaOps,investors:S.inv,invOps:S.invOps,invMonths:S.invMonths,wallets:S.wallets,returns:S.returns});}
 // Расчёт месяца (живой).
-function invComputeMonth(M,mk){
-  if(M._mc[mk])return M._mc[mk];
-  const st=mkStart(mk),en=mkStart(mkNext(mk));
-  const evs=M.events.filter(e=>e.d>=st&&e.d<en);
-  const tcap={};Object.keys(M.tranches).forEach(id=>tcap[id]=0);
-  const rows={};
-  S.inv.forEach(i=>{rows[i.id]={invId:i.id,name:i.name,role:i.role||'investor',gross:0,exp:0,toInv:0,toComp:0,fromComp:0,pre:0,pcts:new Set()};});
-  const dep={};
-  const dg=id=>{const tr=M.tranches[id];return dep[id]||(dep[id]={depId:id,invId:tr.invId,pct:tr.pct,date:fmtD(tr.date),start:fmtD(tr.start),gross:0,exp:0,toInv:0,toComp:0,fromComp:0,pre:0});};
-  let k=0;const ce=M.capEvents;
-  const apply=t=>{while(k<ce.length&&ce[k]._d<=t){const e=ce[k];if(tcap[e.depId]!==undefined)tcap[e.depId]+=e.delta;k++;}};
-  let gross=0,exp=0,unalloc=0,noFounder=false;
-  evs.forEach(e=>{
-    apply(e.d);
-    const amt=e.amount;if(e.kind==='profit')gross+=amt;else exp-=amt;
-    let act=Object.keys(tcap).filter(id=>tcap[id]>0.004&&rows[M.tranches[id].invId]);
-    if(e.kind==='fexpense')act=act.filter(id=>rows[M.tranches[id].invId].role==='founder');
-    const tot=act.reduce((s,id)=>s+tcap[id],0);
-    if(tot<=0){unalloc+=amt;return;}
-    const fT=act.filter(id=>rows[M.tranches[id].invId].role==='founder');
-    const ftot=fT.reduce((s,id)=>s+tcap[id],0);
-    act.forEach(id=>{
-      const tr=M.tranches[id],r=rows[tr.invId],sl=amt*tcap[id]/tot,g=dg(id);
-      if(e.kind==='profit'){r.gross+=sl;g.gross+=sl;}else{r.exp-=sl;g.exp-=sl;}
-      let pct;
-      if(r.role==='founder')pct=1;
-      else if(e.d<tr.start){pct=0;r.pre+=sl;g.pre+=sl;}
-      else{pct=tr.pct/100;r.pcts.add(tr.pct);}
-      r.toInv+=sl*pct;g.toInv+=sl*pct;
-      const cp=sl*(1-pct);r.toComp+=cp;g.toComp+=cp;
-      if(Math.abs(cp)>1e-9){
-        if(ftot>0)fT.forEach(fid=>{const part=cp*tcap[fid]/ftot;dg(fid).fromComp+=part;rows[M.tranches[fid].invId].fromComp+=part;});
-        else{unalloc+=cp;noFounder=true;}
-      }
-    });
-  });
-  apply(new Date(en.getTime()-1));
-  Object.keys(tcap).forEach(id=>{if(tcap[id]>0.004)dg(id);});
-  const capBy={};Object.keys(tcap).forEach(id=>{const iv=M.tranches[id].invId;capBy[iv]=(capBy[iv]||0)+Math.max(0,tcap[id]);});
-  const totEnd=Object.values(capBy).reduce((s,v)=>s+v,0);
-  const list=Object.values(rows).map(r=>{
-    const cap=capBy[r.invId]||0;
-    const deps=Object.values(dep).filter(d=>d.invId===r.invId).map(d=>{const tr=M.tranches[d.depId];const toInv=invR(d.toInv),fromComp=invR(d.fromComp);
-      if(r.role!=='founder'&&!r.pcts.size&&tcap[d.depId]>0.004)r.pcts.add(tr.pct);
-      return{depId:d.depId,pct:d.pct,date:d.date,start:d.start,gross:invR(d.gross),exp:invR(d.exp),toInv,toComp:invR(d.toComp),fromComp,pre:invR(d.pre),total:invR(toInv+fromComp),capEnd:invR(Math.max(0,tcap[d.depId])),started:tr.start<en};});
-    const pcts=[...r.pcts].sort((a,b)=>a-b);
-    const total=invR(deps.reduce((s,x)=>s+x.total,0));
-    const startedCap=invR(deps.filter(x=>x.started).reduce((s,x)=>s+x.capEnd,0));
-    return{invId:r.invId,name:r.name,role:r.role,pct:pcts.length===1?pcts[0]:null,pcts,gross:invR(r.gross),exp:invR(r.exp),net:invR(r.gross-r.exp),toInv:invR(r.toInv),toComp:invR(r.toComp),fromComp:invR(r.fromComp),pre:invR(r.pre),total,capEnd:invR(cap),startedCap,shareEnd:totEnd>0?cap/totEnd:0,deps};
-  }).filter(r=>r.gross||r.exp||r.total||r.capEnd>0);
-  const want=invR(gross-exp-unalloc),got=invR(list.reduce((s,r)=>s+r.total,0)),diff=invR(want-got);
-  if(diff&&Math.abs(diff)<1){const f=list.filter(r=>r.role==='founder').sort((a,b)=>b.capEnd-a.capEnd)[0];if(f&&f.deps.length){const fd=f.deps.slice().sort((a,b)=>b.capEnd-a.capEnd)[0];fd.total=invR(fd.total+diff);fd.fromComp=invR(fd.fromComp+diff);f.total=invR(f.total+diff);f.fromComp=invR(f.fromComp+diff);}}
-  const net=invR(gross-exp);
-  const res={mk,gross:invR(gross),exp:invR(exp),net,unalloc:invR(unalloc),noFounder,rows:list,count:evs.length,live:true,poolCap:invR(totEnd),poolRent:totEnd>0?net/totEnd:null};
-  M._mc[mk]=res;return res;
-}
+function invComputeMonth(M,mk){return window.AmanaModel.month(M,mk);}
 function invMonthData(M,mk){
   const c=M.closed[mk];
   if(c){const rows=c.rows||[];const pc=c.poolCap!==undefined?c.poolCap:rows.reduce((s,r)=>s+(r.capEnd||0),0);return{mk,gross:c.gross||0,exp:c.exp||0,net:c.net||0,unalloc:c.unalloc||0,rows,closedAt:c.closedAt,live:false,poolCap:pc,poolRent:pc>0?(c.net||0)/pc:null};}
@@ -5680,5 +5563,6 @@ function blurInside(el){const a=document.activeElement;if(a&&a!==document.body&&
 })();
 </script>
 
+<script src="./vendor/amana-model/security-ui.js"></script>
 </body>
 </html>

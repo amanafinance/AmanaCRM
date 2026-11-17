@@ -1,5 +1,5 @@
 // Дизайн-аудит: скриншоты всех страниц и окон (телефон 390×844 и ПК 1280×850, обе темы) + замеры.
-// Запуск: npx firebase emulators:exec --only firestore,auth --project amana-crm-16033 "node audit.mjs <папка>"
+// Запуск: node audit.mjs <папка>
 import fs from 'node:fs';import path from 'node:path';
 import {start,stop,reseed,device,login,wait} from './lib.mjs';
 const OUT=path.resolve(process.argv[2]||'audit-out');fs.mkdirSync(OUT,{recursive:true});

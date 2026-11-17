@@ -1,6 +1,6 @@
-// Подключение CRM к своему серверу (PocketBase). Выбирается в index.html, когда CRM открыта на crm-amana.ru.
-// Наружу отдаёт то же, что db-fb.js: window.DB (документы, пачки записей, живые коллекции, номера, копия),
-// window.AUTH, SIGN_IN, SIGN_OUT, ON_AUTH — поэтому остальной код CRM не знает, с какой базой работает.
+// Подключение CRM к своему серверу (PocketBase).
+// Наружу отдаёт window.DB (документы, пачки записей, живые коллекции, номера, копия),
+// window.AUTH, SIGN_IN, SIGN_OUT, ON_AUTH — общий интерфейс работы с базой для экранов CRM.
 //
 // Как устроено:
 // - каждая запись хранится на сервере как {id, data (поля в JSON), u (время изменения)}; даты — {"$date": ISO};
@@ -21,7 +21,7 @@ const isApp = (() => { try { return navigator.standalone === true || matchMedia(
 pb.beforeSend = (url, options) => { options.headers = Object.assign({}, options.headers, devId ? { 'X-Amana-Device': devId } : {}, { 'X-Amana-App': isApp ? '1' : '0' }); return { url, options }; };
 const TOMB = 'deleted';
 
-// ---------- Дата/время как в Firestore (у CRM везде .toDate()) ----------
+// ---------- Дата/время (у CRM везде .toDate()) ----------
 class Timestamp {
   constructor(seconds, nanoseconds) { this.seconds = seconds; this.nanoseconds = nanoseconds || 0; }
   static fromDate(d) { const ms = d.getTime(); return new Timestamp(Math.floor(ms / 1000), ((ms % 1000) + 1000) % 1000 * 1e6); }
@@ -34,7 +34,7 @@ class Timestamp {
   toJSON() { return { $date: this.toDate().toISOString() }; }
   toString() { return 'Timestamp(' + this.toDate().toISOString() + ')'; }
 }
-// Особые значения для записи (как increment / arrayUnion / deleteField / serverTimestamp в Firestore)
+// Особые значения для записи (увеличение, изменение списков, удаление поля и время сервера)
 class Sentinel { constructor(op, v) { this.$op = op; if (v !== undefined) this.v = v; } }
 const increment = n => new Sentinel('inc', n);
 const arrayUnion = (...v) => new Sentinel('union', v.map(enc));
@@ -92,7 +92,7 @@ const netCheck = async () => {
   catch (e) { throw netFail(); }
 };
 const ERR_CODE = { short: 'short', stale: 'stale', exists: 'exists', denied: 'permission-denied', missing: 'not-found', bad: 'invalid-argument' };
-// Запрос к серверу; ошибки сервера → Error с понятным текстом и code (как в Firestore)
+// Запрос к серверу; ошибки сервера → Error с понятным текстом и code
 async function api(path, body, ms) {
   let r;
   try { r = await withTimeout(pb.send(path, { method: 'POST', body }), ms || 15000); }
@@ -191,9 +191,9 @@ const cacheScope = () => {
 const cacheName = () => 'amana_pb_' + cacheScope();
 const EPOCH_KEY = 'amana_pb_epoch';
 let _idb = null;
-const idb = () => _idb || (_idb = new Promise((ok, no) => { const r = indexedDB.open(cacheName(), 1); r.onupgradeneeded = () => r.result.createObjectStore('cols'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }).catch(() => null));
+const idb = () => _idb || (_idb = new Promise((ok, no) => { const r = indexedDB.open(cacheName(), 1); r.onupgradeneeded = () => r.result.createObjectStore('cols'); r.onsuccess = () => {r.result.onversionchange=()=>r.result.close();ok(r.result);}; r.onerror = () => no(r.error); }).catch(() => null));
 const idbGet = async k => { const d = await idb(); if (!d) return null; return new Promise(ok => { try { const r = d.transaction('cols').objectStore('cols').get(k); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); } catch (e) { ok(null); } }); };
-const idbPut = async (k, v) => { const d = await idb(); if (!d) return; return new Promise(ok => { try { const t = d.transaction('cols', 'readwrite'); t.objectStore('cols').put(v, k); t.oncomplete = () => ok(); t.onerror = () => ok(); } catch (e) { ok(); } }); };
+const idbPut = async (k, v) => { if(closing)return;const d = await idb(); if (!d||closing) return; return new Promise(ok => { try { const t = d.transaction('cols', 'readwrite'); t.objectStore('cols').put(v, k); t.oncomplete = () => ok(); t.onerror = () => ok(); } catch (e) { ok(); } }); };
 const idbClear = async () => { const d = await idb(); if (d) { try { d.close(); } catch (e) {} } _idb = null; await new Promise(ok => { const r = indexedDB.deleteDatabase(cacheName()); r.onsuccess = r.onerror = r.onblocked = () => ok(); }); };
 
 // ---------- Живые коллекции ----------
@@ -226,7 +226,9 @@ function applyServerDocs(list) {
   list.forEach(x => {
     const st = colState(x.c);
     if (x.del) { st.map.delete(x.id); addTomb({ c: x.c, id: x.id }, x.u); touched.add(x.c); return; }
-    if (applyRecord(x.c, { id: x.id, data: x.data, u: x.u })) touched.add(x.c);
+    applyRecord(x.c, { id: x.id, data: x.data, u: x.u });
+    // Realtime мог прийти раньше ответа. К завершению сохранения экран всё равно должен видеть запись.
+    touched.add(x.c);
   });
   touched.forEach(c => { const st = cols[c]; st.save(); st.emit(); });
   if (touched.size && cols[TOMB]) Object.keys(liveEmit).forEach(n => { if (n !== TOMB) liveEmit[n](); });
@@ -258,7 +260,7 @@ async function live(name, opts, cb, onErr) {
   const emit = () => {
     let arr = [];
     st.map.forEach((v, id) => { const t = name !== TOMB && tombs.get(name + '/' + id); if (t && v.u <= t) return; arr.push({ id, d: dec(v.data) }); });
-    arr.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0); // как в Firestore: по номеру записи
+    arr.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0); // по номеру записи
     if (opts.order) { const f = opts.order, val = x => { const y = x.d[f]; return y && y.toMillis ? y.toMillis() : (y instanceof Date ? y.getTime() : 0); }; arr.sort((a, b) => val(b) - val(a)); }
     cb({ docs: arr.map(x => ({ id: x.id, data: () => x.d })) });
   };
@@ -336,7 +338,7 @@ async function resyncAll() { closing = true; await idbClear(); location.reload()
 
 // ---------- Резервная копия ----------
 // Формат файла совпадает с хранением на сервере: даты — {"$date": ISO}, id сохраняются.
-const BK_COLS = ['clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings'], BK_LOGS = ['journal', 'trash'];
+const BK_COLS = ['clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings','returns'], BK_LOGS = ['journal', 'trash'];
 const bkSkip = (c, id) => c === 'settings' && id === 'meta';
 async function bkDump() {
   const all = [...BK_COLS, ...BK_LOGS];
@@ -362,6 +364,7 @@ function bkCheck(B) {
   if (!B || B.format !== 'amana-crm-backup' || !B.collections || typeof B.collections !== 'object') return 'Это не файл копии Amana CRM';
   if (B.version !== 1) return 'Копия сделана более новой версией CRM — обновите страницу и попробуйте снова';
   if (B.source !== 'server' || B.partial) return 'Для восстановления нужна полная копия с сервера';
+  if(B.collections.returns===undefined){B.collections.returns={};B.counts=B.counts||{};B.counts.returns=0;}
   for (const c of BK_COLS) {
     const o = B.collections[c];
     if (o === undefined) return 'В копии отсутствует раздел ' + c;
@@ -389,19 +392,38 @@ async function bkRestore(B, prog) {
 }
 
 // ---------- Вход ----------
-// Токен входа действует 30 дней и продлевается при каждом открытии CRM
+// Вход действует 8 часов, подтверждение нового входа — пароль и код из письма.
 const AUTH = { get currentUser() { const r = pb.authStore.isValid && pb.authStore.record; return r ? { email: r.email, uid: r.id, name: r.name || '' } : null; },
   // права: "*" — владелец (всё), иначе ",право,право,"
   get perms() { const r = pb.authStore.isValid && pb.authStore.record; return r ? (r.perms || '') : ''; } };
 const hasRight = p => AUTH.perms === '*' || AUTH.perms.includes(',' + p + ',');
 const SIGN_IN = async (_a, email, pw) => {
   try { await pb.collection('users').authWithPassword(email, pw, { requestKey: null }); }
-  catch (e) { const st = e && e.status; throw Object.assign(new Error('auth'), { code: st === 429 ? 'auth/too-many-requests' : !st ? 'auth/network-request-failed' : 'auth/invalid-credential' }); }
+  catch (e) {
+    if(e.response&&e.response.mfaId){
+      let otp;try{otp=await pb.collection('users').requestOTP(email,{requestKey:null});}catch(err){throw Object.assign(new Error('Не удалось отправить код'),{code:err.status===429?'auth/too-many-requests':'auth/mail-unavailable'});}
+      _loginChallenge={mfaId:e.response.mfaId,otpId:otp.otpId};return {needsCode:true};
+    }
+    const st = e && e.status; throw Object.assign(new Error('auth'), { code: st === 429 ? 'auth/too-many-requests' : !st ? 'auth/network-request-failed' : 'auth/invalid-credential' });
+  }
 };
+let _loginChallenge=null;
+const VERIFY_CODE=async code=>{if(!_loginChallenge)throw new Error('Начните вход заново');const c=_loginChallenge;await pb.collection('users').authWithOTP(c.otpId,String(code).trim(),{mfaId:c.mfaId,requestKey:null});_loginChallenge=null;};
 // Вход перестал действовать (вход отключён, «Выйти на всех устройствах», сменён пароль): показываем экран входа
 let _authLost = false;
-function authLost() { if (_authLost) return; _authLost = true; try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); setTimeout(() => location.reload(), 1200); }
-const SIGN_OUT = async () => { try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); };
+let logoutChannel;try{logoutChannel=new BroadcastChannel('amana_private_logout');logoutChannel.onmessage=async()=>{closing=true;Object.values(cols).forEach(s=>{clearTimeout(s._s);clearTimeout(s._t);s.map.clear();});if(_idb){const d=await _idb;if(d)d.close();}_idb=null;pb.authStore.clear();location.reload();};}catch(e){}
+async function clearPrivateData(){
+  if(logoutChannel)logoutChannel.postMessage('logout');
+  closing=true;Object.values(cols).forEach(s=>{clearTimeout(s._s);clearTimeout(s._t);s.map.clear();});
+  try{await pb.realtime.unsubscribe();}catch(e){}
+  if(_idb){const d=await _idb;if(d)d.close();}_idb=null;
+  try{
+    if(indexedDB.databases){const all=await indexedDB.databases();for(const d of all.filter(d=>d.name&&d.name.startsWith('amana_pb_')))await new Promise((ok,no)=>{const timer=setTimeout(()=>no(new Error('Закройте другие вкладки CRM и повторите выход для очистки данных')),10000),r=indexedDB.deleteDatabase(d.name);r.onsuccess=()=>{clearTimeout(timer);ok();};r.onerror=()=>{clearTimeout(timer);no(r.error);};});}
+    else await idbClear();
+  }finally{tombs.clear();_loginChallenge=null;pb.authStore.clear();}
+}
+function authLost() { if (_authLost) return; _authLost = true; clearPrivateData().finally(()=>{pb.authStore.clear();location.reload();}); }
+const SIGN_OUT = async () => {await clearPrivateData();};
 const ON_AUTH = (_a, cb) => {
   let last = AUTH.currentUser && AUTH.currentUser.uid, scope = cacheScope();
   pb.authStore.onChange(() => {
@@ -429,5 +451,9 @@ const staff = {
 window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, getDoc, query, orderBy, limit, startAfter, where,
   setDoc: setDocU, writeBatch: writeBatchU, increment, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp, nextCounter, createOnce, live, liveTombs, resyncAll, checkEpoch,
   bkDump, bkRestore, bkCheck, staff, deviceId: devId, backend: 'pocketbase', pb };
-window.AUTH = AUTH; window.SIGN_IN = SIGN_IN; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
+window.DB.reconcile=(id,balance)=>commitOps([{t:'update',c:'wallets',id,d:{balance}}],null,null,'reconcile');
+window.DB.note=type=>staffCall('POST','/api/amana/note',{type});
+window.DB.mail={get:()=>staffCall('GET','/api/amana/backup-mail'),save:data=>staffCall('POST','/api/amana/backup-mail',data),send:()=>staffCall('POST','/api/amana/backup-mail/send')};
+window.DB.returnDeal=async data=>{await netCheck();const r=await api('/api/amana/commit',{return:data});applyServerDocs(r.docs||[]);return r.result;};
+window.AUTH = AUTH; window.SIGN_IN = SIGN_IN;window.VERIFY_CODE=VERIFY_CODE; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
 window.dispatchEvent(new Event('dbReady'));

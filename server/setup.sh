@@ -4,7 +4,7 @@
 # Что делает:
 #   1. Обновляет систему и включает автоматические обновления безопасности.
 #   2. Включает защиту: брандмауэр (открыты только SSH, 80, 443) и fail2ban (блокирует подбор пароля SSH).
-#   3. Ставит PocketBase (база данных + вход сотрудников) последней версии с проверкой контрольной суммы.
+#   3. Ставит PocketBase (база данных + вход сотрудников) проверенной версии 0.40.6 с проверкой контрольной суммы.
 #   4. Включает HTTPS: сертификат Let's Encrypt для вашего домена получается и продлевается сам.
 #   5. Спрашивает email и пароль администратора базы — они вводятся только здесь, на сервере, никому не передаются.
 #   6. Каждую ночь в 03:30 сохраняет копию базы на сервере (хранятся 14 последних).
@@ -13,7 +13,7 @@
 # Запуск (в консоли сервера, от root):
 #   curl -fsSL https://amanafinance.github.io/AmanaCRM/server/setup.sh -o setup.sh && bash setup.sh crm.ваш-домен.ru
 #
-# Повторный запуск безопасен: обновит PocketBase до последней версии, данные не трогает.
+# Использует PocketBase 0.40.6. Перед обновлением существующего сервера см. SECURITY-UPDATE.md.
 set -euo pipefail
 
 DOMAIN="${1:-}"
@@ -41,7 +41,7 @@ say "Пакеты и обновления системы"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade
-apt-get -y -q install curl ca-certificates unzip jq ufw fail2ban unattended-upgrades sqlite3 dnsutils git rsync
+apt-get -y -q install curl ca-certificates unzip jq ufw fail2ban unattended-upgrades sqlite3 dnsutils git rsync python3 python3-cryptography
 
 say "Проверка: домен $DOMAIN указывает на этот сервер"
 MYIPS="$(hostname -I 2>/dev/null || true) $(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || true)"
@@ -94,7 +94,7 @@ fi
 
 say "PocketBase"
 case "$(uname -m)" in x86_64) ARCH=amd64;; aarch64|arm64) ARCH=arm64;; *) die "неизвестный процессор $(uname -m)";; esac
-VER="${PB_VERSION:-$(curl -fsSL https://api.github.com/repos/pocketbase/pocketbase/releases/latest | jq -r .tag_name)}"
+VER="${PB_VERSION:-0.40.6}"
 VER="${VER#v}"
 [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "не удалось узнать версию PocketBase (ответ: $VER)"
 ZIP="pocketbase_${VER}_linux_${ARCH}.zip"
@@ -125,6 +125,7 @@ Type=simple
 User=pocketbase
 Group=pocketbase
 WorkingDirectory=$APP
+Environment=TZ=Europe/Moscow
 ExecStart=$APP/pocketbase serve $DOMAIN --dir=$APP/pb_data --publicDir=$APP/pb_public --migrationsDir=$APP/pb_migrations --hooksDir=$APP/pb_hooks --automigrate=false --hooksWatch=false
 Restart=always
 RestartSec=5

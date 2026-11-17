@@ -1,5 +1,5 @@
 // Без интернета, настройки на двух устройствах, дата после полуночи, дата и правка операции кассы
-import {reseed,device,login,check,noErrors,wait,autoConfirm} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,autoConfirm,pbAdmin} from '../lib.mjs';
 export default async function(){
   await reseed();
   const A=await device(),B=await device();await login(A.p);await login(B.p);await autoConfirm(A.p);
@@ -49,11 +49,11 @@ export default async function(){
     return{saved:!!p,shown:document.getElementById('cDetail').innerHTML.includes('Внёс 28.10, записали позже')};});
   check('комментарий к платежу сохраняется и виден в истории платежей',pn.saved&&pn.shown,pn);
   // закрытый у инвесторов месяц не трогается
-  const cm=await A.p.evaluate(async()=>{const{db,doc,setDoc,deleteDoc}=window.DB;const p=S.payments.find(x=>x.type==='payment'&&dTs(x.date)<new Date(new Date().getFullYear(),new Date().getMonth()-1,1));const mk=monthKey(dTs(p.date));
-    await setDoc(doc(db,'invMonths',mk),{month:mk,closedAt:new Date(),rows:[]});await new Promise(r=>setTimeout(r,1200));
+  const cm=await A.p.evaluate(async admin=>{const{db,doc,setDoc,deleteDoc}=window.DB;const p=S.payments.find(x=>x.type==='payment'&&dTs(x.date)<new Date(new Date().getFullYear(),new Date().getMonth()-1,1));const mk=monthKey(dTs(p.date));
+    await fetch(window.DB.pb.baseURL+'/api/amana/test/seed',{method:'POST',headers:{'Content-Type':'application/json',Authorization:admin},body:JSON.stringify({docs:[{c:'invMonths',id:mk,data:{month:mk,closedAt:{$date:new Date().toISOString()},rows:[]}}]})});await new Promise(r=>setTimeout(r,1200));
     document.getElementById('confirmLayer').innerHTML='';await cancelPay(p.id,p.clientId,p.amount,'payment');await new Promise(r=>setTimeout(r,300));
     const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',still:S.payments.some(x=>x.id===p.id)};document.getElementById('confirmLayer').innerHTML='';
-    await deleteDoc(doc(db,'invMonths',mk));await new Promise(r=>setTimeout(r,800));return r;});
+    await deleteDoc(doc(db,'invMonths',mk));await new Promise(r=>setTimeout(r,800));return r;},await pbAdmin());
   check('платёж в закрытом у инвесторов месяце отменить нельзя',cm.title==='Месяц закрыт'&&cm.still,cm);
   // удаление поставщика — с подтверждением; номер клиента — одной транзакцией
   const rp=await A.p.evaluate(async()=>{let asked='';const sc=window.showConfirm;window.showConfirm=(t)=>{asked=t;};goTo('settings');document.getElementById('newPart').value='Временный';await addPart();await new Promise(r=>setTimeout(r,600));
