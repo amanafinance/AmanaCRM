@@ -111,7 +111,7 @@ function invModelCalc(){
     sp.items.forEach(x=>events.push(x.disc?{d:x.d,amount:-x.disc,body:0,kind:'profit',src:'discount',ref:'Скидка ниже себестоимости №'+(c.contractId||'—')+' '+(c.name||'')}:{d:x.d,amount:x.prof,body:x.body,kind:'profit',src:x.src,ref:(x.src==='prepay'?'Предоплата ':'')+'№'+(c.contractId||'—')+' '+(c.name||'')}));
     inDeals+=Math.max(0,sp.bodyRem);profLeft+=Math.max(0,sp.profRem);
   });
-  S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type)&&!INV_FEXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:INV_FEXP_TYPES.includes(o.type)?'fexpense':'expense',etype:o.type,ref:o.desc||kMeta(o.type).name});});
+  S.kassaOps.forEach(o=>{if(!INV_EXP_TYPES.includes(o.type)&&!INV_FEXP_TYPES.includes(o.type))return;const d=invD(o.date);const a=parseFloat(o.amount)||0;if(d&&a>0)events.push({d,amount:-a,kind:INV_FEXP_TYPES.includes(o.type)?'fexpense':'expense',etype:o.type,ref:o.desc||({salary:'Зарплата',opex:'Операционные расходы',other_exp:'Прочий расход'})[o.type]});});
   events.sort((a,b)=>a.d-b.d);
   // балансы участников
   const bal={};

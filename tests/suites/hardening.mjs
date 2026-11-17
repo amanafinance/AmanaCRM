@@ -7,7 +7,7 @@ export default async function(){
  const first=await api('POST','/api/collections/users/auth-with-password',{identity:'a@test.ru',password:'test12345'});
  check('пароля недостаточно: сервер требует второй фактор',first.status===401&&!!first.data.mfaId&&!first.data.token,first);
  const otp=await api('POST','/api/collections/users/request-otp',{email:'a@test.ru'}),code=await testCode('a@test.ru');
- const wrong=await api('POST','/api/collections/users/auth-with-otp',{otpId:otp.data.otpId,password:'000000',mfaId:first.data.mfaId});
+ const wrong=await api('POST','/api/collections/users/auth-with-otp',{otpId:otp.data.otpId,password:code==='000000'?'000001':'000000',mfaId:first.data.mfaId});
  check('неверный код не даёт вход',wrong.status>=400);
  const justCode=await api('POST','/api/collections/users/auth-with-otp',{otpId:otp.data.otpId,password:code});
  check('одного кода без пароля тоже недостаточно',justCode.status===401&&!justCode.data.token);
@@ -33,11 +33,13 @@ export default async function(){
  const cashOp=(await api('GET','/api/collections/kassaOps/records?perPage=1&filter='+encodeURIComponent('data.type="payment_in"'),null,token)).data.items[0];
  check('связанную оплату нельзя превратить в обычный расход',(await post({ops:[{t:'update',c:'kassaOps',id:cashOp.id,d:{type:'opex'}}]})).status>=400);
  const c=(await get('clients','c3')).data.data,oldWallet=(await get('wallets','w2')).data.data.balance;
- const body={return:{clientId:'c3',requestId:'return_test_0001',amount:30000,wallet:'w2',reason:'Частичный возврат товара'}};
+ const receipts=(await api('GET','/api/collections/payments/records?perPage=100&filter='+encodeURIComponent('data.clientId="c3"'),null,token)).data.items;
+ const returnAmount=c.price-c.prepay-receipts.filter(r=>r.data.type==='payment').reduce((n,r)=>n+r.data.amount,0)+10000;
+ const body={return:{clientId:'c3',requestId:'return_test_0001',amount:returnAmount,wallet:'w2',reason:'Частичный возврат товара'}};
  const returned=await post(body);check('отдельная операция возврата сохраняется',returned.status===200,returned);
  if(returned.status===200){
   const result=returned.data.result,latest=(await get('clients','c3')).data.data;
-  check('возврат уменьшает обязательство, исходная цена сохранена',latest.price===c.price&&latest.returnedAmount===30000);
+  check('возврат уменьшает обязательство, исходная цена сохранена',latest.price===c.price&&latest.returnedAmount===returnAmount);
   check('счёт уменьшился на фактически возвращённые деньги',result.refundAmount>0&&(await get('wallets','w2')).data.data.balance===oldWallet-result.refundAmount);
   const repeated=await post(body);check('повтор запроса не выдаёт деньги второй раз',repeated.status===200&&(await get('wallets','w2')).data.data.balance===oldWallet-result.refundAmount);
   check('корзина не используется вместо истории реального возврата',(await get('returns','return_test_0001')).status===200);
@@ -83,10 +85,12 @@ export default async function(){
  const opsOnly=await authToken('restricted@test.ru','restricted-123');
  check('права инвесторов не позволяют выдать обычный расход за операцию инвестора',(await api('POST','/api/amana/commit',{ops:[{t:'set',c:'kassaOps',id:'fake_investor_expense',d:{type:'opex',amount:1,wallet:'w1',refType:'investor',refId:'INV1',date:{$date:new Date().toISOString()}}},{t:'update',c:'wallets',id:'w1',d:{balance:{$op:'inc',v:-1}}}]},opsOnly)).status===403);
  const D=await device();await login(D.p);await D.p.waitForTimeout(800);
+ const unnamed=await D.p.evaluate(()=>window.AmanaModel.build({kassaOps:[{type:'opex',amount:1,date:{$date:new Date().toISOString()}}]}).events);
+ check('расход без описания не нарушает общий расчёт прибыли',unnamed.length===1&&unnamed[0].amount===-1&&!!unnamed[0].ref,unnamed);
  await D.p.evaluate(()=>{goTo('security');document.getElementById('bkPw').value='';});await D.p.click('#bkDl');await D.p.waitForSelector('#bkSt .bk-err');
  check('ручная выгрузка без пароля не создаёт файл',/пароль/i.test(await D.p.textContent('#bkSt')));
  const stats=await D.p.evaluate(()=>{const c=S.clients.find(c=>c.id==='c3');return {balance:getStats(c).balance,received:getStats(c).received};});
- check('после частичного возврата долг и полученные деньги сходятся',stats.balance===0&&stats.received===c.price-30000,stats);
+ check('после частичного возврата долг и полученные деньги сходятся',stats.balance===0&&stats.received===c.price-returnAmount,stats);
  await D.p.evaluate(()=>{openC('c3');openReturn('c3');document.getElementById('returnWallet').value='w2';document.getElementById('returnReason').value='Полный возврат остатка';});
  await D.p.click('#returnSave');await D.p.waitForFunction(()=>!document.getElementById('mReturn'));
  const finished=await D.p.evaluate(()=>{const c=S.clients.find(c=>c.id==='c3');return {balance:getStats(c).balance,received:getStats(c).received,profit:dealProfitSplit(c,dealProfitList(c)).got,count:S.returns.filter(r=>r.clientId==='c3').length};});
