@@ -4,3 +4,12 @@ tests/node_modules/
 tests/*.log
 tests/audit-out/
 tests/.pb/
+.env
+.env.*
+!.env.example
+pb_data/
+server/pb_data/
+*.db
+*.db-shm
+*.db-wal
+amana-backup-*.json

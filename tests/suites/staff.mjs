@@ -1,8 +1,8 @@
 // Сотрудники и права (свой сервер): владелец заводит сотрудника, выбирает набор и галочки;
 // у сотрудника скрыты чужие разделы и кнопки, а сервер не выполняет действия без права и не отдаёт скрытые данные.
-import {reseed,device,login,check,noErrors,wait,autoConfirm,BACKEND,URL_CRM} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,autoConfirm,URL_CRM} from '../lib.mjs';
 async function loginAs(p,email,pw){
-  await p.goto(URL_CRM);await wait(p,800);
+  try{await p.goto(URL_CRM);}catch(e){if(!/ERR_ABORTED/.test(String(e)))throw e;await p.waitForLoadState('domcontentloaded');}await p.waitForSelector('#lemail:visible');await wait(p,200);
   await p.fill('#lemail',email);await p.fill('#lpass',pw);await p.click('#loginFields button');
   await p.waitForFunction(()=>typeof S!=='undefined'&&S.clients.length>0&&S.wallets.length>0,null,{timeout:90000});await wait(p,1500);
 }
@@ -10,11 +10,6 @@ const vis=(p,sel)=>p.evaluate(s=>{const e=document.querySelector(s);return!!e&&g
 export default async function(){
   await reseed();
   const O=await device();await login(O.p);await autoConfirm(O.p);
-  if(BACKEND!=='pb'){
-    await O.p.evaluate(()=>goTo('security'));await wait(O.p,300);
-    check('старая база: раздела «Сотрудники» нет',!(await vis(O.p,'#staffCard')));
-    noErrors('сотрудники (Firebase)',O.errs);await O.ctx.close();return;
-  }
   // 1. Владелец: раздел есть, готовый набор ставит галочки, зависимые права ставятся сами
   await O.p.evaluate(()=>goTo('security'));await O.p.waitForSelector('#staffBody .st-row',{timeout:20000});
   check('владелец видит раздел «Сотрудники и права», себя в списке',/это вы/.test(await O.p.textContent('#staffBody')));

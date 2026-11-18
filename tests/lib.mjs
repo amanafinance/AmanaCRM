@@ -10,8 +10,7 @@ const PORT=Number(process.env.CRM_PORT||8765);
 export const URL_CRM='http://127.0.0.1:'+PORT+'/index.html';
 const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.json':'application/json','.png':'image/png','.svg':'image/svg+xml'};
 
-// База для проверок: CRM_DB=pb — свой сервер (PocketBase), иначе Firebase (эмулятор)
-export const BACKEND=process.env.CRM_DB==='pb'?'pb':'fb';
+// Для проверок запускается отдельная временная база PocketBase.
 export const PB_PORT=Number(process.env.PB_PORT||8092),PB_URL='http://127.0.0.1:'+PB_PORT;
 const PB_BIN=process.env.PB_BIN||path.join(ROOT,'tests','.pb','pocketbase');
 export const PB_ADMIN={identity:'admin@test.ru',password:'adminpass123'};
@@ -20,7 +19,7 @@ async function startPB(){
   pbDir=fs.mkdtempSync(path.join(os.tmpdir(),'amana-pb-'));
   const args=['--dir='+pbDir,'--migrationsDir='+path.join(ROOT,'server','pb_migrations'),'--hooksDir='+path.join(ROOT,'server','pb_hooks'),'--automigrate=false'];
   execFileSync(PB_BIN,['superuser','upsert',PB_ADMIN.identity,PB_ADMIN.password,...args],{stdio:'ignore'});
-  pbProc=spawn(PB_BIN,['serve','--http=127.0.0.1:'+PB_PORT,'--hooksWatch=false',...args],{env:{...process.env,AMANA_TEST:'1'},stdio:['ignore','ignore','inherit']});
+  pbProc=spawn(PB_BIN,['serve','--http=127.0.0.1:'+PB_PORT,'--hooksWatch=false',...args],{env:{...process.env,AMANA_TEST:'1',AMANA_PUBLIC_DIR:ROOT,TZ:'Europe/Moscow'},stdio:['ignore','ignore','inherit']});
   for(let i=0;i<100;i++){try{if((await fetch(PB_URL+'/api/health')).ok)break;}catch(e){}await new Promise(r=>setTimeout(r,100));}
   const t=(await (await fetch(PB_URL+'/api/collections/_superusers/auth-with-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(PB_ADMIN)})).json()).token;
   _pbTok=t;
@@ -30,10 +29,16 @@ async function startPB(){
 }
 let _pbTok=null;
 export async function pbAdmin(){return _pbTok;}
+export async function authToken(email,password){
+ const r=await fetch(PB_URL+'/api/collections/users/auth-with-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identity:email,password})});
+ const data=await r.json();if(!data.token)throw new Error('Пароль не принят');return data.token;
+}
 
 let server=null,browser=null;
+const devices=[];
+export async function debugDevices(){for(const d of devices)if(!d.p.isClosed())console.log('Диагностика тестового устройства:',{errors:d.errs.slice(-3),state:await d.p.evaluate(()=>({toast:document.getElementById('toast')?.textContent,loginError:document.getElementById('lerr')?.textContent})).catch(()=>null)});}
 export async function start(){
-  if(BACKEND==='pb')await startPB();
+  await startPB();
   server=http.createServer((req,res)=>{
     const u=decodeURIComponent(req.url.split('?')[0]),f=path.join(ROOT,u==='/'?'index.html':u);
     if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404);res.end();return;}
@@ -41,25 +46,22 @@ export async function start(){
   });
   await new Promise(r=>server.listen(PORT,'127.0.0.1',r));
   browser=await chromium.launch(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{});
-  // пользователь для входа (в эмуляторе); «уже есть» — не ошибка
-  if(BACKEND==='fb')await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'a@test.ru',password:'test12345'})}).catch(()=>{});
 }
 export async function stop(){if(browser)await browser.close();if(server)server.close();if(pbProc){pbProc.kill();pbProc=null;try{fs.rmSync(pbDir,{recursive:true,force:true});}catch(e){}}}
 export const reseed=o=>seed(o);
-export const wipe=async()=>BACKEND==='pb'?fetch(PB_URL+'/api/amana/test/wipe',{method:'POST',headers:{Authorization:await pbAdmin()}}):fetch('http://127.0.0.1:8085/emulator/v1/projects/amana-crm-16033/databases/(default)/documents',{method:'DELETE'});
+export const wipe=async()=>fetch(PB_URL+'/api/amana/test/wipe',{method:'POST',headers:{Authorization:await pbAdmin()}});
 
 // Устройство: отдельный браузерный профиль (своя память, свой кэш базы)
 export async function device(o={}){
   const ctx=await browser.newContext({viewport:o.vp||{width:1280,height:850},hasTouch:!!o.mobile,isMobile:!!o.mobile,timezoneId:o.tz||'Europe/Moscow',locale:'ru-RU'});
-  if(BACKEND==='pb')await ctx.addInitScript(u=>{window.__AMANA_PB=u;},PB_URL);
-  else await ctx.addInitScript(()=>{window.__AMANA_EMU={fs:8085,auth:9099};});
+  await ctx.addInitScript(u=>{window.__AMANA_PB=u;},PB_URL);
   // тесты не ходят в интернет: всё нужное CRM лежит в репозитории
   await ctx.route('**/*',r=>r.request().url().startsWith('http://127.0.0.1')?r.continue():r.abort());
   const p=await ctx.newPage(),errs=[];
   p.on('pageerror',e=>errs.push(e.message));
   p.on('console',m=>{if(m.type()==='error'&&!/net::|Failed to load resource|ERR_FAILED/.test(m.text()))errs.push(m.text().slice(0,300));});
   if(o.clock)await p.clock.install({time:o.clock});
-  return{ctx,p,errs};
+  const result={ctx,p,errs};devices.push(result);return result;
 }
 export async function login(p,{again=false}={}){
   await p.goto(URL_CRM);await p.waitForTimeout(800);
@@ -67,7 +69,7 @@ export async function login(p,{again=false}={}){
   // после очистки базы CRM сама перезагружает страницу — ожидание переживает эту перезагрузку
   for(let i=0;;i++){
     try{await p.waitForFunction(()=>typeof S!=='undefined'&&S.clients.length>0&&S.payments.length>0&&S.wallets.length>0,null,{timeout:90000});break;}
-    catch(e){if(i>=2||!/context|navigat/i.test(String(e)))throw e;await p.waitForTimeout(1000);}
+    catch(e){if(i>=2||!/context|navigat/i.test(String(e))){console.log('Состояние входа:',await p.evaluate(()=>({loginError:document.getElementById('lerr')?.textContent,logged:!!window.AUTH?.currentUser,clients:typeof S!=='undefined'?S.clients.length:-1,payments:typeof S!=='undefined'?S.payments.length:-1,wallets:typeof S!=='undefined'?S.wallets.length:-1})));throw e;}await p.waitForTimeout(1000);}
   }
   await p.waitForTimeout(800);
 }

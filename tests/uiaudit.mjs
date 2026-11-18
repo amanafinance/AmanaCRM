@@ -1,31 +1,31 @@
-// UI/UX-аудит: реалистичные данные (длинные ФИО, 2 поручителя, длинные товары), скриншоты всех экранов и автодетекторы (разрывы телефонов и сумм, обрезки, наложения).
-// Запуск: FONTS_DIR=<папка со шрифтами> npx firebase emulators:exec --only firestore,auth --project amana-crm-16033 "node uiaudit.mjs <папка> [экраны через запятую]"
+// UI/UX-аудит: вымышленные данные (длинные ФИО, 2 поручителя, длинные товары), скриншоты всех экранов и автодетекторы (разрывы телефонов и сумм, обрезки, наложения).
+// Запуск: FONTS_DIR=<папка со шрифтами> node uiaudit.mjs <папка> [экраны через запятую]
 import fs from 'node:fs';import path from 'node:path';
-import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
-import {doc,writeBatch,getDocs,collection} from 'firebase/firestore';
-import {start,stop,reseed,device,login,wait} from './lib.mjs';
+import {start,stop,reseed,device,login,wait,PB_URL,pbAdmin} from './lib.mjs';
 const OUT=path.resolve(process.argv[2]||'ui-out');fs.mkdirSync(OUT,{recursive:true});
 const ONLY=process.argv[3]||'';
-const FAM=['Ахмедова','Эскерханов','Митаев','Айбаев','Ахмедов','Занкиев','Исмаилов','Магомадова','Хасбулатов','Абдулкеримов','Дудаева','Мусаев'];
-const NAM=['Залина Абдулмуслимовна','Салахь Зубайраевич','Абубакар Хасанович','Ибрагим Мовсарович','Ислам Аллиевич','Бексолта Сулейманович','Руслан Ахмедович','Марьям Висаитовна','Адам Лечиевич','Магомед Абдулхамидович','Хадижат Умаровна','Ильяс Русланович'];
+const FAM=['Тестовый','Учебная','Демонстрационный','Проверочная'];
+const NAM=['Клиент Один','Клиент Два','Участник Три','Поручитель Четыре'];
 const PROD=['Кирпич облицовочный, 4 поддона','Полики, руль и перешив потолка','Холодильник Samsung RB37A','Мебель для спальни (шкаф, кровать, комод)','iPhone 15 Pro Max 256 ГБ','Одежда','Стиральная машина LG F2J3HS4L','Диван угловой «Монако»'];
-const PART=['Сторонний','Иса кирпич строймаркет','Сторонний','ТехноМир Гудермес','Сторонний'];
-const ADDR=['г. Гудермес, пр. Терешковой, 34','г. Гудермес, ул. Кирова, 111','г. Гудермес, ул. Буйнакская, 112, кв. 45','с. Ойсхара, ул. Нурадилова, 7',''];
+const PART=['Сторонний','Тестовый поставщик Один','Сторонний','Тестовый поставщик Два','Сторонний'];
+const ADDR=['Тестовый город, ул. Примерная, дом 1','Учебный город, ул. Вымышленная, дом 2, кв. 3',''];
 await start();await reseed();
-// реалистичные данные поверх тестовой базы
-const env=await initializeTestEnvironment({projectId:'amana-crm-16033',firestore:{host:'127.0.0.1',port:8085,rules:"rules_version='2';service cloud.firestore{match /databases/{d}/documents{match /{p=**}{allow read,write: if request.auth!=null;}}}"}});
-await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();let b=writeBatch(db),n=0;const up=async(p,d)=>{b.set(doc(db,p),d,{merge:true});if(++n%400===0){await b.commit();b=writeBatch(db);}};
-  const nm=j=>FAM[j%FAM.length]+' '+NAM[(j*7)%NAM.length],ph=j=>'89'+String(28000000+j*7919).padStart(9,'0').slice(0,9);
+// вымышленные данные поверх тестовой базы
+const headers={'Content-Type':'application/json',Authorization:await pbAdmin()};
+const cache=new Map(),updates=new Map();
+const list=async c=>{if(cache.has(c))return cache.get(c);const rows=[];for(let page=1;;page++){const r=await fetch(PB_URL+'/api/collections/'+c+'/records?perPage=500&page='+page,{headers});if(!r.ok)throw new Error('list '+r.status);const j=await r.json();rows.push(...j.items);if(page>=j.totalPages)break;}cache.set(c,rows);return rows;};
+const up=async(p,d)=>{const [c,id]=p.split('/'),old=(await list(c)).find(x=>x.id===id);updates.set(p,{c,id,data:{...(old&&old.data||{}),...(updates.get(p)?.data||{}),...d}});};
+{
+  const nm=j=>FAM[j%FAM.length]+' '+NAM[(j*7)%NAM.length],ph=j=>'8000'+String(j).padStart(7,'0');
   for(let j=0;j<150;j++)await up('persons/P'+j,{name:nm(j),phones:j%4===0?[ph(j),ph(j+500)]:[ph(j)],addr:ADDR[j%ADDR.length],no:'К-'+String(j+1).padStart(5,'0'),note:j%9===0?'Работает на рынке, платит после 10-го числа. Брат — поручитель по другому договору.':''});
   for(let i=0;i<200;i++){const j=i%150;const g=i%3===0?[{name:nm((i+1)%150),pid:'P'+((i+1)%150)},{name:nm((i+2)%150),pid:'P'+((i+2)%150)}]:(i%3===1?[{name:nm((i+3)%150),pid:'P'+((i+3)%150)}]:[]);
     await up('clients/c'+i,{name:nm(j),phones:j%4===0?[ph(j),ph(j+500)]:[ph(j)],addr:ADDR[j%ADDR.length],guarantors:g,product:PROD[i%PROD.length],partner:PART[i%PART.length],contractId:'26-'+String(i+1).padStart(4,'0'),...(i%5===0?{comment:'Обещал оплатить до конца недели, после зарплаты. Звонить после 18:00.',commentDate:'02.11.2026'}:{})});}
-  const ps=await getDocs(collection(db,'payments'));ps.forEach(d=>{const i=+d.data().clientId.slice(1);b.set(d.ref,{name:nm(i%150),contractId:'26-'+String(i+1).padStart(4,'0')},{merge:true});});
-  await up('investors/INV0',{name:'Занкиев Бексолта Сулейманович'});await up('investors/INV1',{name:'Магомадова Хадижат Умаровна',phone:'89280233434'});
-  await up('settings/partners',{list:['Сторонний','Иса кирпич строймаркет','ТехноМир Гудермес'],phones:{'Иса кирпич строймаркет':'89290000034','ТехноМир Гудермес':'89281112233'}});
-  await up('wallets/w2',{name:'Сбербанк бека'});
-  await b.commit();});
-await env.cleanup();
-
+  for(const record of await list('payments')){const i=+record.data.clientId.slice(1);await up('payments/'+record.id,{name:nm(i%150),contractId:'26-'+String(i+1).padStart(4,'0')});}
+  await up('investors/INV0',{name:'Тестовый Учредитель Один'});await up('investors/INV1',{name:'Тестовый Инвестор Два',phone:'80000000002'});
+  await up('settings/partners',{list:['Сторонний','Тестовый поставщик Один','Тестовый поставщик Два'],phones:{'Тестовый поставщик Один':'80000000034','Тестовый поставщик Два':'80000000035'}});
+  await up('wallets/w2',{name:'Тестовая карта'});
+  const docs=[...updates.values()];for(let i=0;i<docs.length;i+=400){const r=await fetch(PB_URL+'/api/amana/test/seed',{method:'POST',headers,body:JSON.stringify({docs:docs.slice(i,i+400)})});if(!r.ok)throw new Error('seed '+r.status);}
+}
 const closeAll=()=>{document.querySelectorAll('.mover.on').forEach(m=>m.classList.remove('on'));document.getElementById('confirmLayer').innerHTML='';
   document.querySelectorAll('.nb-sub.show').forEach(x=>x.classList.remove('show'));document.querySelectorAll('body>.mover:not([id])').forEach(m=>m.remove());closeDrops&&closeDrops();window.scrollTo(0,0);};
 const SHOTS=[

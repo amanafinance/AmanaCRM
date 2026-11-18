@@ -17,6 +17,7 @@ export default async function(){
   const twins=await p.evaluate(()=>S.persons.filter(x=>x.name==='Клиент 5').map(x=>({id:x.id,no:x.no,ph:(x.phones||[])[0]})));
   check('создан второй «Клиент 5» со своим номером',twins.length===2&&twins[0].no!==twins[1].no,twins);
   const nw=twins.find(x=>x.ph==='89990000005'),old=twins.find(x=>x.ph!=='89990000005');
+  if(!nw)throw new Error('Созданный клиент не найден по введённому телефону: '+JSON.stringify(twins));
   // договор на нового тёзку с поручителем
   await p.evaluate(async([pid,gno])=>{goBase('clients');openNew('p:'+pid);await new Promise(r=>setTimeout(r,100));
     document.getElementById('f_product').value='TV';document.getElementById('f_price').value='60000';document.getElementById('f_cost').value='40000';document.getElementById('f_prepay').value='0';calcSched();

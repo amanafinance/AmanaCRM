@@ -1,6 +1,6 @@
-// Подключение CRM к своему серверу (PocketBase). Выбирается в index.html, когда CRM открыта на crm-amana.ru.
-// Наружу отдаёт то же, что db-fb.js: window.DB (документы, пачки записей, живые коллекции, номера, копия),
-// window.AUTH, SIGN_IN, SIGN_OUT, ON_AUTH — поэтому остальной код CRM не знает, с какой базой работает.
+// Подключение CRM к своему серверу (PocketBase).
+// Наружу отдаёт window.DB (документы, пачки записей, живые коллекции, номера, копия),
+// window.AUTH, SIGN_IN, SIGN_OUT, ON_AUTH — общий интерфейс работы с базой для экранов CRM.
 //
 // Как устроено:
 // - каждая запись хранится на сервере как {id, data (поля в JSON), u (время изменения)}; даты — {"$date": ISO};
@@ -21,7 +21,7 @@ const isApp = (() => { try { return navigator.standalone === true || matchMedia(
 pb.beforeSend = (url, options) => { options.headers = Object.assign({}, options.headers, devId ? { 'X-Amana-Device': devId } : {}, { 'X-Amana-App': isApp ? '1' : '0' }); return { url, options }; };
 const TOMB = 'deleted';
 
-// ---------- Дата/время как в Firestore (у CRM везде .toDate()) ----------
+// ---------- Дата/время (у CRM везде .toDate()) ----------
 class Timestamp {
   constructor(seconds, nanoseconds) { this.seconds = seconds; this.nanoseconds = nanoseconds || 0; }
   static fromDate(d) { const ms = d.getTime(); return new Timestamp(Math.floor(ms / 1000), ((ms % 1000) + 1000) % 1000 * 1e6); }
@@ -34,7 +34,7 @@ class Timestamp {
   toJSON() { return { $date: this.toDate().toISOString() }; }
   toString() { return 'Timestamp(' + this.toDate().toISOString() + ')'; }
 }
-// Особые значения для записи (как increment / arrayUnion / deleteField / serverTimestamp в Firestore)
+// Особые значения для записи (увеличение, изменение списков, удаление поля и время сервера)
 class Sentinel { constructor(op, v) { this.$op = op; if (v !== undefined) this.v = v; } }
 const increment = n => new Sentinel('inc', n);
 const arrayUnion = (...v) => new Sentinel('union', v.map(enc));
@@ -92,7 +92,7 @@ const netCheck = async () => {
   catch (e) { throw netFail(); }
 };
 const ERR_CODE = { short: 'short', stale: 'stale', exists: 'exists', denied: 'permission-denied', missing: 'not-found', bad: 'invalid-argument' };
-// Запрос к серверу; ошибки сервера → Error с понятным текстом и code (как в Firestore)
+// Запрос к серверу; ошибки сервера → Error с понятным текстом и code
 async function api(path, body, ms) {
   let r;
   try { r = await withTimeout(pb.send(path, { method: 'POST', body }), ms || 15000); }
@@ -226,7 +226,9 @@ function applyServerDocs(list) {
   list.forEach(x => {
     const st = colState(x.c);
     if (x.del) { st.map.delete(x.id); addTomb({ c: x.c, id: x.id }, x.u); touched.add(x.c); return; }
-    if (applyRecord(x.c, { id: x.id, data: x.data, u: x.u })) touched.add(x.c);
+    applyRecord(x.c, { id: x.id, data: x.data, u: x.u });
+    // Realtime мог прийти раньше ответа. К завершению сохранения экран всё равно должен видеть запись.
+    touched.add(x.c);
   });
   touched.forEach(c => { const st = cols[c]; st.save(); st.emit(); });
   if (touched.size && cols[TOMB]) Object.keys(liveEmit).forEach(n => { if (n !== TOMB) liveEmit[n](); });
@@ -258,7 +260,7 @@ async function live(name, opts, cb, onErr) {
   const emit = () => {
     let arr = [];
     st.map.forEach((v, id) => { const t = name !== TOMB && tombs.get(name + '/' + id); if (t && v.u <= t) return; arr.push({ id, d: dec(v.data) }); });
-    arr.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0); // как в Firestore: по номеру записи
+    arr.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0); // по номеру записи
     if (opts.order) { const f = opts.order, val = x => { const y = x.d[f]; return y && y.toMillis ? y.toMillis() : (y instanceof Date ? y.getTime() : 0); }; arr.sort((a, b) => val(b) - val(a)); }
     cb({ docs: arr.map(x => ({ id: x.id, data: () => x.d })) });
   };
@@ -429,5 +431,7 @@ const staff = {
 window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, getDoc, query, orderBy, limit, startAfter, where,
   setDoc: setDocU, writeBatch: writeBatchU, increment, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp, nextCounter, createOnce, live, liveTombs, resyncAll, checkEpoch,
   bkDump, bkRestore, bkCheck, staff, deviceId: devId, backend: 'pocketbase', pb };
+window.DB.reconcile=(id,balance)=>commitOps([{t:'update',c:'wallets',id,d:{balance}}],null,null,'reconcile');
+window.DB.note=type=>staffCall('POST','/api/amana/note',{type});
 window.AUTH = AUTH; window.SIGN_IN = SIGN_IN; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;
 window.dispatchEvent(new Event('dbReady'));

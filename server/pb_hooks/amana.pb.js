@@ -3,6 +3,7 @@
 routerAdd('POST', '/api/amana/commit', (e) => {
   return require(`${__hooks}/amana_lib.js`).commit(e, $app);
 }, $apis.requireAuth('users', '_superusers'));
+routerAdd('POST','/api/amana/note',e=>require(`${__hooks}/amana_audit.js`).note(e,$app),$apis.requireAuth('users','_superusers'));
 
 // Выбор счёта для оплаты доступен без чтения кассовой книги.
 routerAdd('GET', '/api/amana/wallet-options', e => {
@@ -23,7 +24,7 @@ routerAdd('DELETE', '/api/amana/staff/{id}', (e) => require(`${__hooks}/amana_li
 onRecordAuthRequest((e) => { e.next(); try { require(`${__hooks}/amana_lib.js`).noteDevice(e, $app); } catch (x) { console.log('devices:', x); } }, 'users');
 
 // Себестоимость в договорах — только тем, у кого есть право её видеть
-onRecordEnrich((e) => { require(`${__hooks}/amana_lib.js`).enrichClient(e); e.next(); }, 'clients');
+onRecordEnrich((e) => { require(`${__hooks}/amana_lib.js`).enrichClient(e); e.next(); }, 'clients','trash');
 
 // Только для автотестов (переменная окружения AMANA_TEST=1, на настоящем сервере её нет):
 // очистить базу и записать тестовые данные напрямую, без проверок. Доступно только администратору.

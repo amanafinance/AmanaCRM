@@ -1,43 +1,25 @@
 // Тестовая база: 150 клиентов, 200 договоров с графиками, оплаты с операциями кассы, 2 счёта,
 // учредитель и инвестор с вкладами 3 месяца назад. Суммы согласованы: касса = сумма операций.
-import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
-import {doc,writeBatch,Timestamp} from 'firebase/firestore';
-
-export const PROJECT='amana-crm-16033';
-const OPEN="rules_version='2';service cloud.firestore{match /databases/{d}/documents{match /{p=**}{allow read,write: if request.auth!=null;}}}";
-
-// Свой сервер (PocketBase): те же данные через служебный адрес для тестов; даты → {$date}
-const toPB=v=>v instanceof Timestamp?{$date:v.toDate().toISOString()}:Array.isArray(v)?v.map(toPB):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,toPB(x)])):v;
-async function seedPB(opts){
+// Простая дата для синтетических данных; внешний SDK не нужен.
+class Timestamp { constructor(d){this.iso=d.toISOString();} static fromDate(d){return new Timestamp(d);} }
+const toPB=v=>v instanceof Timestamp?{$date:v.iso}:Array.isArray(v)?v.map(toPB):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,toPB(x)])):v;
+export async function seed(opts={}){
   const {PB_URL,pbAdmin}=await import('./lib.mjs');const t=await pbAdmin(),H={'Content-Type':'application/json',Authorization:t};
-  await fetch(PB_URL+'/api/amana/test/wipe',{method:'POST',headers:H});
-  const docs=[];if(!opts.empty)await fill(async(p,d)=>{const [c,id]=p.split("/");docs.push({c,id,data:toPB(d)});},opts);
+  const wipe=await fetch(PB_URL+'/api/amana/test/wipe',{method:'POST',headers:H});
+  if(!wipe.ok)throw new Error('wipe '+wipe.status);
+  const docs=[];if(!opts.empty)await fill(async(p,d)=>{const [c,id]=p.split('/');docs.push({c,id,data:toPB(d)});},opts);
   for(let i=0;i<docs.length;i+=500){const r=await fetch(PB_URL+'/api/amana/test/seed',{method:'POST',headers:H,body:JSON.stringify({docs:docs.slice(i,i+500)})});if(!r.ok)throw new Error('seed '+r.status+' '+await r.text());}
   return docs.length;
 }
-export async function seed(opts={}){
-  if(process.env.CRM_DB==='pb')return seedPB(opts);
-  const env=await initializeTestEnvironment({projectId:PROJECT,firestore:{host:'127.0.0.1',port:8085,rules:OPEN}});
-  await env.clearFirestore();
-  let n=0;
-  if(!opts.empty)await env.withSecurityRulesDisabled(async c=>{
-    const db=c.firestore();let b=writeBatch(db);
-    const put=async(p,d)=>{b.set(doc(db,p),d);if(++n%400===0){await b.commit();b=writeBatch(db);}};
-    await fill(put,opts);
-    await b.commit();
-  });
-  await env.cleanup();
-  return n;
-}
-// Тестовые данные (одинаковые для обеих баз)
+// Тестовые данные
 async function fill(put,opts={}){
     const now=new Date(),f=d=>('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
-    for(let j=0;j<150;j++)await put('persons/P'+j,{name:'Клиент '+j,phones:['8928'+(1000000+j)],addr:'',note:'',no:'К-'+String(j+1).padStart(4,'0')});
+    for(let j=0;j<150;j++)await put('persons/P'+j,{name:'Клиент '+j,phones:['8000'+(1000000+j)],addr:'',note:'',no:'К-'+String(j+1).padStart(4,'0')});
     await put('settings/pcounter',{lastId:150});
     const bal={w1:0,w2:0};
     for(let i=0;i<200;i++){
       const st=new Date(now.getFullYear(),now.getMonth()-(i%12)-1,5),price=50000+(i%10)*5000,cost=Math.round(price*0.7),prepay=5000,mo=6,step=Math.round((price-prepay)/mo);
-      const c={name:'Клиент '+(i%150),clientPid:'P'+(i%150),guarantors:i%3?[]:[{name:'Клиент '+((i+1)%150),pid:'P'+((i+1)%150)}],phones:['8928'+(1000000+(i%150))],
+      const c={name:'Клиент '+(i%150),clientPid:'P'+(i%150),guarantors:i%3?[]:[{name:'Клиент '+((i+1)%150),pid:'P'+((i+1)%150)}],phones:['8000'+(1000000+(i%150))],
         product:'Товар '+(i%7),partner:'Сторонний',price,cost,prepay,months:mo,date:f(st),contractId:String(i+1).padStart(5,'0'),createdAt:Timestamp.fromDate(st)};
       for(let m=1;m<=12;m++){const d=new Date(st.getFullYear(),st.getMonth()+m,5);c['размер'+m]=m<=mo?(m<mo?step:price-prepay-step*(mo-1)):0;c['дата'+m]=m<=mo?f(d):'';}
       await put('clients/c'+i,c);

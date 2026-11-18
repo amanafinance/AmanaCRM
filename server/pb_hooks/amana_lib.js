@@ -1,4 +1,4 @@
-// Amana CRM: запись в базу одной транзакцией с проверками (то же, что делали правила и транзакции Firebase).
+// Amana CRM: запись в базу одной транзакцией с проверками.
 // Подключается из amana.pb.js через require — у каждого запроса свой экземпляр.
 //
 // Запрос POST /api/amana/commit:
@@ -40,7 +40,7 @@ function resolve(v, nowIso) {
   if (isPlain(v) && !isDate(v)) { const o = {}; Object.keys(v).forEach((k) => { const r = resolve(v[k], nowIso); if (r !== undefined) o[k] = r; }); return o; }
   return v;
 }
-// set с merge: вложенные объекты сливаются, как в Firestore
+// set с merge: вложенные объекты сливаются
 function mergeInto(cur, patch, nowIso) {
   const out = isPlain(cur) ? Object.assign({}, cur) : {};
   Object.keys(patch).forEach((k) => {
@@ -65,10 +65,13 @@ const dateMs = (data) => { const v = data && data.date; if (isDate(v)) { const t
 
 function commit(e, app) {
   const req = e.requestInfo().body || {};
-  const ops = Array.isArray(req.ops) ? req.ops : [];
+  if(req.return!==undefined)return e.json(400,{code:'bad',message:'Такая операция не поддерживается'});
+  // Корзину формирует сервер из исходной записи, а не из присланной браузером копии.
+  const ops = (Array.isArray(req.ops) ? req.ops : []).filter(o=>o&&o.c!=='trash');
   const checks = isPlain(req.checks) ? req.checks : {};
   if (ops.length > MAX_OPS) return e.json(400, { code: 'bad', message: 'Слишком много изменений за раз' });
   const isAdmin = e.auth && e.auth.collection().name === '_superusers';
+  if(!isAdmin&&ops.some(o=>o.c==='journal'))return e.json(403,{code:'denied',message:'Историю действий создаёт сервер'});
   const perms = isAdmin ? '*' : ((e.auth && e.auth.getString('perms')) || '');
   const now = Date.now(), nowIso = new Date(now).toISOString();
   let failure = null;
@@ -102,6 +105,9 @@ function commit(e, app) {
       // 1. Проверки до записи
       (Array.isArray(checks.expect) ? checks.expect : []).forEach((x) => {
         if ((x.c === 'wallets' || x.c === 'kassaOps') && !has(perms, 'v_kassa')) throw new Fail('denied', 'Нет права на просмотр кассы', 403);
+        if(['investors','invOps','invMonths'].includes(x.c)&&!has(perms,'v_inv'))throw new Fail('denied','Нет права на просмотр инвесторов',403);
+        if(['journal','trash'].includes(x.c)&&!has(perms,'v_journal'))throw new Fail('denied','Нет права на историю',403);
+        if(x.f==='cost'&&!has(perms,'v_cost'))throw new Fail('denied','Нет права на себестоимость',403);
         const s = load(x.c, x.id);
         if (x.exists !== undefined && s.exists !== !!x.exists) throw new Fail(x.exists ? 'missing' : 'exists', x.exists ? 'Запись не найдена' : 'exists');
         if (x.f !== undefined) {
@@ -117,6 +123,7 @@ function commit(e, app) {
       });
       let dealSeq = null;
       if (isPlain(checks.deal) && checks.deal.id) {
+        if(!ops.some(o=>o.c==='payments'&&o.d&&o.d.clientId===checks.deal.id))throw new Fail('denied','Проверка договора нужна только для оплаты или скидки',403);
         const s = load('clients', checks.deal.id);
         const seq = s.exists ? (s.data.paySeq || 0) : 0;
         if (seq !== (checks.deal.seq || 0)) throw new Fail('stale', 'Договор изменился: только что на другом устройстве по нему провели оплату или скидку. Проверьте остаток и повторите.');
@@ -151,13 +158,17 @@ function commit(e, app) {
 
       // 2a. Права сотрудника: что меняется → какое право нужно (владелец и администратор — без ограничений)
       if (perms !== '*') {
-        if (req.mode === 'restore') { if (!has(perms, 'restore')) throw new Fail('denied', 'Нет права: ' + PERM_LABEL.restore, 403); }
-        else permsFor(ops, cache).forEach((p) => { if (!has(perms, p)) throw new Fail('denied', 'Нет права: ' + (PERM_LABEL[p] || p), 403); });
+        if (req.mode === 'restore') { throw new Fail('denied', 'Восстановить всю базу может только владелец', 403); }
+        else permsFor(ops, cache, perms).forEach((p) => { if (!has(perms, p)) throw new Fail('denied', 'Нет права: ' + (PERM_LABEL[p] || p), 403); });
         // без права видеть себестоимость её нельзя и изменить: остаётся прежней
         if (!has(perms, 'v_cost')) Object.keys(cache).forEach((k) => { const x = cache[k]; if (x.c === 'clients' && x.dirty && !x.del && x.existed && x.orig.cost !== undefined) x.data = Object.assign({}, x.data, { cost: x.orig.cost }); });
       }
 
-      if (req.mode !== 'restore') validateReceipts(tx, cache, load, dealSeq, now);
+      if (req.mode === 'reconcile' && !has(perms,'settings')) throw new Fail('denied','Нет права на сверку',403);
+      if (req.mode !== 'restore') {
+        validateReceipts(tx, cache, load, dealSeq, now);
+        require(`${__hooks}/amana_finance.js`).validate({tx,cache,load,Fail,now,mode:req.mode});
+      }
 
       // 3. Правило счетов: остаток не уходит в минус (пополнить счёт, который уже в минусе, можно)
       Object.keys(cache).forEach((k) => {
@@ -165,6 +176,20 @@ function commit(e, app) {
         const nb = Number(s.data.balance || 0), ob = s.existed ? Number((s.rec && JSON.parse(s.rec.getString('data') || '{}').balance) || 0) : 0;
         if (nb < -0.004 && (!s.existed || nb < ob)) throw new Fail('short', 'Недостаточно средств: счёт «' + (s.data.name || '') + '» не может уйти в минус.');
       });
+
+      const changes=Object.values(cache).filter(s=>s.dirty&&s.c!=='journal'&&s.c!=='trash');
+      if(changes.length){
+        const actor=e.auth ? (e.auth.email()||e.auth.id) : 'сервер';
+        changes.filter(s=>s.del&&s.existed).forEach(s=>{
+          const trash=new Record(tx.findCollectionByNameOrId('trash'));
+          trash.set('data',{coll:s.c,docId:s.id,data:s.orig,deletedAt:{$date:nowIso},deletedBy:actor});trash.set('u',now);trash.set('d',now);tx.save(trash);
+        });
+        const journal=new Record(tx.findCollectionByNameOrId('journal'));
+        const labels={clients:'Договор',persons:'Клиент',kassaOps:'Операция кассы',wallets:'Счёт',investors:'Участник',invOps:'Операция инвестора',invMonths:'Месяц инвесторов',settings:'Настройки',payments:'Платёж'};
+        const businessTime=new Date(now+10800000).toISOString();
+        journal.set('data',{type:req.mode==='restore'?'Восстановление из резервной копии':'Изменение базы',description:changes.map(s=>{const d=s.exists?s.data:s.orig;return (s.del?'Удалено: ':s.existed?'Изменено: ':'Создано: ')+(labels[s.c]||s.c)+' '+(d.contractId||d.name||s.id);}).join('; '),changes:changes.map(s=>({collection:s.c,id:s.id,action:s.del?'delete':s.existed?'update':'create'})),user:actor,userId:e.auth&&e.auth.id,date:{$date:nowIso},dateStr:businessTime.slice(0,10).split('-').reverse().join('.'),time:businessTime.slice(11,16)});
+        journal.set('u',now);journal.set('d',now);tx.save(journal);
+      }
 
       // 4. Сохранение
       Object.keys(cache).forEach((k) => {
@@ -184,6 +209,7 @@ function commit(e, app) {
         rec.set('data', s.data); rec.set('u', now); rec.set('d', dateMs(s.data));
         tx.save(rec);
         if ((s.c === 'wallets' || s.c === 'kassaOps') && !has(perms, 'v_kassa')) return;
+        if (['investors','invOps','invMonths'].includes(s.c) && !has(perms,'v_inv')) return;
         out.docs.push({ c: s.c, id: s.id, data: s.c === 'clients' && !has(perms, 'v_cost') ? stripCost(s.data) : s.data, u: now });
       });
   }
@@ -284,14 +310,14 @@ const PERM_LABEL = {
 const PERMS = Object.keys(PERM_LABEL);
 const has = (perms, p) => perms === '*' || String(perms || '').indexOf(',' + p + ',') >= 0;
 const normPerms = (v) => { if (v === '*') return '*'; const a = (Array.isArray(v) ? v : String(v || '').split(',')).map((x) => String(x).trim()).filter((x) => PERMS.indexOf(x) >= 0); return a.length ? ',' + a.filter((x, i) => a.indexOf(x) === i).join(',') + ',' : ''; };
-const stripCost = (d) => { if (!isPlain(d) || d.cost === undefined) return d; const o = Object.assign({}, d); delete o.cost; return o; };
+const stripCost = (d) => { if (!isPlain(d)) return d; const o = Object.assign({}, d); delete o.cost; return o; };
 const changed = (a, b) => { a = a || {}; b = b || {}; const ks = {}; Object.keys(a).forEach((k) => { ks[k] = 1; }); Object.keys(b).forEach((k) => { ks[k] = 1; }); return Object.keys(ks).filter((k) => !same(a[k], b[k])); };
 const only = (keys, allowed) => keys.every((k) => allowed.indexOf(k) >= 0);
 // Какие права нужны для этой транзакции: по тому, что и как меняется
-function permsFor(ops, cache) {
+function permsFor(ops, cache, perms) {
   const need = {}, touched = {};
   ops.forEach((o) => { touched[o.c] = 1; });
-  const createsDeal = ops.some((o) => o.c === 'clients' && cache['clients/' + o.id] && !cache['clients/' + o.id].existed);
+  const createsDeal = new Set(ops.filter(o=>o.c==='clients'&&cache['clients/'+o.id]&&!cache['clients/'+o.id].existed).map(o=>o.id));
   ops.forEach((o) => {
     const s = cache[o.c + '/' + o.id]; if (!s) return;
     const del = o.t === 'delete', isNew = !s.existed, rec = del ? s.orig : s.data, K = changed(s.orig, s.data).filter((k) => k !== 'paySeq');
@@ -300,13 +326,15 @@ function permsFor(ops, cache) {
       case 'journal': case 'trash': return; // только дописываются (проверено выше)
       case 'settings':
         if (o.id === 'meta') { if (s.existed) want('restore'); return; } // метку базы меняет только восстановление из копии
-        if (/^(ui|pcounter|counter(-\d+)?)$/.test(o.id)) return;
+        if (o.id==='ui') return;
+        if (o.id==='pcounter') {if(!has(perms,'settings'))want('people');return;}
+        if (/^counter(-\d+)?$/.test(o.id)) {if(!has(perms,'settings')&&!has(perms,'deal_del'))want('deal_new');return;}
         return want('settings');
       case 'persons': return want('people');
       case 'investors': case 'invOps': case 'invMonths': return want('inv_ops');
       case 'payments':
         if (del) return want('pay_cancel');
-        if (isNew) return want(rec.type === 'payment' ? 'pay' : rec.type === 'discount' ? 'disc' : createsDeal ? 'deal_new' : 'deal_edit');
+        if (isNew) return want(rec.type === 'payment' ? 'pay' : rec.type === 'discount' ? 'disc' : createsDeal.has(rec.clientId) ? 'deal_new' : 'deal_edit');
         if (only(K, ['note', 'comment', 'commentDate'])) return want('pay');
         if (only(K, ['contractId'])) return want('settings');
         return want('deal_edit');
@@ -322,9 +350,9 @@ function permsFor(ops, cache) {
         if (only(K, ['balance'])) { if (!touched.kassaOps) want('kassa_ops'); return; }
         return want('settings');
       case 'kassaOps':
-        if (rec.refType === 'investor') return want('inv_ops');
+        if (['inv_in','inv_out','inv_pay'].includes(rec.type)) return want('inv_ops');
         if (rec.type === 'purchase') return want('purchase');
-        if (rec.refType === 'client' && rec.auto && touched.payments) return; // операция кассы при оплате/предоплате — право даёт сам платёж
+        if (['payment_in','prepay_in'].includes(rec.type) && rec.refType === 'client' && rec.auto && touched.payments) return; // право даёт связанный платёж
         return want('kassa_ops');
     }
   });
@@ -368,7 +396,7 @@ function staffSave(e, app) {
   if (perms !== undefined) r.set('perms', perms);
   if (b.disabled !== undefined) { r.set('disabled', !!b.disabled); if (b.disabled) r.refreshTokenKey(); }
   if (b.logoutAll && id) r.refreshTokenKey(); // все входы этого сотрудника перестают действовать
-  try { app.save(r); } catch (x) { return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
+  try { app.runInTransaction(tx=>{tx.save(r);require(`${__hooks}/amana_audit.js`).audit(tx,e,id?'Изменены права или вход сотрудника':'Создан сотрудник');}); } catch (x) { return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
   return e.json(200, staffView(r));
 }
 function staffDelete(e, app) {
@@ -377,8 +405,7 @@ function staffDelete(e, app) {
   if (e.auth && id === e.auth.id) return e.json(400, { code: 'bad', message: 'Себя удалить нельзя' });
   let r; try { r = app.findRecordById('users', id); } catch (x) { return e.json(404, { code: 'missing', message: 'Сотрудник не найден' }); }
   if (r.getString('perms') === '*' && myPerms(e) !== '*') return e.json(403, { code: 'denied', message: 'Удалить владельца может только владелец' });
-  app.delete(r);
-  try { app.findRecordsByFilter('devices', 'user = {:u}', '', 0, 0, { u: id }).forEach((d) => app.delete(d)); } catch (x) {}
+  app.runInTransaction(tx=>{tx.delete(r);tx.findRecordsByFilter('devices','user = {:u}','',0,0,{u:id}).forEach(d=>tx.delete(d));require(`${__hooks}/amana_audit.js`).audit(tx,e,'Удалён сотрудник');});
   return e.json(200, { ok: true });
 }
 // Себестоимость не уходит к тем, кому её видеть нельзя (списки, карточки, realtime)
@@ -386,7 +413,7 @@ function enrichClient(e) {
   const a = e.requestInfo && e.requestInfo.auth;
   if (a && a.collection().name === 'users' && !has(a.getString('perms'), 'v_cost')) {
     let d = null; try { d = JSON.parse(e.record.getString('data') || 'null'); } catch (x) { d = null; }
-    if (isPlain(d) && d.cost !== undefined) e.record.set('data', stripCost(d));
+    if (isPlain(d)) e.record.set('data', e.record.collection().name==='trash'&&d.coll==='clients'?{...d,data:stripCost(d.data)}:stripCost(d));
   }
 }
 

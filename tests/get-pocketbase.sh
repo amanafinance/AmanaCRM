@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Скачивает PocketBase для автотестов на своём сервере (CRM_DB=pb) в tests/.pb/ с проверкой контрольной суммы.
+# Скачивает PocketBase для автотестов на своём сервере (PocketBase) в tests/.pb/ с проверкой контрольной суммы.
 set -euo pipefail
 VER="${PB_VERSION:-0.40.6}"
 cd "$(dirname "$0")"

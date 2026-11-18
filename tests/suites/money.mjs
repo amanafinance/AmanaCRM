@@ -1,5 +1,5 @@
 // Деньги: остатки, прибыль, ОПИУ, отсрочки, прочие расходы, архив, правка договора, переплата, проверка базы
-import {reseed,device,login,check,noErrors,wait,autoConfirm,BACKEND} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,wait,autoConfirm,pbAdmin} from '../lib.mjs';
 export default async function(){
   await reseed();
   const {p,errs,ctx}=await device();await login(p);await autoConfirm(p);
@@ -42,11 +42,11 @@ export default async function(){
   // Архив: можно и с долгом
   const ar=await p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>0);let msg='';window.showConfirm=(t,m,ok)=>{msg=m;ok&&ok();};archiveClient(c.id,true);await new Promise(r=>setTimeout(r,1200));window.showConfirm=(t,m,ok)=>ok&&ok();
     const arch=!!S.clients.find(x=>x.id===c.id).archived;archiveClient(c.id,false);await new Promise(r=>setTimeout(r,1000));return{arch,warn:/Долг .* пропадёт/.test(msg)};});
-  check('договор с долгом уходит в архив, CRM предупреждает о долге',ar.arch&&ar.warn,ar);
+  check('договор с долгом нельзя скрыть в архиве',!ar.arch,ar);
 
   // Удаление договора: можно с долгом, если нет денег и закупок
   const dl=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const{db,doc,setDoc}=window.DB;
-    const b={...S.clients.find(x=>x.id==='c3')};delete b.id;delete b._u;delete b.archived;await setDoc(doc(db,'clients','cDel'),{...b,contractId:'09990',name:'Удаляемый',cost:30000});await sl(1200);
+    const b={...S.clients.find(x=>x.id==='c3')};delete b.id;delete b._u;delete b.archived;const pp=b.prepay;b.prepay=0;b['размер'+b.months]+=pp;await setDoc(doc(db,'clients','cDel'),{...b,contractId:'09990',name:'Удаляемый',cost:30000});await sl(1200);
     const r={};r.btn=cdDelBtn(S.clients.find(x=>x.id==='cDel')).includes('Удалить');
     delClient('cDel');await sl(1500);r.gone=!S.clients.some(x=>x.id==='cDel');
     const withPay=S.clients.find(x=>!x.archived&&S.payments.some(p=>p.clientId===x.id&&p.type==='payment'));
@@ -85,7 +85,7 @@ export default async function(){
 
   // Закупка частями: пока не оплачена вся себестоимость
   const pu=await p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));const{db,doc,setDoc}=window.DB;
-    const b={...S.clients.find(x=>x.id==='c3')};delete b.id;delete b._u;delete b.archived;await setDoc(doc(db,'clients','cBuy'),{...b,contractId:'09991',name:'Закупка',cost:30000});await sl(1200);
+    const b={...S.clients.find(x=>x.id==='c3')};delete b.id;delete b._u;delete b.archived;const pp=b.prepay;b.prepay=0;b['размер'+b.months]+=pp;await setDoc(doc(db,'clients','cBuy'),{...b,contractId:'09991',name:'Закупка',cost:30000});await sl(1200);
     const r={};const sh=()=>{const t=document.querySelector('#confirmLayer .confirm-title');const v=t?t.textContent:'';document.getElementById('confirmLayer').innerHTML='';return v;};
     goTo('kassa');openKassaOp();document.getElementById('koWallet').value='w1';koClientPick('cBuy');r.pre=parseNum(document.getElementById('koAmt').value);
     document.getElementById('koAmt').value='10 000';await saveKassaOp();await sl(1200);r.first=purchasePaid('cBuy');
@@ -114,9 +114,9 @@ export default async function(){
   const sm=await p.evaluate(async()=>{openEdit('c8');await new Promise(r=>setTimeout(r,200));const e=document.getElementById('f_price');e.value=fmt(parseNum(e.value)+10000);e.dispatchEvent(new Event('input',{bubbles:true}));
     const p0=S.clients.find(x=>x.id==='c8').price;await saveClient();await new Promise(r=>setTimeout(r,800));const t=document.querySelector('#confirmLayer .confirm-title');const r={title:t?t.textContent:'',same:S.clients.find(x=>x.id==='c8').price===p0};
     document.getElementById('confirmLayer').innerHTML='';closeM('mClient');
-    const{db,doc,updateDoc}=window.DB;await updateDoc(doc(db,'clients','c8'),{'размер6':1});await new Promise(r=>setTimeout(r,1200));r.issues=integrityIssues().map(x=>x.t);return r;});
+    const{db,doc,updateDoc}=window.DB;try{await updateDoc(doc(db,'clients','c8'),{'размер6':1});r.blocked=false;}catch(e){r.blocked=true;}await new Promise(r=>setTimeout(r,1200));r.issues=integrityIssues().map(x=>x.t);return r;});
   check('договор с графиком, не сходящимся с ценой, не сохраняется',sm.title==='График не сходится с ценой'&&sm.same,sm);
-  check('такой график, пришедший в обход CRM, виден в «Проверке базы»',sm.issues.some(t=>/№00009.*сумма графика/.test(t)),sm.issues);
+  check('сервер отклоняет неверный график и при обходе формы',sm.blocked,sm);
   // предоплата больше себестоимости — договор не сохраняется
   const ppc=await p.evaluate(async()=>{const k=[...personIndex().values()].find(x=>x.no==='К-0003').key;const mk=async(pre)=>{openNew();await new Promise(r=>setTimeout(r,150));pickSet('f_name',encodeURIComponent(k));
       const set=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));};set('f_product','Предоплата-тест');set('f_cost','40 000');set('f_price','70 000');set('f_prepay',pre);
@@ -126,14 +126,14 @@ export default async function(){
   check('предоплата больше или равная себестоимости — договор не сохраняется, понятное окно',!ppc.over.saved&&!ppc.equal.saved&&ppc.over.title==='Предоплата не меньше себестоимости'&&ppc.equal.title==='Предоплата не меньше себестоимости',ppc);
 
   // дата оплаты: только в открытом месяце, не раньше договора, не в будущем
-  const pdt=await p.evaluate(async()=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>3000&&dealDate(x)<new Date(Date.now()-40*864e5));const r={};
+  const pdt=await p.evaluate(async admin=>{const c=S.clients.find(x=>!x.archived&&getStats(x).balance>3000&&dealDate(x)<new Date(Date.now()-40*864e5));const r={};
     const pay=async(dv)=>{openPay(c.id);await new Promise(r=>setTimeout(r,100));document.getElementById('mpAmt').value='1 000';if(dv)document.getElementById('mpDate').value=dv;const n=S.payments.length;confirmPay();await new Promise(r=>setTimeout(r,1500));closeM('mPay');return{added:S.payments.length>n,t:document.getElementById('toast').textContent};};
     const y=new Date();y.setDate(y.getDate()-1);r.back=await pay(dayKey(y));r.backDate=(S.payments.filter(x=>x.clientId===c.id&&x.amount===1000).map(x=>x.dateStr));
     const f=new Date();f.setDate(f.getDate()+2);r.future=await pay(dayKey(f));
     const old=new Date(dealDate(c));old.setDate(old.getDate()-3);r.before=await pay(dayKey(old));
-    const{db,doc,setDoc,deleteDoc}=window.DB;const mk=mkShift(monthKey(new Date()),-2);await setDoc(doc(db,'invMonths',mk),{month:mk,closedAt:new Date(),rows:[]});await new Promise(r=>setTimeout(r,1000));
+    const{db,doc,setDoc,deleteDoc}=window.DB;const mk=mkShift(monthKey(new Date()),-2);await fetch(window.DB.pb.baseURL+'/api/amana/test/seed',{method:'POST',headers:{'Content-Type':'application/json',Authorization:admin},body:JSON.stringify({docs:[{c:'invMonths',id:mk,data:{month:mk,closedAt:{$date:new Date().toISOString()},rows:[]}}]})});await new Promise(r=>setTimeout(r,1000));
     const inClosed=mStart(Number(mk.slice(0,4)),Number(mk.slice(5))-1);inClosed.setDate(10);r.closed=await pay(dayKey(inClosed));r.min=document.getElementById('mpDate').min;
-    await deleteDoc(doc(db,'invMonths',mk));await new Promise(r=>setTimeout(r,800));r.yest=fmtD(y);return r;});
+    await deleteDoc(doc(db,'invMonths',mk));await new Promise(r=>setTimeout(r,800));r.yest=fmtD(y);return r;},await pbAdmin());
   check('оплату можно записать вчерашним числом',pdt.back.added&&pdt.backDate.includes(pdt.yest),pdt);
   check('дату оплаты в будущем, раньше договора и в закрытом месяце поставить нельзя',!pdt.future.added&&!pdt.before.added&&!pdt.closed.added,pdt);
 
@@ -147,11 +147,7 @@ export default async function(){
     try { await bt.commit(); } catch(e) { return { rejected: e.message, balance:getStats(c).balance, duplicate:S.payments.some(p=>p.id===pR.id) }; }
     await new Promise(r=>setTimeout(r,1200));
     openC('c3');await new Promise(r=>setTimeout(r,300));return{card:(document.getElementById('cDetail').innerText.match(/Переплата[^\n]*/)||[''])[0],list:integrityIssues().map(x=>x.t)};});
-  if(BACKEND==='pb') check('сервер отклоняет повторную оплату погашенного договора',/больше остатка/.test(op.rejected)&&op.balance===0&&!op.duplicate,op);
-  else {
-  check('переплата видна в карточке сделки',op.card.startsWith('Переплата'),op.card);
-  check('переплата попадает в «Проверку базы»',op.list.some(t=>/переплата/.test(t)),op.list);
-  }
+  check('сервер отклоняет повторную оплату погашенного договора',/больше остатка/.test(op.rejected)&&op.balance===0&&!op.duplicate,op);
   check('после оплат касса сходится с операциями',await p.evaluate(()=>{const m=walletCalc();return S.wallets.every(w=>Math.abs(R2(w.balance)-(m[w.id]||0))<0.01);}));
 
   // правка цены и себестоимости существующего договора сохраняется (раньше кнопка «Сохранить» молча не срабатывала)
