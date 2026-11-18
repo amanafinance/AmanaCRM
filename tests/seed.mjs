@@ -14,12 +14,12 @@ export async function seed(opts={}){
 // Тестовые данные
 async function fill(put,opts={}){
     const now=new Date(),f=d=>('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
-    for(let j=0;j<150;j++)await put('persons/P'+j,{name:'Клиент '+j,phones:['8928'+(1000000+j)],addr:'',note:'',no:'К-'+String(j+1).padStart(4,'0')});
+    for(let j=0;j<150;j++)await put('persons/P'+j,{name:'Клиент '+j,phones:['8000'+(1000000+j)],addr:'',note:'',no:'К-'+String(j+1).padStart(4,'0')});
     await put('settings/pcounter',{lastId:150});
     const bal={w1:0,w2:0};
     for(let i=0;i<200;i++){
       const st=new Date(now.getFullYear(),now.getMonth()-(i%12)-1,5),price=50000+(i%10)*5000,cost=Math.round(price*0.7),prepay=5000,mo=6,step=Math.round((price-prepay)/mo);
-      const c={name:'Клиент '+(i%150),clientPid:'P'+(i%150),guarantors:i%3?[]:[{name:'Клиент '+((i+1)%150),pid:'P'+((i+1)%150)}],phones:['8928'+(1000000+(i%150))],
+      const c={name:'Клиент '+(i%150),clientPid:'P'+(i%150),guarantors:i%3?[]:[{name:'Клиент '+((i+1)%150),pid:'P'+((i+1)%150)}],phones:['8000'+(1000000+(i%150))],
         product:'Товар '+(i%7),partner:'Сторонний',price,cost,prepay,months:mo,date:f(st),contractId:String(i+1).padStart(5,'0'),createdAt:Timestamp.fromDate(st)};
       for(let m=1;m<=12;m++){const d=new Date(st.getFullYear(),st.getMonth()+m,5);c['размер'+m]=m<=mo?(m<mo?step:price-prepay-step*(mo-1)):0;c['дата'+m]=m<=mo?f(d):'';}
       await put('clients/c'+i,c);

@@ -191,9 +191,9 @@ const cacheScope = () => {
 const cacheName = () => 'amana_pb_' + cacheScope();
 const EPOCH_KEY = 'amana_pb_epoch';
 let _idb = null;
-const idb = () => _idb || (_idb = new Promise((ok, no) => { const r = indexedDB.open(cacheName(), 1); r.onupgradeneeded = () => r.result.createObjectStore('cols'); r.onsuccess = () => {r.result.onversionchange=()=>r.result.close();ok(r.result);}; r.onerror = () => no(r.error); }).catch(() => null));
+const idb = () => _idb || (_idb = new Promise((ok, no) => { const r = indexedDB.open(cacheName(), 1); r.onupgradeneeded = () => r.result.createObjectStore('cols'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }).catch(() => null));
 const idbGet = async k => { const d = await idb(); if (!d) return null; return new Promise(ok => { try { const r = d.transaction('cols').objectStore('cols').get(k); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); } catch (e) { ok(null); } }); };
-const idbPut = async (k, v) => { if(closing)return;const d = await idb(); if (!d||closing) return; return new Promise(ok => { try { const t = d.transaction('cols', 'readwrite'); t.objectStore('cols').put(v, k); t.oncomplete = () => ok(); t.onerror = () => ok(); } catch (e) { ok(); } }); };
+const idbPut = async (k, v) => { const d = await idb(); if (!d) return; return new Promise(ok => { try { const t = d.transaction('cols', 'readwrite'); t.objectStore('cols').put(v, k); t.oncomplete = () => ok(); t.onerror = () => ok(); } catch (e) { ok(); } }); };
 const idbClear = async () => { const d = await idb(); if (d) { try { d.close(); } catch (e) {} } _idb = null; await new Promise(ok => { const r = indexedDB.deleteDatabase(cacheName()); r.onsuccess = r.onerror = r.onblocked = () => ok(); }); };
 
 // ---------- Живые коллекции ----------
@@ -391,30 +391,19 @@ async function bkRestore(B, prog) {
 }
 
 // ---------- Вход ----------
-// Вход по почте и паролю; токен действует 8 часов.
+// Токен входа действует 30 дней и продлевается при каждом открытии CRM
 const AUTH = { get currentUser() { const r = pb.authStore.isValid && pb.authStore.record; return r ? { email: r.email, uid: r.id, name: r.name || '' } : null; },
   // права: "*" — владелец (всё), иначе ",право,право,"
   get perms() { const r = pb.authStore.isValid && pb.authStore.record; return r ? (r.perms || '') : ''; } };
 const hasRight = p => AUTH.perms === '*' || AUTH.perms.includes(',' + p + ',');
 const SIGN_IN = async (_a, email, pw) => {
   try { await pb.collection('users').authWithPassword(email, pw, { requestKey: null }); }
-  catch (e) { const st=e&&e.status;throw Object.assign(new Error('auth'),{code:st===429?'auth/too-many-requests':!st?'auth/network-request-failed':'auth/invalid-credential'}); }
+  catch (e) { const st = e && e.status; throw Object.assign(new Error('auth'), { code: st === 429 ? 'auth/too-many-requests' : !st ? 'auth/network-request-failed' : 'auth/invalid-credential' }); }
 };
 // Вход перестал действовать (вход отключён, «Выйти на всех устройствах», сменён пароль): показываем экран входа
 let _authLost = false;
-let logoutChannel;try{logoutChannel=new BroadcastChannel('amana_private_logout');logoutChannel.onmessage=async()=>{closing=true;Object.values(cols).forEach(s=>{clearTimeout(s._s);clearTimeout(s._t);s.map.clear();});if(_idb){const d=await _idb;if(d)d.close();}_idb=null;pb.authStore.clear();location.reload();};}catch(e){}
-async function clearPrivateData(){
-  if(logoutChannel)logoutChannel.postMessage('logout');
-  closing=true;Object.values(cols).forEach(s=>{clearTimeout(s._s);clearTimeout(s._t);s.map.clear();});
-  try{await pb.realtime.unsubscribe();}catch(e){}
-  if(_idb){const d=await _idb;if(d)d.close();}_idb=null;
-  try{
-    if(indexedDB.databases){const all=await indexedDB.databases();for(const d of all.filter(d=>d.name&&d.name.startsWith('amana_pb_')))await new Promise((ok,no)=>{const timer=setTimeout(()=>no(new Error('Закройте другие вкладки CRM и повторите выход для очистки данных')),10000),r=indexedDB.deleteDatabase(d.name);r.onsuccess=()=>{clearTimeout(timer);ok();};r.onerror=()=>{clearTimeout(timer);no(r.error);};});}
-    else await idbClear();
-  }finally{tombs.clear();pb.authStore.clear();}
-}
-function authLost() { if (_authLost) return; _authLost = true; clearPrivateData().finally(()=>{pb.authStore.clear();location.reload();}); }
-const SIGN_OUT = async () => {await clearPrivateData();};
+function authLost() { if (_authLost) return; _authLost = true; try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); setTimeout(() => location.reload(), 1200); }
+const SIGN_OUT = async () => { try { pb.realtime.unsubscribe(); } catch (e) {} pb.authStore.clear(); };
 const ON_AUTH = (_a, cb) => {
   let last = AUTH.currentUser && AUTH.currentUser.uid, scope = cacheScope();
   pb.authStore.onChange(() => {

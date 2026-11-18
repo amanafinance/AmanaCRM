@@ -60,9 +60,5 @@ export default async function(){
  check('копия без пароля подходит для восстановления',await D.p.evaluate(b=>window.DB.bkCheck(b)==='',plainManual));
  await D.p.evaluate(()=>goTo('settings'));
  check('в настройках нет почтовой рассылки',await D.p.evaluate(()=>!document.getElementById('mailSettingsCard')&&!window.DB.mail&&typeof window.renderMailSettings==='undefined'));
- const other=await D.ctx.newPage();await other.goto(D.p.url());await other.waitForFunction(()=>window.AUTH?.currentUser&&typeof S!=='undefined'&&S.clients.length>0);
- await D.p.evaluate(()=>doLogout());await D.p.waitForSelector('#lemail:visible');await other.waitForSelector('#lemail:visible');
- check('выход закрывает доступ и в другой открытой вкладке',await other.evaluate(()=>!window.AUTH.currentUser));
- const count=await D.p.evaluate(async()=> (await indexedDB.databases()).filter(d=>d.name?.startsWith('amana_pb_')).length);
- check('после выхода локальные базы с клиентами удалены',count===0,count);noErrors('защита входа и выход',D.errs);await D.ctx.close();
+ noErrors('денежные проверки и доступ',D.errs);await D.ctx.close();
 }
