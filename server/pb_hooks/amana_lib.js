@@ -68,17 +68,20 @@ function commit(e, app) {
   if(req.return!==undefined)return e.json(400,{code:'bad',message:'Такая операция не поддерживается'});
   // Корзину формирует сервер из исходной записи, а не из присланной браузером копии.
   const ops = (Array.isArray(req.ops) ? req.ops : []).filter(o=>o&&o.c!=='trash');
-  const checks = isPlain(req.checks) ? req.checks : {};
+  const checks = Object.assign({},isPlain(req.checks)?req.checks:{});
+  // Прежний сервер отклоняет этот маркер до записи: новая страница не сможет
+  // записать деньги без подтверждения в короткое окно обновления сервера.
+  checks.expect=(Array.isArray(checks.expect)?checks.expect:[]).filter(x=>!(x&&x.c==='__amana_write_v1'&&x.id==='protocol'));
   if (ops.length > MAX_OPS) return e.json(400, { code: 'bad', message: 'Слишком много изменений за раз' });
   const isAdmin = e.auth && e.auth.collection().name === '_superusers';
   if(!isAdmin&&ops.some(o=>o.c==='journal'))return e.json(403,{code:'denied',message:'Историю действий создаёт сервер'});
   const perms = isAdmin ? '*' : ((e.auth && e.auth.getString('perms')) || '');
   const now = Date.now(), nowIso = new Date(now).toISOString();
   let failure = null;
-  const out = { u: now, docs: [], counters: {} };
+  let out = { u: now, docs: [], counters: {} };
   try {
-    app.runInTransaction((tx) => {
-      try { body(tx); } catch (x) { if (x instanceof Fail) failure = x; throw x; }
+    out=require(`${__hooks}/amana_requests.js`).run(app,e,req,'commit',tx=>{
+      try { body(tx);return out; } catch (x) { if (x instanceof Fail) failure = x; throw x; }
     });
   } catch (err) {
     if (failure) return e.json(failure.status, { code: failure.code, message: failure.message });
@@ -374,6 +377,8 @@ function staffList(e, app) {
 function staffSave(e, app) {
   if (!staffGuard(e)) return;
   const b = e.requestInfo().body || {}, mine = myPerms(e), id = e.request.pathValue('id');
+  const requests=require(`${__hooks}/amana_requests.js`),kind='staff-save:'+(id||'new');
+  const cached=requests.previous(app,e,requests.ticket(e,b,kind));if(cached)return e.json(200,cached.value);
   const bad = (m) => e.json(400, { code: 'bad', message: m });
   let perms = b.perms !== undefined ? normPerms(b.perms) : undefined;
   if (perms === '*' && mine !== '*') return e.json(403, { code: 'denied', message: 'Права владельца может выдать только владелец' });
@@ -396,17 +401,18 @@ function staffSave(e, app) {
   if (perms !== undefined) r.set('perms', perms);
   if (b.disabled !== undefined) { r.set('disabled', !!b.disabled); if (b.disabled) r.refreshTokenKey(); }
   if (b.logoutAll && id) r.refreshTokenKey(); // все входы этого сотрудника перестают действовать
-  try { app.runInTransaction(tx=>{tx.save(r);require(`${__hooks}/amana_audit.js`).audit(tx,e,id?'Изменены права или вход сотрудника':'Создан сотрудник');}); } catch (x) { return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
-  return e.json(200, staffView(r));
+  let result;try { result=requests.run(app,e,b,kind,tx=>{tx.save(r);require(`${__hooks}/amana_audit.js`).audit(tx,e,id?'Изменены права или вход сотрудника':'Создан сотрудник');return staffView(r);}); } catch (x) { if(x.status)throw x;return bad(/email/i.test(String(x)) ? 'Этот email уже занят' : 'Не сохранилось: ' + String(x).slice(0, 200)); }
+  return e.json(200, result);
 }
 function staffDelete(e, app) {
   if (!staffGuard(e)) return;
-  const id = e.request.pathValue('id');
+  const id = e.request.pathValue('id'),b=e.requestInfo().body||{},requests=require(`${__hooks}/amana_requests.js`),kind='staff-delete:'+id;
+  const cached=requests.previous(app,e,requests.ticket(e,b,kind));if(cached)return e.json(200,cached.value);
   if (e.auth && id === e.auth.id) return e.json(400, { code: 'bad', message: 'Себя удалить нельзя' });
   let r; try { r = app.findRecordById('users', id); } catch (x) { return e.json(404, { code: 'missing', message: 'Сотрудник не найден' }); }
   if (r.getString('perms') === '*' && myPerms(e) !== '*') return e.json(403, { code: 'denied', message: 'Удалить владельца может только владелец' });
-  app.runInTransaction(tx=>{tx.delete(r);tx.findRecordsByFilter('devices','user = {:u}','',0,0,{u:id}).forEach(d=>tx.delete(d));require(`${__hooks}/amana_audit.js`).audit(tx,e,'Удалён сотрудник');});
-  return e.json(200, { ok: true });
+  const result=requests.run(app,e,b,kind,tx=>{tx.delete(r);tx.findRecordsByFilter('devices','user = {:u}','',0,0,{u:id}).forEach(d=>tx.delete(d));require(`${__hooks}/amana_audit.js`).audit(tx,e,'Удалён сотрудник');return{ok:true};});
+  return e.json(200, result);
 }
 // Себестоимость не уходит к тем, кому её видеть нельзя (списки, карточки, realtime)
 function enrichClient(e) {
