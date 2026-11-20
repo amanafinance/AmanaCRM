@@ -99,8 +99,10 @@ export default async function(){
  const other=await D.ctx.newPage();await login(other);
  const posts=count;const blocked=await other.evaluate(async()=>{try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'clients','c3'),{comment:'Не должна отправиться'});return false;}catch(e){return e.code==='pending';}});
  check('неподтверждённая запись блокирует повтор и в соседней вкладке',blocked&&count===posts);
+ await p.evaluate(()=>{closeM('mComment');openComment('c3');document.getElementById('mcText').value='Новая несохранённая форма';});
  const finished=await p.evaluate(()=>window.DB.cancelWrite());
  check('отмена ожидания подтверждает уже сохранённое без отмены данных',finished.state==='saved'&&await p.evaluate(()=>!window.DB.writeState().pending&&S.clients.find(x=>x.id==='c3').comment==='Сохранено, но подтверждение временно недоступно'));
+ check('подтверждение старой записи не закрывает новую открытую форму',await p.isVisible('#mComment.on')&&await p.inputValue('#mcText')==='Новая несохранённая форма');
  await other.close();await D.ctx.unroute('**/api/amana/requests/**');
  // Настоящий предел ожидания 30 секунд: ускоряем только часы браузера.
  await D.ctx.unroute('**/api/amana/commit');await p.clock.install();let held;

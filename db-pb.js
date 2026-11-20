@@ -100,7 +100,7 @@ async function sendOnce(path,options,ms){const controller=new AbortController(),
 function pendingError(){return Object.assign(new Error('Результат сохранения пока неизвестен. Нажмите «Проверить результат»; не создавайте оплату или расход повторно.'),{code:'pending'});}
 function applyRecovered(p,result,notify){
  if(result&&result.docs)applyServerDocs(result.docs);const active=pendingRead();if(!active||active.id!==p.id)return;pendingClear(p.id);netDown=false;netBadge();writeStatus('');
- if(notify){window.dispatchEvent(new CustomEvent('amanaWriteRecovered',{detail:{formId:p.formId}}));if(typeof window.toast==='function')window.toast('Изменение уже сохранено. Повторная запись не создана.','tok');}
+ if(notify){window.dispatchEvent(new CustomEvent('amanaWriteRecovered',{detail:{formId:p.formId,requestId:p.id}}));if(typeof window.toast==='function')window.toast('Изменение уже сохранено. Повторная запись не создана.','tok');}
 }
 async function inspectPending(p,cancel,notify){
  const data=await sendOnce('/api/amana/requests/'+encodeURIComponent(p.id)+(cancel?'/cancel':''),{method:cancel?'POST':'GET'},10000);const active=pendingRead();if(!active||active.id!==p.id)return data;netDown=false;netBadge();
@@ -124,7 +124,7 @@ async function writeRequest(path,body,ms,method='POST'){
   const old=pendingRead();if(old){const checked=await recoverPending(false,true);if(checked&&checked.state==='saved')throw Object.assign(new Error('Предыдущее изменение уже сохранено. Проверьте данные перед новой операцией.'),{code:'already-saved'});if(checked&&checked.state==='cancelled')throw Object.assign(new Error('Предыдущее изменение отменено и не сохранено. Теперь можно отправить новое.'),{code:'cancelled'});throw pendingError();}
   await netCheck();
   const p={id:autoId(),tab:tabId,at:Date.now(),formId:[...document.querySelectorAll('.mover.on[id]')].at(-1)?.id||''};
-  pendingPut(p);writing=true;const unfreeze=freezeForm();writeStatus('Сохраняем…');
+  pendingPut(p);if(p.formId)document.getElementById(p.formId).dataset.pendingWrite=p.id;writing=true;const unfreeze=freezeForm();writeStatus('Сохраняем…');
   try{
    const result=await sendOnce(path,{method,body:{...(body||{}),requestId:p.id}},ms||WRITE_MS);
    applyRecovered(p,result,false);return result;
@@ -143,6 +143,7 @@ async function writeRequest(path,body,ms,method='POST'){
 }
 window.addEventListener('online',()=>{netDown=false;netBadge();recoverPending().catch(()=>{});});window.addEventListener('offline',()=>netBadge());
 window.addEventListener('storage',e=>{if(e.key===pendingKey()&&!writing){if(!pendingRead())writeStatus('');else recoverPending().catch(()=>{});}});
+for(const event of ['input','change'])document.addEventListener(event,e=>{const form=e.target.closest&&e.target.closest('.mover');if(form)delete form.dataset.pendingWrite;});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)recoverPending().catch(()=>{});});
 setInterval(()=>{try{if(!document.hidden&&!writing&&pb.authStore.isValid&&pendingRead())recoverPending().catch(()=>{});}catch(e){writeStatus(e.message);}},10000);netBadge();
 async function commitOps(ops,checks,ms,mode){const guarded={...(checks||{}),expect:[{c:'__amana_write_v1',id:'protocol'},...((checks&&checks.expect)||[])]};return writeRequest('/api/amana/commit',{ops,checks:guarded,...(mode?{mode}:{})},ms);}
