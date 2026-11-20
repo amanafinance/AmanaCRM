@@ -1248,6 +1248,12 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
   .kcard-action svg{position:relative;width:14px;height:14px;pointer-events:none}
   .kcard-action:active::before{opacity:.2}
 }
+
+#writeStatus{display:none;position:fixed;z-index:12000;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));max-width:700px;margin:auto;padding:12px 16px;background:var(--card);border:1px solid var(--green);border-radius:12px;box-shadow:0 8px 30px #0005;font-size:var(--fs-sm);color:var(--text)}
+#writeStatus.in-form{position:static;left:auto;right:auto;bottom:auto;max-width:none;margin:12px 0;box-shadow:none}
+#writeStatus.on{display:block}#writeStatus>div{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}#writeStatus>div[hidden]{display:none}
+#writeStatus button{min-height:44px;padding:8px 12px;border:1px solid var(--brd2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
+@media(max-width:768px){#writeStatus{left:10px;right:10px;bottom:calc(78px + env(safe-area-inset-bottom))}}
 </style>
 
 </head>
@@ -1574,7 +1580,7 @@ function askText(t,label,val,ok){const l=document.getElementById('confirmLayer')
   document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
 function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
 
-const CRM_VERSION='18.11.2026 · касса и договоры';
+const CRM_VERSION='18.11.2026 · надёжное сохранение';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1582,6 +1588,7 @@ document.getElementById('lemail').addEventListener('keydown',e=>{if(e.key==='Ent
 function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';if(!window.SIGN_IN){document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Нет подключения к базе. Проверь интернет';er.style.display='block';return;}window.SIGN_IN(window.AUTH,em,pw).then(()=>enterApp()).catch(e=>{document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';const c=e&&e.code;er.textContent=(c==='auth/too-many-requests'?'Слишком много попыток, подожди немного':(c==='auth/network-request-failed'?'Нет интернета':'Неверный email или пароль'));er.style.display='block';});}
 function enterApp(){document.getElementById('loginWrap').style.display='none';document.getElementById('app').classList.add('on');initApp();}
 function doLogout(){if(window.SIGN_OUT)window.SIGN_OUT(window.AUTH).finally(()=>location.reload());else location.reload();}
+window.addEventListener('amanaWriteRecovered',e=>{const d=e.detail||{},form=d.formId&&document.getElementById(d.formId);if(form&&form.dataset.pendingWrite===d.requestId)closeM(d.formId);});
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
 function initApp(){if(_inited)return;_inited=true;installPermGuards();applyPerms();const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
@@ -2950,7 +2957,7 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
     bt.set(kRef,{type:'prepay_in',amount:pp,wallet:ptW.id,walletName:ptW.name,desc:'Предоплата от '+name+' (№'+data.contractId+')',date:now,dateStr:fmtD(now),auto:true,refType:'client',refId:ref.id,paymentId:pRef.id,clientName:name,contractId:data.contractId});
     bt.update(doc(db,'wallets',ptW.id),WINC(pp));
   }
-  return n;});}catch(e){console.warn(e);throw e&&e.code==='offline'?e:new Error(navigator.onLine?'Не удалось сохранить договор. Попробуйте снова':'Нет интернета — договор не сохранён. Подключитесь к сети и повторите.');}
+  return n;});}catch(e){console.warn(e);throw e;}
   await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
 
 // ---------- PAY / DISCOUNT ----------
@@ -2962,7 +2969,7 @@ function payDateSetup(id){const c=S.clients.find(x=>x.id===id),i=document.getEle
 function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Введите сумму числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const ptv=document.getElementById('mpPt').value;const wsel=walletByVal(ptv);if(!wsel){toast('Выберите кассу','ter');return;}const note=(document.getElementById('mpNote').value||'').trim(),dv=document.getElementById('mpDate').value||dayKey(new Date());
   if(dv>dayKey(new Date())){toast('Дата оплаты не может быть в будущем','ter');return;}
   {const m=payDateMin(c);if(m&&dv<dayKey(m)){toast('Дата оплаты не может быть раньше '+fmtD(m)+(closedMk(safeDateFromInput(dv))?': этот месяц уже закрыт у инвесторов':': это раньше дня договора'),'ter');return;}}
-  closeM('mPay');showConfirm('Подтвердить?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽ · '+esc(wsel.name)+(dv!==dayKey(new Date())?' · '+fmtD(safeDateFromInput(dv)):'')+(note?'<br><span style="color:var(--t2)">'+esc(note)+'</span>':''),()=>savePay(a,wsel.id,note,dv));}
+  showConfirm('Подтвердить?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽ · '+esc(wsel.name)+(dv!==dayKey(new Date())?' · '+fmtD(safeDateFromInput(dv)):'')+(note?'<br><span style="color:var(--t2)">'+esc(note)+'</span>':''),()=>savePay(a,wsel.id,note,dv));}
 async function savePay(a,pt,note,dv){note=(note||'').trim();
   if(_saving)return;
   const{db,collection,doc,writeBatch}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;
@@ -2983,13 +2990,13 @@ async function savePay(a,pt,note,dv){note=(note||'').trim();
     bt.update(doc(db,'wallets',w.id),WINC(a));
     await bt.commit({deal:{id:_cid,seq:c.paySeq||0}});
     await logA('Оплата','№'+c.contractId+' — '+fmt(a)+' ₽ ('+w.name+')'+(dayKey(d)!==dayKey(new Date())?' от '+fmtD(d):'')+(note?' · '+note:''));
-    toast('Оплата записана','tok');
+    closeM('mPay');toast('Оплата записана','tok');
   }catch(e){toast('Ошибка: '+e.message,'ter');console.error(e);}
   finally{_saving=false;}
 }
 function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mdName').innerHTML=esc(c?.name||'')+'<div style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mdAmt').value='';document.getElementById('mdAmt').max=s.balance;document.getElementById('mdReason').value='';openM('mDisc');}
-function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Введите сумму скидки числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;closeM('mDisc');showConfirm('Подтвердить скидку?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
-async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{const{doc,writeBatch}=window.DB,bt=writeBatch(db);bt.set(doc(collection(db,'payments')),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await bt.commit({deal:{id:_cid,seq:c.paySeq||0}});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');toast('Применена!','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;}}
+function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Введите сумму скидки числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;showConfirm('Подтвердить скидку?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
+async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{const{doc,writeBatch}=window.DB,bt=writeBatch(db);bt.set(doc(collection(db,'payments')),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await bt.commit({deal:{id:_cid,seq:c.paySeq||0}});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');closeM('mDisc');toast('Применена!','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;}}
 // Закупки по договору: можно платить поставщику частями, пока не оплачена вся себестоимость
 // Сделка, к которой относится операция кассы (оплата, предоплата, закупка): по ссылке, а у старых записей — по «(№…)» в описании
 function kOpClient(o){if(o.refType==='client'&&o.refId&&S.clients.some(c=>c.id===o.refId))return o.refId;
@@ -4509,7 +4516,7 @@ async function shareContract(){
 let _xlsxP=null;
 function loadXlsx(){if(window.XLSX)return Promise.resolve();if(!_xlsxP)_xlsxP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='./vendor/xlsx-0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=()=>{_xlsxP=null;no(new Error('не загрузилась библиотека Excel'));};document.head.appendChild(s);});return _xlsxP;}
 async function exportExcel(){try{await loadXlsx();}catch(e){toast('Ошибка: '+e.message,'ter');return;}const r=[['№','Дата','ФИО','Телефоны','Товар','Поставщик','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{if(c.archived)return;const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
-function openM(id){const el=document.getElementById(id);el.classList.add('on');applyFmtToInputs(el);}
+function openM(id){const el=document.getElementById(id);delete el.dataset.pendingWrite;el.classList.add('on');applyFmtToInputs(el);}
 function closeM(id){document.getElementById(id).classList.remove('on');}
 // Непредвиденная ошибка в действии (кнопка «молчит») — показываем сообщение, а не обрываемся молча
 window.addEventListener('unhandledrejection',e=>{const m=(e.reason&&e.reason.message)||String(e.reason||'');if(/ResizeObserver|AbortError/.test(m))return;try{toast('Что-то пошло не так: '+m+'. Обновите страницу и попробуйте ещё раз','ter');}catch(_){}});

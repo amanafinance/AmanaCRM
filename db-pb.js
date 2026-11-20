@@ -76,43 +76,80 @@ function doc(a, c, id) {
 }
 
 // ---------- Связь с сервером ----------
-// Без связи с сервером ничего не сохраняется: перед записью проверяем, что сервер отвечает.
-let netOkAt = 0, netDown = false, closing = false;
-const netBadge = () => { let el = document.getElementById('netBadge'); if (!el) { el = document.createElement('div'); el.id = 'netBadge'; document.body.appendChild(el); }
-  const off = !navigator.onLine || netDown; el.textContent = off ? 'Нет интернета · только просмотр, изменения не сохраняются' : ''; el.classList.toggle('on', off); };
-window.addEventListener('online', () => { netOkAt = 0; netDown = false; netBadge(); }); window.addEventListener('offline', () => { netOkAt = 0; netBadge(); }); netBadge();
-const NET_ERR = 'Нет интернета — изменение не сохранено. Подключитесь к сети и повторите.';
-const netFail = () => { netDown = true; netOkAt = 0; netBadge(); return Object.assign(new Error(NET_ERR), { code: 'offline' }); };
-const _cErr = console.error.bind(console); console.error = (...a) => closing || a[0] && ['offline', 'short', 'stale'].includes(a[0].code) ? console.warn(...a) : _cErr(...a);
-const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, no) => setTimeout(() => no(new Error('timeout')), ms))]);
-const netCheck = async () => {
-  if (!navigator.onLine) throw netFail();
-  if (Date.now() - netOkAt < 15000) return;
-  try { const r = await withTimeout(fetch(BASE + '/api/health', { cache: 'no-store' }), 7000); if (!r.ok) throw new Error('health'); netOkAt = Date.now(); if (netDown) { netDown = false; netBadge(); } }
-  catch (e) { throw netFail(); }
-};
-const ERR_CODE = { short: 'short', stale: 'stale', exists: 'exists', denied: 'permission-denied', missing: 'not-found', bad: 'invalid-argument' };
-// Запрос к серверу; ошибки сервера → Error с понятным текстом и code
-async function api(path, body, ms) {
-  let r;
-  try { r = await withTimeout(pb.send(path, { method: 'POST', body }), ms || 15000); }
-  catch (e) {
-    if (e && e.message === 'timeout') { netFail(); throw new Error('Связь пропала во время сохранения. Изменение могло сохраниться — не повторяйте его, а проверьте через минуту.'); }
-    const st = e && e.status, d = (e && e.response) || {};
-    if (!st) throw netFail();
-    if (st === 401) { authLost(); throw Object.assign(new Error('Вход больше не действует — войдите заново.'), { code: 'unauthenticated' }); }
-    throw Object.assign(new Error(d.message || ('Ошибка сервера ' + st)), { code: ERR_CODE[d.code] || d.code || 'unknown' });
-  }
-  netOkAt = Date.now(); if (netDown) { netDown = false; netBadge(); }
-  return r;
+// Запись отправляется сразу. Одна попытка до 30 секунд; при обрыве проверяется только результат.
+let netDown=false,closing=false;
+const netBadge=()=>{let el=document.getElementById('netBadge');if(!el){el=document.createElement('div');el.id='netBadge';document.body.appendChild(el);}const off=!navigator.onLine||netDown;el.textContent=!navigator.onLine?'Нет интернета · только просмотр, изменения не сохраняются':netDown?'Ответ сервера не получен · проверяем результат сохранения':'';el.classList.toggle('on',off);};
+const NET_ERR='Нет интернета — изменение не сохранено. Подключитесь к сети и повторите.';
+const netFail=()=>{netDown=true;netBadge();return Object.assign(new Error(NET_ERR),{code:'offline'});};
+const _cErr=console.error.bind(console);console.error=(...a)=>closing||a[0]&&['offline','short','stale','pending','busy','cancelled','already-saved'].includes(a[0].code)?console.warn(...a):_cErr(...a);
+const withTimeout=(pr,ms)=>new Promise((ok,no)=>{const t=setTimeout(()=>no(new Error('timeout')),ms);Promise.resolve(pr).then(v=>{clearTimeout(t);ok(v);},e=>{clearTimeout(t);no(e);});});
+const netCheck=async()=>{if(!navigator.onLine)throw netFail();};
+const ERR_CODE={short:'short',stale:'stale',exists:'exists',denied:'permission-denied',missing:'not-found',bad:'invalid-argument',cancelled:'cancelled'};
+const WRITE_MS=30000;
+const tabId=autoId();let writing=false,recovery=null;
+const pendingKey=()=>pb.authStore.record?'amana_pending_write_'+pb.authStore.record.id:null;
+const pendingRead=()=>{const k=pendingKey();if(!k)return null;try{const raw=localStorage.getItem(k);if(!raw)return null;const p=JSON.parse(raw);if(!p||!/^[A-Za-z0-9_-]{20,80}$/.test(p.id))throw new Error('bad');return p;}catch(e){throw new Error('Не удалось прочитать состояние предыдущего сохранения. Не повторяйте денежную операцию; проверьте данные.');}};
+function pendingPut(p){const k=pendingKey();if(!k)throw new Error('Войдите в CRM');try{localStorage.setItem(k,JSON.stringify(p));if(localStorage.getItem(k)!==JSON.stringify(p))throw new Error('storage');}catch(e){throw new Error('Не удалось сохранить номер операции на устройстве. Изменение не отправлено. Освободите место в браузере.');}}
+function pendingClear(id){const p=pendingRead();if(p&&p.id===id)localStorage.removeItem(pendingKey());}
+function writeStatus(message,actions=false){
+ let el=document.getElementById('writeStatus');if(!el){el=document.createElement('div');el.id='writeStatus';el.innerHTML='<span role="status" aria-live="polite"></span><div><button type="button">Проверить результат</button><button type="button">Отменить, если не сохранено</button></div>';document.body.appendChild(el);const b=el.querySelectorAll('button');b[0].onclick=()=>recoverPending(false,true).catch(()=>{});b[1].onclick=()=>recoverPending(true,true).catch(()=>{});}
+ const modal=[...document.querySelectorAll('.mover.on .modal')].at(-1),footer=modal&&modal.querySelector('.mft');
+ if(modal){if(footer)footer.before(el);else modal.appendChild(el);}else document.body.appendChild(el);el.classList.toggle('in-form',!!modal);
+ el.querySelector('span').textContent=message;el.querySelector('div').hidden=!actions;el.classList.toggle('on',!!message);
 }
-// Одна транзакция: ops — изменения, checks — проверки (см. server/pb_hooks/amana_lib.js)
-async function commitOps(ops, checks, ms, mode) {
+function responseError(e){const st=e&&e.status,d=e&&e.response||{},code=d.code||(d.data&&d.data.code);if(st===401){authLost();return Object.assign(new Error('Вход больше не действует — войдите заново.'),{code:'unauthenticated'});}return Object.assign(new Error(d.message&&d.message.includes('__amana_write_v1')?'Сервер применяет обновление. Подождите минуту и обновите страницу.':st===429?'Слишком много запросов. Подождите немного.':d.message||('Ошибка сервера '+st)),{code:ERR_CODE[code]||code||'unknown'});}
+async function sendOnce(path,options,ms){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);try{return await pb.send(path,{...options,signal:controller.signal,requestKey:null});}finally{clearTimeout(timer);}}
+function pendingError(){return Object.assign(new Error('Результат сохранения пока неизвестен. Нажмите «Проверить результат»; не создавайте оплату или расход повторно.'),{code:'pending'});}
+function applyRecovered(p,result,notify){
+ if(result&&result.docs)applyServerDocs(result.docs);const active=pendingRead();if(!active||active.id!==p.id)return;pendingClear(p.id);netDown=false;netBadge();writeStatus('');
+ if(notify){window.dispatchEvent(new CustomEvent('amanaWriteRecovered',{detail:{formId:p.formId,requestId:p.id}}));if(typeof window.toast==='function')window.toast('Изменение уже сохранено. Повторная запись не создана.','tok');}
+}
+async function inspectPending(p,cancel,notify){
+ const data=await sendOnce('/api/amana/requests/'+encodeURIComponent(p.id)+(cancel?'/cancel':''),{method:cancel?'POST':'GET'},10000);const active=pendingRead();if(!active||active.id!==p.id)return data;netDown=false;netBadge();
+ if(data.state==='saved'){applyRecovered(p,data.result,notify);return{state:'saved',result:data.result};}
+ if(data.state==='cancelled'){pendingClear(p.id);writeStatus('');if(notify&&typeof window.toast==='function')window.toast('Операция не была сохранена и отменена. Данные в форме можно исправить и отправить заново.','tok');return{state:'cancelled'};}
+ writeStatus('Результат пока неизвестен. Не повторяйте оплату или расход.',true);return{state:'unknown'};
+}
+async function recoverPending(cancel=false,notify=true){
+ if(recovery){const existing=await recovery;if(!cancel||!pendingRead())return existing;}
+ if(recovery)return recovery;
+ let p;try{p=pendingRead();}catch(e){writeStatus(e.message);return;}
+ if(!p)return;
+ if(writing){writeStatus('Сохраняем… Дождитесь ответа сервера.');return{state:'unknown'};}
+ writeStatus(cancel?'Проверяем, можно ли отменить несохранённую операцию…':'Проверяем результат сохранения…');
+ recovery=inspectPending(p,cancel,notify).catch(e=>{if(e&&e.status===401)throw responseError(e);writeStatus('Не удалось проверить результат. Не повторяйте оплату или расход.',true);return{state:'unknown'};}).finally(()=>{recovery=null;});return recovery;
+}
+function freezeForm(){const form=[...document.querySelectorAll('.mover.on[id]')].at(-1);const items=form?[...form.querySelectorAll('input,select,textarea,button')].map(el=>({el,disabled:el.disabled})):[];items.forEach(x=>x.el.disabled=true);return()=>items.forEach(x=>{if(x.el.isConnected)x.el.disabled=x.disabled;});}
+async function writeRequest(path,body,ms,method='POST'){
+ const execute=async()=>{
+  if(writing)throw Object.assign(new Error('Изменение уже отправляется. Дождитесь результата.'),{code:'busy'});
+  const old=pendingRead();if(old){const checked=await recoverPending(false,true);if(checked&&checked.state==='saved')throw Object.assign(new Error('Предыдущее изменение уже сохранено. Проверьте данные перед новой операцией.'),{code:'already-saved'});if(checked&&checked.state==='cancelled')throw Object.assign(new Error('Предыдущее изменение отменено и не сохранено. Теперь можно отправить новое.'),{code:'cancelled'});throw pendingError();}
   await netCheck();
-  const r = await api('/api/amana/commit', { ops, checks: checks || {}, ...(mode ? { mode } : {}) }, ms);
-  applyServerDocs(r.docs || []);
-  return r;
+  const p={id:autoId(),tab:tabId,at:Date.now(),formId:[...document.querySelectorAll('.mover.on[id]')].at(-1)?.id||''};
+  pendingPut(p);if(p.formId)document.getElementById(p.formId).dataset.pendingWrite=p.id;writing=true;const unfreeze=freezeForm();writeStatus('Сохраняем…');
+  try{
+   const result=await sendOnce(path,{method,body:{...(body||{}),requestId:p.id}},ms||WRITE_MS);
+   applyRecovered(p,result,false);return result;
+  }catch(e){
+   const st=e&&e.status;
+   if(st>=400&&st<500&&st!==408){pendingClear(p.id);writeStatus('');throw responseError(e);}
+   // Запрос мог дойти: не посылаем его снова, даже когда сеть вернётся.
+   writeStatus('Ответ потерялся. Проверяем, сохранилось ли изменение…');
+   let queried=false;try{const checked=await inspectPending(p,false,false);queried=true;if(checked.state==='saved')return checked.result;if(checked.state==='cancelled')throw Object.assign(new Error('Операция отменена и не сохранена'),{code:'cancelled'});}catch(x){if(x.code==='cancelled')throw x;}
+   netDown=!queried;netBadge();writeStatus('Результат пока неизвестен. Не повторяйте оплату или расход.',true);throw pendingError();
+  }finally{writing=false;unfreeze();}
+ };
+ const key=pendingKey();
+ if(navigator.locks&&key)return navigator.locks.request('amana-write:'+key,{ifAvailable:true},lock=>{if(!lock)throw Object.assign(new Error('В другой вкладке уже сохраняется изменение. Дождитесь результата.'),{code:'busy'});return execute();});
+ return execute();
 }
+window.addEventListener('online',()=>{netDown=false;netBadge();recoverPending().catch(()=>{});});window.addEventListener('offline',()=>netBadge());
+window.addEventListener('storage',e=>{if(e.key===pendingKey()&&!writing){if(!pendingRead())writeStatus('');else recoverPending().catch(()=>{});}});
+for(const event of ['input','change'])document.addEventListener(event,e=>{const form=e.target.closest&&e.target.closest('.mover');if(form)delete form.dataset.pendingWrite;});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)recoverPending().catch(()=>{});});
+setInterval(()=>{try{if(!document.hidden&&!writing&&pb.authStore.isValid&&pendingRead())recoverPending().catch(()=>{});}catch(e){writeStatus(e.message);}},10000);netBadge();
+async function commitOps(ops,checks,ms,mode){const guarded={...(checks||{}),expect:[{c:'__amana_write_v1',id:'protocol'},...((checks&&checks.expect)||[])]};return writeRequest('/api/amana/commit',{ops,checks:guarded,...(mode?{mode}:{})},ms);}
+
 const refOp = (t, ref, d, merge) => ({ t, c: ref.parent.id, id: ref.id, ...(d !== undefined ? { d: encTop(d) } : {}), ...(merge ? { merge: true } : {}) });
 
 // ---------- Запись ----------
@@ -139,7 +176,7 @@ const counterTx = async (id, fn) => {
   for (let i = 0; ; i++) {
     await netCheck();
     let raw = null;
-    try { const rec = await pb.collection('settings').getOne(id, { requestKey: null }); const d = rec.data || {}; raw = d.lastId === undefined ? null : d.lastId; } catch (e) { if (e && e.status && e.status !== 404) throw e; if (!e || !e.status) throw netFail(); }
+    try { const rec = await sendOnce('/api/collections/settings/records/'+encodeURIComponent(id),{method:'GET'},WRITE_MS); const d = rec.data || {}; raw = d.lastId === undefined ? null : d.lastId; } catch (e) { if (e && e.status && e.status !== 404) throw e; if (!e || !e.status) throw netFail(); }
     const last = raw || 0, ops = [];
     const w = { set: (r, d, o) => { ops.push(refOp('set', r, d, o && o.merge)); return w; }, update: (r, d) => { ops.push(refOp('update', r, d)); return w; }, delete: r => { ops.push({ t: 'delete', c: r.parent.id, id: r.id }); return w; } };
     const nv = await fn(w, last);
@@ -412,15 +449,14 @@ const ON_AUTH = (_a, cb) => {
     scope = next;
     if (id !== last) { last = id; cb(u); }
   });
-  setTimeout(() => cb(AUTH.currentUser), 0);
+  setTimeout(() => {cb(AUTH.currentUser);if(AUTH.currentUser)recoverPending().catch(()=>{});}, 0);
   if (pb.authStore.isValid && navigator.onLine) pb.collection('users').authRefresh({ requestKey: null }).then(() => window.dispatchEvent(new Event('permsChanged'))).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) authLost(); });
 };
 
 // ---------- Сотрудники и права (нужно право staff) ----------
-async function staffCall(method, path, body) {
-  await netCheck();
-  try { return await withTimeout(pb.send(path, { method, ...(body ? { body } : {}), requestKey: null }), 15000); }
-  catch (e) { const st = e && e.status, d = (e && e.response) || {}; if (!st) throw netFail(); throw Object.assign(new Error(d.message || ('Ошибка сервера ' + st)), { code: ERR_CODE[d.code] || d.code || 'unknown' }); }
+async function staffCall(method,path,body){
+ if(method!=='GET')return writeRequest(path,body,WRITE_MS,method);
+ await netCheck();try{return await sendOnce(path,{method},WRITE_MS);}catch(e){if(e&&e.status)throw responseError(e);throw new Error('Сервер не ответил. Проверьте соединение и обновите список.');}
 }
 const staff = {
   list: () => staffCall('GET', '/api/amana/staff'),
@@ -431,6 +467,9 @@ const staff = {
 window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, getDoc, query, orderBy, limit, startAfter, where,
   setDoc: setDocU, writeBatch: writeBatchU, increment, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp, nextCounter, createOnce, live, liveTombs, resyncAll, checkEpoch,
   bkDump, bkRestore, bkCheck, staff, deviceId: devId, backend: 'pocketbase', pb };
+window.DB.writeState=()=>({writing,pending:pendingRead(),timeout:WRITE_MS});
+window.DB.checkWrite=()=>recoverPending(false,true);
+window.DB.cancelWrite=()=>recoverPending(true,true);
 window.DB.reconcile=(id,balance)=>commitOps([{t:'update',c:'wallets',id,d:{balance}}],null,null,'reconcile');
 window.DB.note=type=>staffCall('POST','/api/amana/note',{type});
 window.AUTH = AUTH; window.SIGN_IN = SIGN_IN; window.SIGN_OUT = SIGN_OUT; window.ON_AUTH = ON_AUTH;

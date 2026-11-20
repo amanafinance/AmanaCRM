@@ -5,6 +5,9 @@ routerAdd('POST', '/api/amana/commit', (e) => {
 }, $apis.requireAuth('users', '_superusers'));
 routerAdd('POST','/api/amana/note',e=>require(`${__hooks}/amana_audit.js`).note(e,$app),$apis.requireAuth('users','_superusers'));
 
+routerAdd('GET','/api/amana/requests/{id}',e=>require(`${__hooks}/amana_requests.js`).status(e,$app,false),$apis.requireAuth('users','_superusers'));
+routerAdd('POST','/api/amana/requests/{id}/cancel',e=>require(`${__hooks}/amana_requests.js`).status(e,$app,true),$apis.requireAuth('users','_superusers'));
+
 // Выбор счёта для оплаты доступен без чтения кассовой книги.
 routerAdd('GET', '/api/amana/wallet-options', e => {
   const options = $app.findAllRecords('wallets').map(record => {
@@ -30,7 +33,7 @@ onRecordEnrich((e) => { require(`${__hooks}/amana_lib.js`).enrichClient(e); e.ne
 // очистить базу и записать тестовые данные напрямую, без проверок. Доступно только администратору.
 if ($os.getenv('AMANA_TEST') === '1') {
   routerAdd('POST', '/api/amana/test/wipe', (e) => {
-    ['clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings', 'journal', 'trash', 'deleted']
+    ['amanaRequests', 'clients', 'payments', 'kassaOps', 'wallets', 'persons', 'investors', 'invOps', 'invMonths', 'settings', 'journal', 'trash', 'deleted']
       .forEach((c) => $app.db().newQuery('DELETE FROM `' + c + '`').execute());
     return e.json(200, { ok: true });
   }, $apis.requireSuperuserAuth());

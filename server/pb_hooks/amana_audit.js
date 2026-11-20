@@ -21,8 +21,8 @@ function note(e, app) {
   const perms = e.auth.collection().name === '_superusers' ? '*' : e.auth.getString('perms');
   if (perms !== '*' && !perms.includes(',backup,')) throw new ForbiddenError('Нет права на копию');
   if (body.type !== 'Скачана резервная копия') throw new BadRequestError('Неизвестное действие');
-  audit(app, e, body.type);
-  return e.json(200, { ok: true });
+  const result=require(`${__hooks}/amana_requests.js`).run(app,e,body,'note',tx=>{audit(tx,e,body.type);return{ok:true};});
+  return e.json(200, result);
 }
 
 module.exports = { audit, note };
