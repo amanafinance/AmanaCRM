@@ -93,6 +93,8 @@ function pendingPut(p){const k=pendingKey();if(!k)throw new Error('Войдит�
 function pendingClear(id){const p=pendingRead();if(p&&p.id===id)localStorage.removeItem(pendingKey());}
 function writeStatus(message,actions=false){
  let el=document.getElementById('writeStatus');if(!el){el=document.createElement('div');el.id='writeStatus';el.innerHTML='<span role="status" aria-live="polite"></span><div><button type="button">Проверить результат</button><button type="button">Отменить, если не сохранено</button></div>';document.body.appendChild(el);const b=el.querySelectorAll('button');b[0].onclick=()=>recoverPending(false,true).catch(()=>{});b[1].onclick=()=>recoverPending(true,true).catch(()=>{});}
+ const modal=[...document.querySelectorAll('.mover.on .modal')].at(-1),footer=modal&&modal.querySelector('.mft');
+ if(modal){if(footer)footer.before(el);else modal.appendChild(el);}else document.body.appendChild(el);el.classList.toggle('in-form',!!modal);
  el.querySelector('span').textContent=message;el.querySelector('div').hidden=!actions;el.classList.toggle('on',!!message);
 }
 function responseError(e){const st=e&&e.status,d=e&&e.response||{},code=d.code||(d.data&&d.data.code);if(st===401){authLost();return Object.assign(new Error('Вход больше не действует — войдите заново.'),{code:'unauthenticated'});}return Object.assign(new Error(d.message&&d.message.includes('__amana_write_v1')?'Сервер применяет обновление. Подождите минуту и обновите страницу.':st===429?'Слишком много запросов. Подождите немного.':d.message||('Ошибка сервера '+st)),{code:ERR_CODE[code]||code||'unknown'});}

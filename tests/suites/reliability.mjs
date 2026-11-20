@@ -118,5 +118,11 @@ export default async function(){
  await p.click('#cfOk');await p.waitForFunction(()=>!!window.DB.writeState().pending&&!window.DB.writeState().writing);
  check('неподтверждённая оплата оставляет открытой форму и введённую сумму',await p.isVisible('#mPay.on')&&await p.inputValue('#mpAmt')==='111');
  await p.evaluate(()=>window.DB.cancelWrite());
+ await p.setViewportSize({width:390,height:844});
+ await p.evaluate(async()=>{openComment('c3');document.getElementById('mcText').value='Видимый текст на телефоне';await saveComment();});
+ const mobile=await p.evaluate(()=>{const status=document.getElementById('writeStatus'),s=status.getBoundingClientRect(),t=document.getElementById('mcText').getBoundingClientRect();return{inForm:!!status.closest('#mComment'),fits:s.left>=0&&s.right<=innerWidth,overlap:Math.min(s.bottom,t.bottom)>Math.max(s.top,t.top),tap:[...status.querySelectorAll('button')].every(b=>b.getBoundingClientRect().height>=44)};});
+ check('на телефоне сообщение результата не перекрывает введённый текст',mobile.inForm&&mobile.fits&&!mobile.overlap,mobile);
+ check('на телефоне обе кнопки проверки доступны для нажатия',mobile.tap,mobile);
+ await p.evaluate(()=>window.DB.cancelWrite());
  noErrors('медленная связь и восстановление ответа',D.errs);await D.ctx.close();
 }
