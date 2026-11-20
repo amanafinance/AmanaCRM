@@ -69,7 +69,7 @@ export default async function(){
  check('при неизвестном результате открытая форма и её текст сохранены',await p.isVisible('#mComment')&&await p.inputValue('#mcText')==='Сохрани поля при обрыве');
  check('неизвестный результат хранится до подтверждения',await p.evaluate(()=>!!window.DB.writeState().pending&&document.getElementById('writeStatus').textContent.includes('Проверить результат')));
  await p.evaluate(()=>saveComment());check('повторное нажатие при неизвестном результате не отправляет запрос',count===1);
- await p.reload();await p.waitForFunction(()=>window.AUTH?.currentUser&&window.DB?.writeState().pending);
+ await p.reload();await p.waitForFunction(()=>window.AUTH?.currentUser&&window.DB?.writeState().pending&&typeof S!=='undefined'&&S.clients.some(c=>c.id==='c3')&&S.wallets.length>0);
  check('перезагрузка не забывает неподтверждённую запись',await p.evaluate(()=>!!window.DB.writeState().pending));
  await p.evaluate(()=>window.DB.cancelWrite());
  check('несохранённую запись можно безопасно отменить',await p.evaluate(()=>!window.DB.writeState().pending));
