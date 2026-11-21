@@ -948,6 +948,7 @@ body{font-size:var(--fs-sm);line-height:1.45}
 .bwa{background:transparent;border:1px solid var(--field-brd);color:var(--text)}
 .bwa svg{color:#25d366}body.light .bwa svg{color:#128c4a}
 .ib{min-width:32px;min-height:32px;border-radius:var(--rad-s)}
+.page h1[tabindex="-1"]:focus{outline:none}
 .btn:focus-visible,.ib:focus-visible,.ft:focus-visible,.stb:focus-visible,.dsh-tab:focus-visible,.nb:focus-visible,.m-x:focus-visible,summary:focus-visible,.cd-mi:focus-visible,.cd-dup:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 /* вкладки и фильтры */
 .ft{min-height:32px;padding:0 var(--sp-3);font-size:var(--fs-xs);border-radius:999px;display:inline-flex;align-items:center}
@@ -1709,7 +1710,7 @@ function showConfirm(t,m,ok,options={}){
   document.getElementById('cfCancel').focus({preventScroll:true});
 }
 
-const CRM_VERSION='21.11.2026 · история и контроль платежей';
+const CRM_VERSION='21.11.2026 · заголовки страниц';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
