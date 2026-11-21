@@ -1254,21 +1254,59 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 #writeStatus.on{display:block}#writeStatus>div{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}#writeStatus>div[hidden]{display:none}
 #writeStatus button{min-height:44px;padding:8px 12px;border:1px solid var(--brd2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
 @media(max-width:768px){#writeStatus{left:10px;right:10px;bottom:calc(78px + env(safe-area-inset-bottom))}}
+/* Удобство заполнения и чтения */
+h1.pt,h1.ltitle,h1.cd-name,h1.inv-name{margin:0}
+[role=dialog]:focus{outline:none}
+[role=region]:focus-visible,.pick-it.is-active{outline:2px solid var(--green);outline-offset:-2px}
+.field-error,.form-error{color:var(--red);font-size:var(--fs-sm);line-height:1.45}
+.field-error{margin:5px 0}
+.form-error{padding:10px 12px;margin:12px 0;border:1px solid currentColor;border-radius:var(--rad-s)}
+.inp[aria-invalid=true],.si[aria-invalid=true]{border-color:var(--red)}
+.quick-find{width:min(100%,420px);margin:10px 0 14px}
+.quick-find label{display:block;margin-bottom:5px;color:var(--t2);font-size:var(--fs-sm)}
+.login-password{display:grid;gap:8px;margin-bottom:10px}
+.login-password .btn{justify-self:start}
+.login-help{font-size:var(--fs-sm);margin-top:12px;color:var(--t2)}
+.login-help summary{cursor:pointer}
+.pay-context{margin:6px 0;color:var(--t2);font-weight:400}
+.rent-values{display:grid;gap:4px}
+.rent-values b{white-space:nowrap}
+.contract-fields{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}
+.contract-fields label:nth-child(n+3){grid-column:1/-1}
+.contract-fields label:nth-child(2){grid-column:auto}
+.j-error{padding:14px;color:var(--red)}
+.j-error .btn{margin:8px 0;color:var(--text)}
+.journal-more{padding:14px;text-align:center}
+.j-details{margin-top:6px}
+.j-details summary{cursor:pointer;color:var(--green)}
+.j-details ul{margin:6px 0;padding-left:20px}
+@media(max-width:768px){
+  .pay-context,.contract-sub,.bk-t,.kcard-desc,.inv-muted,.mcard-label,.pt+.ps{font-size:14px}
+  #jList .kcard-desc,#kList .kcard-desc{font-size:14px}
+  .mcard-label{line-height:1.35}
+  .j-details summary,.login-help summary{min-height:44px;padding:10px 0}
+  .rem-btns{flex-wrap:wrap}
+  .rem-btns .btn{flex:1 1 auto;min-width:0;white-space:normal}
+  .subtabs .stb{min-width:0;white-space:normal;line-height:1.2}
+}
+@media(max-width:360px){
+  .rem-btns .btn{flex-basis:calc(50% - 8px)}
+}
 </style>
 
 </head>
 <body>
-<div id="loginWrap"><div class="lbox"><div class="llogo">AMANA FINANCE</div><div class="ltitle">CRM <span>Система</span></div><div id="loginFields"><label class="lbl">Email</label><input class="inp" type="email" id="lemail" placeholder="email@example.com" style="margin-bottom:10px"/><label class="lbl">Пароль</label><input class="inp" type="password" id="lpass" placeholder="Введите пароль" style="margin-bottom:10px"/><button class="btn bg" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">Войти</button></div><div id="loginLoading" style="display:none;text-align:center;padding:20px"><div class="spin" style="margin:0 auto"></div></div><div id="lerr" style="color:var(--red);font-size:var(--fs-xs);margin-top:6px;text-align:center;display:none"></div></div></div>
+<div id="loginWrap"><div class="lbox"><div class="llogo">AMANA FINANCE</div><h1 class="ltitle">Вход в CRM</h1><div id="loginFields"><label class="lbl" for="lemail">Почта</label><input class="inp" type="email" id="lemail" autocomplete="username" placeholder="email@example.com" style="margin-bottom:10px"/><label class="lbl" for="lpass">Пароль</label><div class="login-password"><input class="inp" type="password" id="lpass" autocomplete="current-password" placeholder="Введите пароль"/><button type="button" class="btn bgh" id="show-password" aria-controls="lpass" onclick="toggleLoginPassword()">Показать пароль</button></div><button class="btn bg" style="width:100%;justify-content:center;padding:12px" id="loginSubmit" onclick="doLogin()">Войти</button><details class="login-help"><summary>Забыли пароль?</summary><p>Попросите владельца CRM задать новый пароль. Если это ваш аккаунт владельца, обратитесь к тому, кто обслуживает ваш сервер CRM.</p></details></div><div id="loginLoading" style="display:none;text-align:center;padding:20px"><div class="spin" style="margin:0 auto"></div></div><div id="lerr" role="alert" style="color:var(--red);font-size:var(--fs-xs);margin-top:6px;text-align:center;display:none"></div></div></div>
 <div id="app">
-<aside class="sidebar"><div>
+<aside class="sidebar" role="navigation" aria-label="Главное меню"><div>
 <div class="slogo">AMANA FINANCE</div><div class="sname">CRM</div>
 
 <div class="sg">Главная</div>
-<button class="nb on" id="nav-dashboard" onclick="goTo('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Дашборд</button>
+<button class="nb on" id="nav-dashboard" onclick="goTo('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Главная</button>
 <button class="nb" id="nav-finance" onclick="goTo('finance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="20"/><rect x="5" y="11" width="3" height="6"/><rect x="10.5" y="7" width="3" height="10"/><rect x="16" y="4" width="3" height="13"/></svg>Обзор</button>
 <div class="sg">Работа</div>
 <button class="nb" id="nav-clients" onclick="goBase()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>База</button>
-<button class="nb" id="nav-kassa" onclick="goTo('kassa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h2"/></svg>Касса/ДДС</button>
+<button class="nb" id="nav-kassa" onclick="goTo('kassa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h2"/></svg>Касса</button>
 <button class="nb" id="nav-investors" onclick="goTo('investors')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1.5A4.5 4.5 0 0 1 7 14h4"/><circle cx="17" cy="15" r="4.5"/><path d="M17 12.8v4.4M15.4 13.9h2.4a1.1 1.1 0 0 1 0 2.2h-1.6a1.1 1.1 0 0 0 0 2.2h2.4"/></svg>Инвесторы</button>
 <div class="sg">Система</div>
 <button class="nb" id="nav-journal" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>История действий</button>
@@ -1288,23 +1326,23 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 </div><div class="sfoot"><span>Amana Finance · <span id="crmVer"></span></span><button class="logout-btn" onclick="doLogout()">Выйти</button></div></aside>
 <div class="nb-sub-overlay" id="nbSubOverlay" onclick="closeAllSubMenus()"></div>
 <main class="main">
-<div id="page-dashboard" class="page"><div class="ph"><div><div class="pt">Дашборд</div><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats"><div class="loading"><div class="spin"></div></div></div></div>
-<div id="page-finance" class="page" style="display:none"><div class="ph"><div><div class="pt">Обзор</div><div class="ps">ОПИУ за любой период, план и факт, прогноз</div></div></div><div id="finBody"><div class="loading"><div class="spin"></div></div></div></div>
-<div id="page-clients" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div class="ph"><div><div class="pt">Сделки</div><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh vw-btn-pc" onclick="openView('cols')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>Колонки</button><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button><button class="ft" onclick="setTab('over',this)">С просрочкой</button><button class="ft" onclick="setTab('archive',this)">Архив</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('clients')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgeClients" class="mf-badge"></span></button><button class="mobile-filter-btn" onclick="openView('card')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>Вид карточки</button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
-<div id="page-client" class="page" style="display:none"><button class="bback" onclick="goTo(S.prevPage||'clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
+<div id="page-dashboard" class="page"><div class="ph"><div><h1 class="pt" tabindex="-1">Главная</h1><div class="ps" id="dashDate"></div></div><div class="pa"><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div id="dStats"><div class="loading"><div class="spin"></div></div></div></div>
+<div id="page-finance" class="page" style="display:none"><div class="ph"><div><h1 class="pt" tabindex="-1">Обзор</h1><div class="ps">Доходы и расходы за выбранный период</div></div></div><div id="finBody"><div class="loading"><div class="spin"></div></div></div></div>
+<div id="page-clients" class="page" style="display:none"><div class="subtabs" role="navigation" aria-label="Разделы базы"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div class="ph"><div><h1 class="pt" tabindex="-1">Сделки</h1><div class="ps" id="cCount"></div></div><div class="pa"><button class="btn bgh vw-btn-pc" onclick="openView('cols')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>Колонки</button><button class="btn bgh xl-btn" onclick="exportExcel()">Excel</button><button class="btn bg" onclick="openNew()">+ Новый договор</button></div></div><div class="ftabs"><button class="ft on" onclick="setTab('all',this)">Все</button><button class="ft" onclick="setTab('активный',this)">Активные</button><button class="ft" onclick="setTab('завершён',this)">Завершённые</button><button class="ft" onclick="setTab('over',this)">С просрочкой</button><button class="ft" onclick="setTab('archive',this)">Архив</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('clients')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgeClients" class="mf-badge"></span></button><button class="mobile-filter-btn" onclick="openView('card')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>Вид карточки</button><div class="quick-find" role="search"><label for="dealFind">Поиск сделок</label><input class="inp" id="dealFind" type="search" placeholder="Имя, телефон или номер договора" autocomplete="off" oninput="renderClients()"/></div><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="cList"><div class="loading"><div class="spin"></div></div></div></div></div></div>
+<div id="page-client" class="page" style="display:none"><button class="bback" onclick="goBackTo(S.prevPage||'clients')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button><div id="cDetail"></div></div>
 
 
-<div id="page-people" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div>
-<div class="ph"><div><div class="pt">Клиенты</div><div class="ps" id="pplCount"></div></div><div class="pa" style="position:relative"><button class="btn bgh" onclick="openView('pcols')">Колонки</button><button class="btn bg" onclick="openPersonForm(null,'',()=>renderPeople())">+ Клиент</button></div></div>
+<div id="page-people" class="page" style="display:none"><div class="subtabs" role="navigation" aria-label="Разделы базы"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div>
+<div class="ph"><div><h1 class="pt" tabindex="-1">Клиенты</h1><div class="ps" id="pplCount"></div></div><div class="pa" style="position:relative"><button class="btn bgh" onclick="openView('pcols')">Колонки</button><button class="btn bg" onclick="openPersonForm(null,'',()=>renderPeople())">+ Клиент</button></div></div>
 <button class="mobile-filter-btn" onclick="openPplFilter()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span class="mf-badge" id="pplFBadge"></span></button>
 <div class="ftabs" id="pplTabs"><button class="ft on" onclick="setPplTab('all',this)">Все</button><button class="ft" onclick="setPplTab('debt',this)">С долгом</button><button class="ft" onclick="setPplTab('over',this)">С просрочкой</button><button class="ft" onclick="setPplTab('clear',this)">Без долга</button><button class="ft" onclick="setPplTab('repeat',this)">Повторные</button><button class="ft" onclick="setPplTab('guar',this)">Поручители</button></div>
-<div class="card" style="padding:0;overflow:auto"><div id="pplList"></div></div>
+<div class="quick-find" role="search"><label for="peopleFind">Поиск клиентов</label><input class="inp" id="peopleFind" type="search" placeholder="Имя, телефон или номер договора" autocomplete="off" oninput="renderPeople()"/></div><div class="card" style="padding:0;overflow:auto"><div id="pplList" tabindex="0" role="region" aria-label="Список клиентов"></div></div>
 </div>
-<div id="page-person" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div id="personBody"></div></div>
-<div id="page-reminders" class="page" style="display:none"><div class="subtabs" role="tablist"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div class="ph"><div><div class="pt">Контроль платежей</div><div class="ps" id="remCount"></div></div></div><div class="ftabs" id="remTabs"><button class="ft on" onclick="setRemTab('all',this)">Все</button><button class="ft" onclick="setRemTab('soon',this)">Ближайшие 5 дней</button><button class="ft" onclick="setRemTab('today',this)">Сегодня</button><button class="ft" onclick="setRemTab('overdue',this)">Просрочка</button><button class="ft" onclick="setRemTab('deferred',this)">Отсроченные</button><button class="ft" onclick="setRemTab('partial',this)">Частично оплаченные</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('payments')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgePayments" class="mf-badge"></span></button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div></div></div>
+<div id="page-person" class="page" style="display:none"><div class="subtabs" role="navigation" aria-label="Разделы базы"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div id="personBody"></div></div>
+<div id="page-reminders" class="page" style="display:none"><div class="subtabs" role="navigation" aria-label="Разделы базы"><button class="stb" data-p="people" onclick="goBase('people')">Клиенты</button><button class="stb" data-p="clients" onclick="goBase('clients')">Сделки</button><button class="stb" data-p="reminders" onclick="goBase('reminders')">Контроль платежей</button></div><div class="ph"><div><h1 class="pt" tabindex="-1">Контроль платежей</h1><div class="ps" id="remCount"></div></div></div><div class="ftabs" id="remTabs"><button class="ft on" onclick="setRemTab('all',this)">Все</button><button class="ft" onclick="setRemTab('soon',this)">Ближайшие 5 дней</button><button class="ft" onclick="setRemTab('today',this)">Сегодня</button><button class="ft" onclick="setRemTab('overdue',this)">Просрочка</button><button class="ft" onclick="setRemTab('deferred',this)">Отсроченные</button><button class="ft" onclick="setRemTab('partial',this)">Частично оплаченные</button></div><button class="mobile-filter-btn" onclick="openMobileFilter('payments')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Фильтры<span id="mfBadgePayments" class="mf-badge"></span></button><div class="card" style="padding:0;overflow:auto"><div class="tbl-wrap"><div id="remContent"><div class="loading"><div class="spin"></div></div></div></div></div></div>
 
 <div id="page-kassa" class="page" style="display:none">
-<div class="ph"><div><div class="pt">Касса/ДДС</div><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
+<div class="ph"><div><h1 class="pt" tabindex="-1">Касса</h1><div class="ps" id="kassaDate"></div></div><div class="pa"><button class="btn bg" onclick="openKassaOp()">+ Операция</button></div></div>
 <div id="kWallets" class="sg4"></div>
 <details class="card k-recon" id="kRecon"><summary class="ct" style="margin:0;cursor:pointer;list-style:none">Сверка касс <span id="reconBadge"></span></summary><div style="font-size:var(--fs-xs);color:var(--t3);margin:10px 0 8px;line-height:1.5">Как работает: остаток каждого счёта, который хранится в базе, сравнивается с суммой всех операций по этому счёту (приходы − расходы ± переводы). Если сходится — всё записалось правильно. Если нет — значит, когда-то остаток внесли вручную, не через операцию кассы, или запись прошла не полностью. «Исправить» приводит остаток к сумме операций.</div><div id="reconList"></div></details>
 <details class="card k-recon" id="kCheck"><summary class="ct" style="margin:0;cursor:pointer;list-style:none">Проверка базы <span id="checkBadge"></span></summary><div style="font-size:var(--fs-xs);color:var(--t3);margin:10px 0 8px;line-height:1.5">Ищет то, что не должно быть: оплату без операции в кассе и наоборот, переплату, график, который не сходится с ценой, сделку без карточки клиента, изменения в месяцах, уже закрытых у инвесторов. Нажмите на строку, чтобы открыть сделку.</div><div id="checkList"></div></details>
@@ -1312,19 +1350,19 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="card" style="padding:0;overflow:hidden"><div id="kList"></div></div>
 </div>
 <div id="page-investors" class="page" style="display:none">
-<div class="ph"><div><div class="pt">Инвесторы</div><div class="ps" id="invCount"></div></div><div class="pa"><button class="btn bg" onclick="openInvForm()">+ Участник</button></div></div>
+<div class="ph"><div><h1 class="pt" tabindex="-1">Инвесторы</h1><div class="ps" id="invCount"></div></div><div class="pa"><button class="btn bg" onclick="openInvForm()">+ Участник</button></div></div>
 <div id="invStats" class="sg4"></div>
 <div id="invAlerts"></div>
 <div class="ftabs" id="invTabs"><button class="ft on" onclick="setInvTab('list',this)">Участники</button><button class="ft" onclick="setInvTab('months',this)">Показатели</button><button class="ft" onclick="setInvTab('ops',this)">Журнал</button></div>
 <div id="invContent"></div>
 </div>
-<div id="page-investor" class="page" style="display:none"><button class="bback" onclick="goTo('investors')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Инвесторы</button><div id="invPg"></div></div>
-<div id="page-journal" class="page" style="display:none"><div class="ph"><div class="pt">История действий</div></div><div class="card" style="padding:0;overflow:hidden"><div id="jList"></div></div></div>
-<div id="page-security" class="page" style="display:none"><div class="ph"><div><div class="pt">Безопасность</div><div class="ps">Сотрудники, права и резервные копии базы</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+<div id="page-investor" class="page" style="display:none"><button class="bback" onclick="goBackTo('investors')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Инвесторы</button><div id="invPg"></div></div>
+<div id="page-journal" class="page" style="display:none"><div class="ph"><h1 class="pt" tabindex="-1">История действий</h1></div><div class="card" style="padding:0;overflow:hidden"><div id="jList"></div></div></div>
+<div id="page-security" class="page" style="display:none"><div class="ph"><div><h1 class="pt" tabindex="-1">Безопасность</h1><div class="ps">Сотрудники, права и резервные копии базы</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
 <div class="card perm-staff" id="staffCard" style="display:none"><div class="ct">Сотрудники и права</div><div id="staffBody"></div></div>
 <div class="card perm-bk" id="bkCard"><div class="ct">Резервная копия</div><div id="bkBody"></div></div>
 </div></div>
-<div id="page-settings" class="page" style="display:none"><div class="ph"><div><div class="pt">Справочники</div><div class="ps">Поставщики, счета, шаблоны WhatsApp</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div id="page-settings" class="page" style="display:none"><div class="ph"><div><h1 class="pt" tabindex="-1">Справочники</h1><div class="ps">Поставщики, счета, шаблоны WhatsApp</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 <div class="card perm-settings" id="sellerSettings"><div class="ct">Реквизиты продавца</div><div class="bk-t">Подставляются в договор после входа. Пустые поля остаются пустыми.</div><label class="lbl" for="sellerNameSetting">ФИО продавца / исполнителя</label><input class="inp" id="sellerNameSetting" type="text" maxlength="200" autocomplete="off" placeholder="Фамилия Имя Отчество"/><label class="lbl" for="sellerPhoneSetting">Телефон продавца / исполнителя</label><input class="inp" id="sellerPhoneSetting" type="tel" maxlength="30" autocomplete="off" placeholder="Телефон"/><div class="bk-row"><button class="btn bg bsm" id="sellerSave" onclick="saveSellerSettings()">Сохранить реквизиты</button></div></div>
 <div class="card perm-settings"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
 <div class="card perm-settings"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
@@ -1340,27 +1378,27 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="sdiv">Товар и финансы</div><div class="fg"><div class="fgp"><label class="lbl">Товар *</label><input class="inp" type="text" id="f_product" autocomplete="off"/></div><div class="fgp"><label class="lbl">Поставщик</label><select class="inp sel" id="f_partner" onchange="partPhoneSync()"></select></div><div class="fgp"><label class="lbl">Телефон поставщика</label><input class="inp" type="tel" id="f_partnerPhone" autocomplete="off"/></div><div class="fgp"><label class="lbl">Себестоимость (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_cost" autocomplete="off"/></div><div class="fgp"><label class="lbl">Цена продажи (&#8381;) *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_price" oninput="schedAuto()" autocomplete="off"/></div><div class="fgp"><label class="lbl">Предоплата (&#8381;)</label><input class="inp num-fmt" type="text" inputmode="decimal" id="f_prepay" oninput="schedAuto()" autocomplete="off"/></div><div class="fgp"><label class="lbl">Кол-во месяцев *</label><input class="inp" type="number" inputmode="numeric" min="1" max="120" step="1" id="f_months" value="3" oninput="monthsInput()" onchange="monthsInput(true)" autocomplete="off"/></div><div class="fgp"><label class="lbl">Число оплаты (1–31)</label><input class="inp" type="number" id="f_payDay" min="1" max="31" placeholder="Авто" oninput="schedAuto()" autocomplete="off"/></div><div class="fgp"><label class="lbl">Способ оплаты предоплаты</label><select class="inp sel" id="f_prepayPt"></select></div></div>
 <div id="schedWarn" class="sched-warn"></div><div class="sdiv sdiv-sched"><span>График платежей</span><span class="sched-acts"><button class="btn bgh bsm" onclick="recalcSched()">Пересчитать суммы</button><button class="btn bgh bsm" onclick="recalcDates()">Пересчитать даты</button></span></div>
 <table class="stbl"><thead><tr><th>&#8470;</th><th>Сумма</th><th>Дата</th></tr></thead><tbody id="schedBody"></tbody></table>
-<div class="mft"><button class="btn bgh" onclick="closeM('mClient')">Отмена</button><button class="btn bg" id="mCBtn" onclick="saveClient()">Сохранить</button></div></div></div>
+<div class="mft"><button class="btn bgh" onclick="requestDialogClose('mClient')">Отмена</button><button class="btn bg" id="mCBtn" onclick="saveClient()">Сохранить</button></div></div></div>
 
-<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:var(--fs-sm);font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="mpPt"></select></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpDate">Дата оплаты</label><input class="inp" type="date" id="mpDate"/><div class="ko-amt-hint" id="mpDateHint"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpNote">Комментарий к платежу</label><input class="inp" type="text" id="mpNote" maxlength="200" placeholder="Например: клиент внёс 28.10, записали позже"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
+<div class="mover" id="mPay"><div class="modal msm"><div class="mtitle">Внести оплату</div><div style="font-size:var(--fs-sm);font-weight:700;margin-bottom:16px" id="mpName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mpAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Способ оплаты</label><select class="inp sel" id="mpPt"></select></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpDate">Дата оплаты</label><input class="inp" type="date" id="mpDate"/><div class="ko-amt-hint" id="mpDateHint"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="mpNote">Комментарий к платежу</label><input class="inp" type="text" id="mpNote" maxlength="200" placeholder="Например: клиент внёс 28.10, записали позже"/></div><div class="mft"><button class="btn bgh" onclick="requestDialogClose('mPay')">Отмена</button><button class="btn bg" onclick="confirmPay()">Записать</button></div></div></div>
 
 <div class="mover" id="mStaff"><div class="modal"><div class="mtitle" id="stTitle">Новый сотрудник</div>
 <div class="fg"><div class="fgp"><label class="lbl" for="stName">Имя</label><input class="inp" type="text" id="stName" autocomplete="off"/></div><div class="fgp"><label class="lbl" for="stEmail">Email *</label><input class="inp" type="email" id="stEmail" autocomplete="off"/></div><div class="fgp ff"><label class="lbl" for="stPw" id="stPwLbl">Пароль *</label><input class="inp" type="text" id="stPw" autocomplete="new-password"/></div></div>
 <div class="sdiv">Права</div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="stPreset">Готовый набор</label><select class="inp sel" id="stPreset" onchange="stPreset(this.value)"></select></div>
 <div id="stSelfNote" class="bk-t" style="display:none">Это ваш вход: себе нельзя отключить вход и убрать право «Сотрудники и права».</div>
 <div id="stPerms"></div><div id="stErr" class="st-err" aria-live="polite"></div>
-<div class="mft"><button class="btn bgh" onclick="closeM('mStaff')">Отмена</button><button class="btn bg" id="stSave" onclick="staffSave()">Сохранить</button></div></div></div>
-<div class="mover" id="mDisc"><div class="modal msm"><div class="mtitle">Скидка</div><div style="font-size:var(--fs-sm);font-weight:700;margin-bottom:16px" id="mdName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mdAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Причина</label><input class="inp" type="text" id="mdReason"/></div><div class="mft"><button class="btn bgh" onclick="closeM('mDisc')">Отмена</button><button class="btn by" onclick="confirmDisc()">Применить</button></div></div></div>
+<div class="mft"><button class="btn bgh" onclick="requestDialogClose('mStaff')">Отмена</button><button class="btn bg" id="stSave" onclick="staffSave()">Сохранить</button></div></div></div>
+<div class="mover" id="mDisc"><div class="modal msm"><div class="mtitle">Скидка</div><div style="font-size:var(--fs-sm);font-weight:700;margin-bottom:16px" id="mdName"></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сумма *</label><input class="inp num-fmt" type="text" inputmode="decimal" id="mdAmt"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Причина</label><input class="inp" type="text" id="mdReason"/></div><div class="mft"><button class="btn bgh" onclick="requestDialogClose('mDisc')">Отмена</button><button class="btn by" onclick="confirmDisc()">Применить</button></div></div></div>
 
-<div class="mover" id="mComment"><div class="modal msm"><div class="mtitle">Комментарий</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Текст</label><textarea class="inp" id="mcText" rows="3" placeholder="Обещал оплатить..."></textarea></div><div class="mft"><button class="btn bgh" onclick="closeM('mComment')">Отмена</button><button class="btn br bsm" onclick="deleteComment()" id="mcDel" style="display:none">Удалить</button><button class="btn bg" onclick="saveComment()">Сохранить</button></div></div></div>
+<div class="mover" id="mComment"><div class="modal msm"><div class="mtitle">Комментарий</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Текст</label><textarea class="inp" id="mcText" rows="3" placeholder="Обещал оплатить..."></textarea></div><div class="mft"><button class="btn bgh" onclick="requestDialogClose('mComment')">Отмена</button><button class="btn br bsm" onclick="deleteComment()" id="mcDel" style="display:none">Удалить</button><button class="btn bg" onclick="saveComment()">Сохранить</button></div></div></div>
 
-<div class="mover" id="mPerson"><div class="modal msm"><div class="mtitle" id="mpfTitle">Клиент</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">ФИО *</label><input class="inp" type="text" id="pf_name" placeholder="Иванов Иван Иванович"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сотовые телефоны</label><div id="pfPhones"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_wa">Номер WhatsApp</label><input class="inp" type="tel" id="pf_wa"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_addr">Адрес по прописке</label><input class="inp" type="text" id="pf_addr"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_actual">Фактический адрес</label><input class="inp" type="text" id="pf_actual"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Заметка</label><input class="inp" type="text" id="pf_note" placeholder="Паспорт, место работы и т.п."/></div><div id="pfWarn" class="cr" style="font-size:var(--fs-xs);min-height:16px"></div><div class="mft"><button class="btn bgh" onclick="closeM('mPerson')">Отмена</button><button class="btn bg" id="pfSave" onclick="savePerson()">Сохранить</button></div></div></div>
+<div class="mover" id="mPerson"><div class="modal msm"><div class="mtitle" id="mpfTitle">Клиент</div><div class="fgp" style="margin-bottom:10px"><label class="lbl">ФИО *</label><input class="inp" type="text" id="pf_name" placeholder="Иванов Иван Иванович"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Сотовые телефоны</label><div id="pfPhones"></div></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_wa">Номер WhatsApp</label><input class="inp" type="tel" id="pf_wa"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_addr">Адрес по прописке</label><input class="inp" type="text" id="pf_addr"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl" for="pf_actual">Фактический адрес</label><input class="inp" type="text" id="pf_actual"/></div><div class="fgp" style="margin-bottom:10px"><label class="lbl">Заметка</label><input class="inp" type="text" id="pf_note" placeholder="Паспорт, место работы и т.п."/></div><div id="pfWarn" class="cr" style="font-size:var(--fs-xs);min-height:16px"></div><div class="mft"><button class="btn bgh" onclick="requestDialogClose('mPerson')">Отмена</button><button class="btn bg" id="pfSave" onclick="savePerson()">Сохранить</button></div></div></div>
 <div class="mover" id="mDefer"><div class="modal msm">
 <div class="mtitle">Отсрочка платежа</div>
 <div class="inv-hint" id="dfInfo"></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl" for="dfDate">Новая дата оплаты *</label><input class="inp" type="date" id="dfDate"/></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl" for="dfNote">Комментарий</label><input class="inp" type="text" id="dfNote" placeholder="Например: обещал после зарплаты"/></div>
-<div class="mft"><button class="btn br bsm" id="dfDel" style="margin-right:auto;display:none" onclick="removeDefer()">Снять отсрочку</button><button class="btn bgh" onclick="closeM('mDefer')">Отмена</button><button class="btn bg" onclick="saveDefer()">Сохранить</button></div>
+<div class="mft"><button class="btn br bsm" id="dfDel" style="margin-right:auto;display:none" onclick="removeDefer()">Снять отсрочку</button><button class="btn bgh" onclick="requestDialogClose('mDefer')">Отмена</button><button class="btn bg" onclick="saveDefer()">Сохранить</button></div>
 </div></div>
 <div class="mover" id="mKassa"><div class="modal msm">
 <div class="mtitle" id="koTitle">Операция в кассе</div>
@@ -1377,7 +1415,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="fgp" style="margin-bottom:10px" id="koWalletRow"><label class="lbl" id="koWalletLbl">Счёт</label><select class="inp sel" id="koWallet"></select></div>
 <div class="fgp" style="margin-bottom:10px;display:none" id="koWalletToRow"><label class="lbl">Куда</label><select class="inp sel" id="koWalletTo"></select></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl" id="koDescLbl">Описание</label><input class="inp" type="text" id="koDesc" placeholder="Назначение, комментарий..." autocomplete="off"/></div>
-<div class="mft"><button class="btn bgh" onclick="closeM('mKassa')">Отмена</button><button class="btn bg" onclick="saveKassaOp()">Сохранить</button></div>
+<div class="mft"><button class="btn bgh" onclick="requestDialogClose('mKassa')">Отмена</button><button class="btn bg" onclick="saveKassaOp()">Сохранить</button></div>
 </div></div>
 
 <div class="mover" id="mInvForm"><div class="modal msm">
@@ -1387,7 +1425,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="inv-hint" id="ifHint"></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Телефон</label><input class="inp" type="tel" id="ifPhone" autocomplete="off"/></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Заметка</label><textarea class="inp" id="ifNote" rows="2"></textarea></div>
-<div class="mft"><button class="btn br bsm" id="ifDel" onclick="invFormDelete()" style="display:none;margin-right:auto"></button><button class="btn bgh" onclick="closeM('mInvForm')">Отмена</button><button class="btn bg" id="ifBtn" onclick="saveInvForm()">Сохранить</button></div>
+<div class="mft"><button class="btn br bsm" id="ifDel" onclick="invFormDelete()" style="display:none;margin-right:auto"></button><button class="btn bgh" onclick="requestDialogClose('mInvForm')">Отмена</button><button class="btn bg" id="ifBtn" onclick="saveInvForm()">Сохранить</button></div>
 </div></div>
 
 <div class="mover" id="mInvOp"><div class="modal msm">
@@ -1406,7 +1444,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="fgp" id="ioEndRow" style="display:none;margin-top:8px"><label class="lbl">Дата окончания</label><input class="inp" type="date" id="ioEnd" onchange="invOpHint()"/></div>
 <div class="inv-muted" id="ioTermsHint" style="line-height:1.5;margin-top:10px"></div></div></div>
 <div class="fgp" style="margin-bottom:10px"><label class="lbl">Комментарий</label><input class="inp" type="text" id="ioDesc" autocomplete="off"/></div>
-<div class="mft"><button class="btn bgh" onclick="closeM('mInvOp')">Отмена</button><button class="btn bg" id="ioBtn" onclick="saveInvOp()"></button></div>
+<div class="mft"><button class="btn bgh" onclick="requestDialogClose('mInvOp')">Отмена</button><button class="btn bg" id="ioBtn" onclick="saveInvOp()"></button></div>
 </div></div>
 
 <div class="mover" id="mInvDep"><div class="modal msm">
@@ -1418,7 +1456,7 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="inv-sw" id="idTermSw" data-mode="none"><button type="button" data-k="none" class="on" onclick="invTermMode('id','none')">Без срока</button><button type="button" data-k="term" onclick="invTermMode('id','term')">Со сроком</button></div>
 <div class="fgp" id="idEndRow" style="display:none;margin-top:8px"><label class="lbl">Дата окончания</label><input class="inp" type="date" id="idEnd" onchange="depEditHint()"/></div>
 <div class="inv-muted" id="idHint" style="line-height:1.5;margin:4px 0 6px"></div>
-<div class="mft"><button class="btn bgh" onclick="closeM('mInvDep')">Отмена</button><button class="btn bg" onclick="saveDepEdit()">Сохранить</button></div>
+<div class="mft"><button class="btn bgh" onclick="requestDialogClose('mInvDep')">Отмена</button><button class="btn bg" onclick="saveDepEdit()">Сохранить</button></div>
 </div></div>
 <div class="mover" id="mInvMonth"><div class="modal"><div class="mtitle" id="imTitle"></div><div id="imBody"></div><div class="mft" id="imFt"></div></div></div>
 
@@ -1427,9 +1465,9 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 <div class="ftabs" id="vwTabs"></div>
 <div class="inv-hint" id="vwHint"></div>
 <div id="vwList" class="vw-list"></div>
-<div class="mft"><button class="btn bgh bsm vw-reset" onclick="vwReset()">По умолчанию</button><button class="btn bgh" onclick="closeM('mView')">Отмена</button><button class="btn bg" onclick="vwSave()">Сохранить</button></div>
+<div class="mft"><button class="btn bgh bsm vw-reset" onclick="vwReset()">По умолчанию</button><button class="btn bgh" onclick="requestDialogClose('mView')">Отмена</button><button class="btn bg" onclick="vwSave()">Сохранить</button></div>
 </div></div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status"></div>
 <div id="fdOverlay"><div class="fdo-title" id="fdo_title"></div><div id="fdo_body"></div><div class="fdo-btns"><button class="fdo-reset" id="fdo_reset">Сбросить</button><button class="fdo-apply" id="fdo_apply">Применить</button></div></div>
 <div id="confirmLayer"></div>
 
@@ -1575,30 +1613,49 @@ function effStatus(c,cs){const price=parseFloat(c.price)||0;if(price>0){const s=
 
 // Окно с одним полем ввода (например, новое название). ok(значение) вызывается, только если значение не пустое.
 function askText(t,label,val,ok){const l=document.getElementById('confirmLayer');
-  l.innerHTML='<div class="confirm-ov"><div class="confirm-box"><div class="confirm-title">'+esc(t)+'</div><label class="lbl" for="askIn">'+esc(label)+'</label><input class="inp" id="askIn" type="text" value="'+esc(val||'')+'"/><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="askOk">Сохранить</button></div></div></div>';
-  const i=document.getElementById('askIn'),go=()=>{const v=i.value.trim();if(!v){toast('Введите значение','ter');return;}l.innerHTML='';ok(v);};
-  document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
-function showConfirm(t,m,ok){const l=document.getElementById('confirmLayer');l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" onclick="this.closest(\'.confirm-ov\').remove()">Отмена</button><button class="btn bg" id="cfOk">Подтвердить</button></div></div></div>';document.getElementById('cfOk').onclick=()=>{l.innerHTML='';ok();};}
+  l.innerHTML='<div class="confirm-ov"><div class="confirm-box"><div class="confirm-title">'+esc(t)+'</div><label class="lbl" for="askIn">'+esc(label)+'</label><input class="inp" id="askIn" type="text" value="'+esc(val||'')+'"/><div class="confirm-actions"><button class="btn bgh" onclick="closeConfirmation()">Отмена</button><button class="btn bg" id="askOk">Сохранить</button></div></div></div>';
+  const i=document.getElementById('askIn'),go=()=>{const v=i.value.trim();if(!v){toast('Введите значение','ter');return;}closeConfirmation();ok(v);};
+  enterDialog(l);document.getElementById('askOk').onclick=go;i.onkeydown=e=>{if(e.key==='Enter')go();};setTimeout(()=>{i.focus();i.select();},30);}
+function showConfirm(t,m,ok,options={}){
+  const l=document.getElementById('confirmLayer');
+  const label=options.label || t.replace(/\?$/,'');
+  const danger=options.danger ?? /^(Удалить|Восстановить|Отменить)/.test(label);
+  l.innerHTML='<div class="confirm-ov"><div class="confirm-box"><div class="confirm-title">'+esc(t)+'</div><div class="confirm-msg">'+m+'</div><div class="confirm-actions"><button class="btn bgh" id="cfCancel">'+esc(options.cancel||'Отмена')+'</button>'+(options.alternate?'<button class="btn bgh" id="cfAlternate">'+esc(options.alternate.label)+'</button>':'')+'<button class="btn '+(danger?'br':'bg')+'" id="cfOk">'+esc(label)+'</button></div></div></div>';
+  l.firstElementChild.onclick=event=>{if(event.target===l.firstElementChild)closeConfirmation();};
+  document.getElementById('cfCancel').onclick=closeConfirmation;
+  document.getElementById('cfOk').onclick=()=>{closeConfirmation();ok();};
+  if(options.alternate)document.getElementById('cfAlternate').onclick=()=>{closeConfirmation();options.alternate.run();};
+  enterDialog(l);
+  document.getElementById('cfCancel').focus({preventScroll:true});
+}
 
-const CRM_VERSION='18.11.2026 · надёжное сохранение';
+const CRM_VERSION='21.11.2026 · удобство CRM';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+function toggleLoginPassword(){
+  const field=document.getElementById('lpass');
+  const visible=field.type==='password';
+  field.type=visible?'text':'password';
+  document.getElementById('show-password').textContent=visible?'Скрыть пароль':'Показать пароль';
+}
 function doLogin(){const em=document.getElementById('lemail').value.trim(),pw=document.getElementById('lpass').value,er=document.getElementById('lerr');er.style.display='none';if(!em||!pw){er.textContent='Заполните поля';er.style.display='block';return;}document.getElementById('loginFields').style.display='none';document.getElementById('loginLoading').style.display='block';if(!window.SIGN_IN){document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';er.textContent='Нет подключения к базе. Проверь интернет';er.style.display='block';return;}window.SIGN_IN(window.AUTH,em,pw).then(()=>enterApp()).catch(e=>{document.getElementById('loginFields').style.display='block';document.getElementById('loginLoading').style.display='none';const c=e&&e.code;er.textContent=(c==='auth/too-many-requests'?'Слишком много попыток, подожди немного':(c==='auth/network-request-failed'?'Нет интернета':'Неверный email или пароль'));er.style.display='block';});}
 function enterApp(){document.getElementById('loginWrap').style.display='none';document.getElementById('app').classList.add('on');initApp();}
 function doLogout(){if(window.SIGN_OUT)window.SIGN_OUT(window.AUTH).finally(()=>location.reload());else location.reload();}
 window.addEventListener('amanaWriteRecovered',e=>{const d=e.detail||{},form=d.formId&&document.getElementById(d.formId);if(form&&form.dataset.pendingWrite===d.requestId)closeM(d.formId);});
 window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enterApp();});});
 
-function initApp(){if(_inited)return;_inited=true;installPermGuards();applyPerms();const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
+function initApp(){if(_inited)return;_inited=true;installPermGuards();applyPerms();const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});restoreRoute();if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
 async function startAll(){const{live,liveTombs,checkEpoch}=window.DB;await checkEpoch();loadSettings();await liveTombs();if(typeof startInv==='function')startInv();
   live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();if(pageOn('client')&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
 // Открыта ли страница. Скрытые страницы не перерисовываются — их рисует переход на страницу (goTo)
 function pageOn(p){const e=document.getElementById('page-'+p);return!!e&&e.style.display!=='none';}
 function refreshAll(){if(pageOn('finance'))renderFinance();if(typeof renderInvIfVisible==='function')renderInvIfVisible();renderDash();renderClients();renderKassa();if(typeof renderReminders==='function')renderReminders();{const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();}if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
 function goTo(p){
+  const position=setRoute(p);
   if(p!=='client')S.curPage=p;
+  if(['people','clients','reminders'].includes(p))S.baseTab=p;
   // Закрываем мобильные подменю
   document.querySelectorAll('.nb-sub.show').forEach(s=>s.classList.remove('show'));
   document.querySelectorAll('.nb-group.expanded').forEach(g=>g.classList.remove('expanded'));
@@ -1607,25 +1664,38 @@ function goTo(p){
   document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
   const page=document.getElementById('page-'+p);
   if(page)page.style.display='block';
+  document.querySelectorAll('.sidebar [aria-current]').forEach(b=>b.removeAttribute('aria-current'));
   const n=document.getElementById('nav-'+p);
-  if(n)n.classList.add('on');
+  if(n){n.classList.add('on');n.setAttribute('aria-current','page');}
   // Закрываем все мобильные поповеры
   closeAllSubMenus();
+  closeDrops();
   if(p==='journal')loadJournal();
   if(p==='dashboard')renderDash();
   if(p==='finance')renderFinance();
   if(p==='settings')renderSettings();
   if(p==='security'){renderBackup();renderStaff();}
   if(p==='kassa')renderKassa();
-  if(p==='clients')renderClients();
+  if(p==='clients'){
+    if(position?.clients){_clientsShown=position.clients;renderClientsPaged();}
+    else renderClients();
+  }
   if(p==='investors')renderInvestors();
   if(p==='investor'){const ni=document.getElementById('nav-investors');if(ni)ni.classList.add('on');renderInvDetail();}
   if(p==='reminders')renderReminders();
-  if(p==='people')renderPeople();
+  if(p==='people'){
+    if(position?.people)_pplShown=position.people;
+    renderPeople(!!position?.people);
+  }
   if(p==='person')renderPerson();
   syncBaseNav(p);
-  if(p==='client'&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}
-  syncBaseNav(p);
+  if(p==='client'&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);else document.getElementById('cDetail').innerHTML='<div class="empty">Договор не найден.</div>';}
+  if(position){
+    window.scrollTo(0,position.y);
+    const list=page?.querySelector('.tbl-wrap,#pplList');
+    list?.scrollTo(position.left,position.top);
+    if(!dialogStack.length)page?.querySelector('h1')?.focus({preventScroll:true});
+  }
 }
 
 function toggleMenuGroup(name,event){
@@ -2042,6 +2112,11 @@ function renderDash(){
 // ---------- ПОКАЗАТЕЛИ БИЗНЕСА (ОПИУ) ----------
 // Прибыль признаётся кассовым методом, как в разделе «Инвесторы»: каждый полученный платёж несёт свою долю наценки.
 // План — по графикам договоров (отсроченные платежи — в месяце отсрочки); будущие месяцы — прогноз: ожидаемые платежи и средние расходы за 3 прошлых месяца.
+function setFinanceTab(tab){
+  S.finTab=tab;
+  renderFinance();
+  document.querySelector('.fin-tabs [aria-current=page]')?.focus({preventScroll:true});
+}
 function renderFinance(){
   const el=document.getElementById('finBody');if(!el)return;
   const ctx=finCtx(),now=new Date(),curMk=monthKey(now);
@@ -2184,11 +2259,11 @@ function renderFinance(){
     (S.inv.length?dKv('Капитал инвесторов',dMoney(ctx.M.poolCap||0))+dKv('К выплате инвесторам','<span class="cy">'+dMoney(payable)+'</span>')+dKv('Свободно','<span class="'+(cash-payable<0?'cr':'cg')+'">'+dMoney(cash-payable)+'</span>'):'')+'</div>';
   h+='</div>';
   // Вкладки: каждая помещается в 1–1,5 экрана; период общий для всех
-  const T=S.finTab||'sum',TABS=[['sum','Итоги'],['opiu','ОПИУ'],['money','Деньги и долги'],['deals','Сделки']];
+  const T=S.finTab||'sum',TABS=[['sum','Итоги'],['opiu','Доходы и расходы'],['money','Деньги и долги'],['deals','Сделки']];
   const part={sum:h.slice(P0,P1)+h.slice(P2,P3),opiu:h.slice(P1,P2),
     money:h.slice(P3,P4)+'<div class="dsh-h"><div class="dsh-ht">Деньги сейчас</div></div>'+moneyCard,
     deals:h.slice(P4)+dshPartners(ctx)}[T];
-  el.innerHTML=h.slice(0,P0)+'<div class="dsh-tabs fin-tabs" role="tablist">'+TABS.map(([k,l])=>'<button class="dsh-tab'+(k===T?' on':'')+'" role="tab" aria-selected="'+(k===T)+'" onclick="S.finTab=\''+k+'\';renderFinance()">'+l+'</button>').join('')+'</div>'+part;
+  el.innerHTML=h.slice(0,P0)+'<div class="dsh-tabs fin-tabs" role="navigation" aria-label="Разделы обзора">'+TABS.map(([k,l])=>'<button class="dsh-tab'+(k===T?' on':'')+'" aria-current="'+(k===T?'page':'false')+'" onclick="setFinanceTab(\''+k+'\')">'+l+'</button>').join('')+'</div>'+part;
   // На узком экране сразу показываем текущий месяц
   const tw=el.querySelector('.fin-tw'),cc=el.querySelector('.fin-t th.fin-cur');if(tw&&cc)tw.scrollLeft=Math.max(0,cc.offsetLeft-230);
 }
@@ -2198,7 +2273,7 @@ function setTab(t,b){S.tab=t;S.CF={...CF_EMPTY};document.querySelectorAll('#page
 let _clientsPageSize=50,_clientsShown=50;
 // Infinite scroll — автоподгрузка при прокрутке вниз
 let _infiniteObserver=null;
-const _loadMoreFns={clients:()=>loadMoreClients(),kassa:()=>loadMoreKassa(),journal:()=>loadMoreJournal(),people:()=>{_pplShown+=100;renderPeople(true);},rem:()=>{_remShown+=100;renderReminders(true);}};
+const _loadMoreFns={clients:()=>loadMoreClients(),kassa:()=>loadMoreKassa(),people:()=>{_pplShown+=100;renderPeople(true);},rem:()=>{_remShown+=100;renderReminders(true);}};
 let _pplShown=100,_remShown=100; // длинные списки показываются порциями по 100
 function setupInfiniteScroll(){
   if(_infiniteObserver)_infiniteObserver.disconnect();
@@ -2213,6 +2288,31 @@ function setupInfiniteScroll(){
     });
   },{rootMargin:'300px'});
   sentinels.forEach(s=>_infiniteObserver.observe(s));
+}
+function quickFindMatch(query,name,phones,numbers){
+  const text=personKey(query);
+  if(!text)return true;
+  if(personKey(name).includes(text)||numbers.some(no=>personKey(no).includes(text)))return true;
+  if(!/^[+\d() .-]+$/.test(text))return false;
+  const digits=text.replace(/\D/g,'');
+  if(!digits)return false;
+  const national=v=>v.length===11&&/^[78]/.test(v)?v.slice(1):v;
+  return (phones||[]).some(phone=>{
+    const n=String(phone).replace(/\D/g,'');
+    return n.includes(digits)||national(n).includes(national(digits));
+  });
+}
+function quickFindRows(rows,query,numbers){
+  const text=personKey(query);
+  if(!text)return rows;
+  const exact=rows.filter(row=>numbers(row).some(no=>personKey(no)===text));
+  return exact.length?exact:rows.filter(row=>quickFindMatch(text,row.name,row.phones,numbers(row)));
+}
+function clearListSearch(id){
+  const field=document.getElementById(id);
+  field.value='';
+  field.dispatchEvent(new Event('input',{bubbles:true}));
+  field.focus();
 }
 function renderClients(){
   if(!pageOn('clients'))return;
@@ -2243,6 +2343,8 @@ function renderClientsPaged(){
   if(S.tab==='over')list=list.filter(c=>c._over>0.004);
   else if(S.tab!=='all'&&S.tab!=='archive')list=list.filter(c=>c._st===S.tab);
   list=filterClientList(list,cf);
+  const search=document.getElementById("dealFind").value;
+  list=quickFindRows(list,search,c=>[c.contractId,c.oldContractId]);
   const total=list.length;
   const visible=list.slice(0,_clientsShown);
   const hasMore=_clientsShown<total;
@@ -2255,8 +2357,14 @@ function renderClientsPaged(){
   setupInfiniteScroll();
 }
 function loadMoreClients(){_clientsShown+=_clientsPageSize;renderClientsPaged();}
+function dealListEmpty(){
+  if(!S.clients.length)return 'Договоров пока нет. Нажмите «+ Новый договор», чтобы оформить первый.';
+  const clear=document.getElementById('dealFind').value.trim()
+    ? ' <button class="btn bgh bsm" onclick="clearListSearch(\'dealFind\')">Очистить поиск</button>' : '';
+  return (S.tab==='archive'&&!clear&&!cfActive(S.CF)?'В архиве пока нет договоров.':'Нет совпадений')+clear;
+}
 function mobileCardsHtml(list){
-  if(!list.length)return'<div class="mobile-cards"><div class="empty">Ничего не найдено'+(cfActive(S.CF)?'<div style="margin-top:12px"><button class="btn bgh bsm" onclick="resetMobileFilter(\'clients\')">Сбросить фильтры</button></div>':'')+'</div></div>';
+  if(!list.length)return'<div class="mobile-cards"><div class="empty">'+dealListEmpty()+(cfActive(S.CF)?'<div style="margin-top:12px"><button class="btn bgh bsm" onclick="resetMobileFilter(\'clients\')">Сбросить фильтры</button></div>':'')+'</div></div>';
   const fields=(S.ui&&S.ui.card?S.ui.card:[]).filter(x=>x.on&&CARD_F[x.k]);
   const items=list.map(c=>{
     const dups=findDups(c.name,c.id),hc=c.comment&&c.comment.trim();
@@ -2301,7 +2409,7 @@ function openMobileFilter(pg){
     '<div class="mft"><button class="btn bgh" onclick="resetMobileFilter(\''+pg+'\')">Сбросить</button><button class="btn bg" onclick="applyMobileFilter(\''+pg+'\')">Применить</button></div>'+
   '</div>';
   const mov=document.createElement('div');mov.className='mover on';mov.id='mfOver';mov.onclick=e=>{if(e.target===mov)closeMobileFilter();};
-  mov.innerHTML=html;document.body.appendChild(mov);
+  mov.innerHTML=html;document.body.appendChild(mov);enterDialog(mov);
 }
 function closeMobileFilter(){const m=document.getElementById('mfOver');if(m)m.remove();}
 function applyMobileFilter(pg){
@@ -2379,10 +2487,7 @@ function toggleDrop(ev,col,pg,el){
   else if(col==='monthly')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.monthly||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+esc(v.monthly_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+esc(v.monthly_to||'')+'"/></div>';
   else if(col==='bal')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.bal_q||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+esc(v.bal_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+esc(v.bal_to||'')+'"/></div>';
   else if(col==='over')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.over_q||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+esc(v.over_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+esc(v.over_to||'')+'"/></div>';
-  else if(col==='type'){
-    const types=[...new Set(_jd.map(j=>j.type).filter(Boolean))].sort();
-    body='<select class="fdo-inp" id="fdi_v"><option value="">Все</option>'+types.map(t=>'<option value="'+esc(t)+'"'+(v.type===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>';
-  }
+  else if(col==='type')body='<label for="fdi_v">Название действия</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.type||'')+'" placeholder="Например, оплата"/>';
   else if(col==='desc')body='<input class="fdo-inp" id="fdi_v" value="'+esc(v.desc||'')+'" placeholder="Описание..."/>';
   if(col.indexOf('x_')===0&&CL_XF[col.slice(2)]){const k=col.slice(2),d=CL_XF[k],f=S.CF[col]||{};
     document.getElementById('fdo_title').textContent=(CL_COLS[k]&&CL_COLS[k].n)||k;
@@ -2427,7 +2532,7 @@ function applyF(){
     if(_fdCol==='date'){j.date_q=g('fdi_dq');j.date_from=g('fdi_df');j.date_to=g('fdi_dt');}
     else if(_fdCol==='type')j.type=g('fdi_v');
     else if(_fdCol==='desc')j.desc=g('fdi_v');
-    const byDate=_fdCol==='date';closeDrops();if(byDate)loadJournal();else renderJournal();
+    closeDrops();loadJournal();
   }
 }
 // Поля фильтра каждого столбца сделок: «Сбросить» в столбце очищает только их
@@ -2435,7 +2540,7 @@ const CF_COLKEYS={id:['id'],date:['date_q','date_from','date_to'],name:['name','
 function resetF(){
   const col=_fdCol;
   if(_fdPage==='clients'){const c=S.CF;if(col.indexOf('x_')===0)delete c[col];else(CF_COLKEYS[col]||[]).forEach(k=>{c[k]='';});closeDrops();renderClients();updateMobileFilterBadge();}
-  else{const j=S.JF;if(col==='date'){j.date_q='';j.date_from='';j.date_to='';closeDrops();loadJournal();}else{if(col==='type')j.type='';if(col==='desc')j.desc='';closeDrops();renderJournal();}}
+  else{const j=S.JF;if(col==='date'){j.date_q='';j.date_from='';j.date_to='';closeDrops();loadJournal();}else{if(col==='type')j.type='';if(col==='desc')j.desc='';closeDrops();loadJournal();}}
 }
 const cfActive=c=>Object.keys(c||{}).some(k=>k.indexOf('x_')===0?!!(c[k]&&(c[k].q||c[k].from||c[k].to)):!!c[k]);
 document.addEventListener('click',e=>{if(!e.target.closest('#fdOverlay')&&!e.target.closest('.th-cell'))closeDrops();});
@@ -2470,7 +2575,7 @@ function renderDetail(c){
     (c.archived?mi("archiveClient('"+id+"',false)",'Из архива'):mi("archiveClient('"+id+"',true)",'В архив'))+(clientHasMoney(id)?'':mi("delClient('"+id+"')",'Удалить','cd-del'))+
     phs.slice(1).map(p=>{const t=waPhone(p);return t?'<a class="cd-mi" href="tel:+'+t+'">Позвонить '+esc(fmtPhone(p))+'</a>':'';}).join('');
   const moreBtn='<details class="cd-more"><summary class="btn bgh">Ещё<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:6px"><polyline points="6 9 12 15 18 9"/></svg></summary><div class="cd-menu">'+menu+'</div></details>';
-  const header='<div class="cd-head"><div class="cd-hl"><div class="cd-name">'+nameRep(c.name,dups)+'</div><div class="cd-meta"><span>№'+esc(c.contractId||'—')+'</span><span>от '+esc(c.date||'—')+'</span>'+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts'+(st==='завершён'?' no-pay':'')+'">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+id+'\')">+ Оплата</button>':'')+callBtn+waB+moreBtn+'</div></div>';
+  const header='<div class="cd-head"><div class="cd-hl"><h1 tabindex="-1" class="cd-name">'+nameRep(c.name,dups)+'</h1><div class="cd-meta"><span>№'+esc(c.contractId||'—')+'</span><span>от '+esc(c.date||'—')+'</span>'+(st==='завершён'?'<span class="badge bd">Завершён</span>':'<span class="badge ba">Активный</span>')+'</div></div><div class="cd-acts'+(st==='завершён'?' no-pay':'')+'">'+(st!=='завершён'?'<button class="btn bg cd-pay" onclick="openPay(\''+id+'\')">+ Оплата</button>':'')+callBtn+waB+moreBtn+'</div></div>';
   const dupsBlock=dups.length?'<div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:var(--r2);padding:10px 14px;margin-bottom:14px;font-size:var(--fs-xs)"><div style="color:var(--yellow);font-weight:700;margin-bottom:6px">Другие договоры клиента</div>'+dups.map(d=>'<div class="cd-dup" role="button" tabindex="0" onclick="openC(\''+d.id+'\')">№'+esc(d.contractId||'—')+' — '+esc(d.product||'—')+' ('+effStatus(d)+')</div>').join('')+'</div>':'';
   // Данные клиента и поручителя
   const _pi=personIndex(),_pl=(n,k)=>'<a href="#" class="plink" onclick="event.preventDefault();openPerson(\''+encodeURIComponent(k||'')+'\')">'+esc(n)+'</a>';
@@ -2553,47 +2658,65 @@ async function cancelPay(pid,cid,amt,pt){
 
 // ---------- JOURNAL (с разделением по дням) ----------
 let _jd=[];
-// История грузится порциями по 100 записей: вся она нужна редко, данные читаются с сервера
-const JOURNAL_PAGE=100;let _jLast=null,_jEnd=false;
-async function loadJournal(more){
-  const{db,collection,query,orderBy,limit,startAfter,getDocs,where}=window.DB;
-  if(!more){_jd=[];_jLast=null;_jEnd=false;_journalShown=50;document.getElementById('jList').innerHTML='<div class="loading"><div class="spin"></div></div>';}
+let journalCursor=null,journalBusy=false,journalFailed=null,journalSearchId=0;
+async function loadJournal(more=false){
+  if(more && (journalBusy || !journalCursor))return;
+  const id=++journalSearchId;
+  const filters={...S.JF};
+  if(filters.date_from)filters.from=safeDateFromInput(filters.date_from);
+  if(filters.date_to){
+    filters.to=safeDateFromInput(filters.date_to);
+    if(filters.to)filters.to.setDate(filters.to.getDate()+1);
+  }
+  journalBusy=true;
+  journalFailed=null;
+  if(!more)journalCursor=null;
+  renderJournal();
   try{
-    // при фильтре по датам запрашиваем с сервера именно этот период
-    const f=[];if(S.JF.date_from)f.push(where('date','>=',safeDateFromInput(S.JF.date_from)));
-    if(S.JF.date_to){const e=safeDateFromInput(S.JF.date_to);e.setDate(e.getDate()+1);f.push(where('date','<',e));}
-    const q=query(collection(db,'journal'),...f,orderBy('date','desc'),...(_jLast?[startAfter(_jLast)]:[]),limit(JOURNAL_PAGE));
-    const s=await getDocs(q);
-    if(s.docs.length)_jLast=s.docs[s.docs.length-1];
-    if(s.docs.length<JOURNAL_PAGE)_jEnd=true;
-    _jd=_jd.concat(s.docs.map(d=>({...d.data()})));
-    if(more)_journalShown=_jd.length;
-    renderJournal();
-  }catch(e){document.getElementById('jList').innerHTML='<div class="empty">Ошибка</div>';}
+    let cursor=more?journalCursor:null;
+    let rows=[];
+    // В длинной истории продолжаем поиск до первого результата или конца списка.
+    do{
+      const result=await window.DB.searchJournal(filters,cursor);
+      if(id!==journalSearchId)return;
+      rows=result.rows;
+      cursor=result.next;
+    }while(!rows.length && cursor);
+    _jd=more?_jd.concat(rows):rows;
+    journalCursor=cursor;
+  }catch(e){
+    if(id!==journalSearchId)return;
+    journalFailed={more};
+  }finally{
+    if(id===journalSearchId){
+      journalBusy=false;
+      renderJournal();
+    }
+  }
 }
-let _journalShown=50;
+function journalDetails(j){
+  if(!j.details?.length)return '';
+  return '<details class="j-details"><summary>Что изменилось</summary><ul>'+
+    j.details.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></details>';
+}
 function renderJournal(){
-  let list=_jd.slice();const jf=S.JF;
-  if(jf.date_q)list=list.filter(j=>(j.dateStr||'').includes(jf.date_q));
-  if(jf.date_from){const d=safeDateFromInput(jf.date_from);list=list.filter(j=>{const x=parseD(j.dateStr);return x&&x>=d;});}
-  if(jf.date_to){const d=safeDateFromInput(jf.date_to);list=list.filter(j=>{const x=parseD(j.dateStr);return x&&x<=d;});}
-  if(jf.type)list=list.filter(j=>(j.type||'')===jf.type);
-  if(jf.desc)list=list.filter(j=>(j.description||'').toLowerCase().includes(jf.desc.toLowerCase()));
-  const total=list.length;
-  const visible=list.slice(0,_journalShown);
-  const hasMore=_journalShown<total;
+  const visible=_jd;
   const thead='<thead><tr>'+thF('date','Дата','journal')+'<th><div class="th-cell"><span class="th-name">Время</span></div></th>'+thF('type','Действие','journal')+thF('desc','Описание','journal')+'</tr></thead>';
   const jf2=(col,l)=>'<button class="mobile-filter-btn'+(isF(col,'journal')?' on':'')+'" onclick="toggleDrop(event,\''+col+'\',\'journal\',this)">'+l+'</button>';
   const jFilters='<div class="j-filters">'+jf2('date','Дата')+jf2('type','Действие')+jf2('desc','Описание')+'</div>';
-  if(!visible.length){document.getElementById('jList').innerHTML=jFilters+'<table class="tbl">'+thead+'<tbody><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено</td></tr></tbody></table><div class="j-cards"><div class="empty">Ничего не найдено</div></div>';return;}
   let ld='',rows='',cards='',lc='';
-  visible.forEach(j=>{const d0=j.dateStr||'';if(d0!==lc){cards+='<div class="kcard-day">'+d0+'</div>';lc=d0;}cards+='<div class="kcard"><div class="kcard-top"><span class="badge ba">'+esc(j.type||'')+'</span><span class="j-time">'+(j.time||'')+'</span></div><div class="kcard-desc">'+esc(j.description||'')+(j.user?'<div class="j-user">'+esc(j.user)+'</div>':'')+'</div></div>';});
-  visible.forEach(j=>{const d=j.dateStr||'';if(d!==ld){rows+='<tr class="day-sep"><td colspan="4">'+d+'</td></tr>';ld=d;}rows+='<tr><td style="color:var(--t2);width:80px">'+d+'</td><td style="color:var(--t2);width:60px">'+(j.time||'')+'</td><td style="width:180px"><span class="badge ba">'+esc(j.type||'')+'</span></td><td style="font-size:var(--fs-xs)">'+esc(j.description||'')+(j.user?'<div class="j-user">'+esc(j.user)+'</div>':'')+'</td></tr>';});
-  const loadMoreBtn=hasMore?'<div class="scroll-sentinel" data-target="journal"></div>':(!_jEnd?'<div style="text-align:center;padding:14px"><button class="btn bgh bsm" onclick="loadJournal(true)">Показать ещё '+JOURNAL_PAGE+'</button></div>':'');
-  document.getElementById('jList').innerHTML=jFilters+'<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="j-cards">'+cards+'</div>'+loadMoreBtn;
-  setupInfiniteScroll();
+  visible.forEach(j=>{const d0=esc(j.dateStr||'');if(d0!==lc){cards+='<div class="kcard-day">'+d0+'</div>';lc=d0;}cards+='<div class="kcard"><div class="kcard-top"><span class="badge ba">'+esc(j.type||'')+'</span><span class="j-time">'+esc(j.time||'')+'</span></div><div class="kcard-desc">'+esc(j.description||'')+journalDetails(j)+(j.user?'<div class="j-user">'+esc(j.user)+'</div>':'')+'</div></div>';});
+  visible.forEach(j=>{const d=esc(j.dateStr||'');if(d!==ld){rows+='<tr class="day-sep"><td colspan="4">'+d+'</td></tr>';ld=d;}rows+='<tr><td style="color:var(--t2);width:80px">'+d+'</td><td style="color:var(--t2);width:60px">'+esc(j.time||'')+'</td><td style="width:180px"><span class="badge ba">'+esc(j.type||'')+'</span></td><td style="font-size:var(--fs-xs)">'+esc(j.description||'')+journalDetails(j)+(j.user?'<div class="j-user">'+esc(j.user)+'</div>':'')+'</td></tr>';});
+  const status=journalBusy?'<div class="empty" role="status">Ищем в истории…</div>':
+    journalFailed?'<div class="j-error" role="alert">Не удалось загрузить историю.'+
+      (_jd.length?' Ниже показаны ранее загруженные записи.':'')+
+      '<br><button class="btn bgh" onclick="loadJournal('+journalFailed.more+')">Попробовать ещё раз</button></div>':
+    !visible.length?'<div class="empty">Ничего не найдено</div>':'';
+  const more=journalCursor&&!journalBusy&&!journalFailed
+    ? '<div class="journal-more"><button class="btn bgh" onclick="loadJournal(true)">Показать ещё</button></div>':'';
+  const table=visible.length?'<table class="tbl">'+thead+'<tbody>'+rows+'</tbody></table><div class="j-cards">'+cards+'</div>':'';
+  document.getElementById('jList').innerHTML=jFilters+status+table+more;
 }
-function loadMoreJournal(){_journalShown+=50;renderJournal();}
 async function logA(t,d){if(t==='Скачана резервная копия'&&window.DB.note)await window.DB.note(t);}
 
 // ---------- COMMENT ----------
@@ -2606,9 +2729,9 @@ async function deleteComment(){const{db,doc,updateDoc}=window.DB;const c=S.clien
   catch(e){toast('Ошибка: '+e.message,'ter');}}
 
 // ---------- NEW / EDIT CLIENT ----------
-function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();openM('mClient');}
+function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();const restored=restoreNewDeal(clientKey);openM('mClient');if(restored)markFormDirty(document.getElementById('mClient'));}
 function openEdit(id){_costOk=false;const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value=c.partner==='Сторонний'?(c.partnerPhone||''):'';_ppManual=i.value;}setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;partPhoneSync();if(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))document.getElementById('f_prepayPt').value=c.prepayWallet;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:var(--fs-xs);font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
-function addPh(id){const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" placeholder="89001234567"/><button class="ib ir" onclick="this.parentElement.remove()">×</button>';d.appendChild(r);}
+function addPh(id){markFormDirty(document.getElementById(id)?.closest('.mover.on'));const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" aria-label="Телефон" placeholder="89001234567"/><button class="ib ir" onclick="markFormDirty(this.closest(\'.mover\'));this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
 let _schedManual={size:false,dates:false};let _costOk=false;
 const R2=n=>Math.round(((parseFloat(n)||0)+Number.EPSILON)*100)/100;
@@ -2625,7 +2748,7 @@ function walletShort(eff){
 }
 function walletBlock(msg){walletBlockT('Недостаточно средств',msg);}
 function walletBlockT(t,msg){const l=document.getElementById('confirmLayer');
-  l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+msg+'</div><div class="confirm-actions"><button class="btn bg" onclick="this.closest(\'.confirm-ov\').remove()">Понятно</button></div></div></div>';}
+  l.innerHTML='<div class="confirm-ov" onclick="if(event.target===this)this.remove()"><div class="confirm-box"><div class="confirm-title">'+t+'</div><div class="confirm-msg">'+msg+'</div><div class="confirm-actions"><button class="btn bg" onclick="closeConfirmation()">Понятно</button></div></div></div>';enterDialog(l);}
 const curUser=()=>{const u=window.AUTH&&window.AUTH.currentUser;return u?(u.email||u.uid):'';};
 // Перед удалением кладём копию документа в «корзину» (коллекция trash) — ничего не пропадает бесследно
 function trashPut(){} // Исходную запись в корзину сохраняет сервер в транзакции.
@@ -2829,7 +2952,9 @@ function calcSched(){
     if(prevMo===mo&&_schedManual.dates&&prevDates[m]){dt=prevDates[m];}
     else if(cd){dt=computePayDate(cd,m,payDay);}
     tb.innerHTML+='<tr><td style="font-size:var(--fs-xs);font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(size)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+dt+'"/></td></tr>';
-  }applyFmtToInputs(document.getElementById('schedBody'));
+  }
+  labelFields(tb);
+  applyFmtToInputs(tb);
 }
 function schedPlan(price,prepay,mo){
   const base=R2(price-prepay);const n=Math.max(1,mo|0);
@@ -2843,7 +2968,7 @@ function schedPlan(price,prepay,mo){
 }
 function schedSum(){let t=0;document.querySelectorAll('#schedBody .sz').forEach(i=>t+=parseNum(i.value)||0);return R2(t);}
 function schedTarget(){return R2(parseNum(document.getElementById('f_price').value)-parseNum(document.getElementById('f_prepay').value));}
-function schedMarkManual(kind){_schedManual[kind]=true;schedWarn();}
+function schedMarkManual(kind){markFormDirty(document.getElementById('mClient'));_schedManual[kind]=true;schedWarn();}
 let _schedT=null;
 function schedAuto(){clearTimeout(_schedT);_schedT=setTimeout(()=>{calcSched();schedWarn();},350);}
 function schedWarn(){
@@ -2858,6 +2983,7 @@ function schedWarn(){
   el.classList.add('on');
 }
 function recalcSched(all){
+  markFormDirty(document.getElementById('mClient'));
   const pr=parseNum(document.getElementById('f_price').value);
   const pp=parseNum(document.getElementById('f_prepay').value);
   const mo=parseInt(document.getElementById('f_months').value)||3;
@@ -2869,6 +2995,7 @@ function recalcSched(all){
   toast('Суммы пересчитаны','tok');
 }
 function recalcDates(){
+  markFormDirty(document.getElementById('mClient'));
   const cd=document.getElementById('f_date').value;
   if(!cd){toast('Укажите дату','ter');return;}
   const payDay=parseInt(document.getElementById('f_payDay').value)||0;
@@ -2878,10 +3005,10 @@ function recalcDates(){
 }
 function updSels(){const p=document.getElementById('f_partner');if(p)p.innerHTML=S.partners.map(x=>'<option>'+esc(x)+'</option>').join('');updPt('f_prepayPt');updPt('mpPt');}
 function updPt(id){const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML=S.wallets.map(w=>'<option value="'+w.id+'">'+esc(w.name)+'</option>').join('');const keep=S.wallets.find(w=>w.id===cur);if(keep)e.value=cur;else{const d=S.wallets.find(w=>w.isDefault)||S.wallets[0];if(d)e.value=d.id;}}
-async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseNum(document.getElementById('f_price').value),cost=parseNum(document.getElementById('f_cost').value);if(!name){toast('Выберите клиента: «Выбрать существующего» или «+ Новый клиент»','ter');return;}if(!price){toast('Укажите цену продажи','ter');return;}
-const _pp=await dealPeopleData();if(_pp.err){toast(_pp.err,'ter');return;}
-if(!document.getElementById('f_product').value.trim()){toast('Укажите товар','ter');return;}
-if(!cost){toast('Укажите себестоимость','ter');return;}if(cost>=price){toast('Себестоимость должна быть меньше цены','ter');return;}
+async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseNum(document.getElementById('f_price').value),cost=parseNum(document.getElementById('f_cost').value);if(!name){pickChoose('f_name');markFieldError('f_name','Выберите клиента из списка или добавьте нового.');return;}if(!price){markFieldError('f_price','Укажите цену продажи.');return;}
+const _pp=await dealPeopleData();if(_pp.err){markFieldError(_pp.field || 'f_name',_pp.err);return;}
+if(!document.getElementById('f_product').value.trim()){markFieldError('f_product','Укажите товар.');return;}
+if(!cost){markFieldError('f_cost','Укажите себестоимость.');return;}if(cost>=price){markFieldError('f_cost','Себестоимость должна быть меньше цены.');return;}
 // Предоплата меньше себестоимости: она возвращает деньги за товар, а наценка распределяется по ежемесячным платежам
 if(parseNum(document.getElementById('f_prepay').value)>=cost-0.004){walletBlockT('Предоплата не меньше себестоимости','Предоплата <strong>'+fmt(parseNum(document.getElementById('f_prepay').value))+' ₽</strong> должна быть меньше себестоимости <strong>'+fmt(cost)+' ₽</strong>. Уменьшите предоплату или проверьте себестоимость.');return;}
 if(_cid){
@@ -2900,13 +3027,23 @@ if(_cid){
   }
 }
 const rows=document.querySelectorAll('#schedBody tr'),mo=parseInt(document.getElementById('f_months').value);
-if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 месяцев','ter');return;}
+if(!(mo>=1&&mo<=120)){markFieldError('f_months','Срок договора — от 1 до 120 месяцев.');return;}
 { const target=schedTarget(),sum=schedSum(),d=R2(sum-target);
   if(!(target>0)){toast('Цена должна быть больше первого взноса','ter');return;}
   let bad=0,badDate=0,prev='';
   [...rows].slice(0,mo).forEach(r=>{const v=parseNum(r.querySelector('.sz').value);if(!(v>0))bad++;const dv=r.querySelector('.dt').value;if(!dv)badDate++;else{if(prev&&dv<prev)badDate++;prev=dv;}});
-  if(bad){toast('В графике есть платежи с нулевой суммой','ter');return;}
-  if(badDate){toast('В графике не заполнены даты или они идут не по порядку','ter');return;}
+  if(bad){markFieldError([...rows].find(r=>parseNum(r.querySelector('.sz').value)<=0)?.querySelector('.sz'),'Укажите сумму платежа больше нуля.');return;}
+  if(badDate){
+    let previous='';
+    const row=[...rows].slice(0,mo).find(r=>{
+      const date=r.querySelector('.dt').value;
+      const invalid=!date||(previous&&date<previous);
+      previous=date;
+      return invalid;
+    });
+    markFieldError(row?.querySelector('.dt'),'Заполните дату. Даты должны идти по порядку.');
+    return;
+  }
   if(Math.abs(d)>=0.005){
     schedWarn();
     // Сумма ежемесячных платежей + предоплата должны равняться цене — иначе договор не сохраняется
@@ -2923,7 +3060,7 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
   const npRef=doc(collection(db,'payments')),nkRef=doc(collection(db,'kassaOps')); // если предоплата появляется впервые — связываем платёж и операцию кассы
   let pe=null;
   if(prepayChanged){
-    if(newPrepay>0&&!newW){toast('Выберите кассу предоплаты','ter');return;}
+    if(newPrepay>0&&!newW){markFieldError('f_prepayPt','Выберите счёт предоплаты.');return;}
     pe={};if(prK&&oldW)pe[oldW]=-oldPrepay;if(newPrepay>0&&newW)pe[newW]=(pe[newW]||0)+newPrepay;
     const short=walletShort(pe);if(short){walletBlock('Предоплата уменьшится. '+short);return;}
     if(pr&&newPrepay>0)bt.update(doc(db,'payments',pr.id),{amount:newPrepay,payType:pt,wallet:newW});
@@ -2944,7 +3081,7 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
   bt.update(doc(db,'clients',_cid),data);await bt.commit(pe?{wallets:pe}:undefined);
   if(prepayChanged){if(oldPrepay!==newPrepay)await logA('Изменение предоплаты','№'+(old&&old.contractId||'')+' — было '+fmt(oldPrepay)+' ₽, стало '+fmt(newPrepay)+' ₽');
     else await logA('Изменение кассы предоплаты','№'+(old&&old.contractId||'')+' — '+fmt(newPrepay)+' ₽ в «'+pt+'»');}
-  await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{if(data.prepay>0&&!ptW){toast('Выберите кассу предоплаты','ter');return;}
+  await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{if(data.prepay>0&&!ptW){markFieldError('f_prepayPt','Выберите счёт предоплаты.');return;}
   data.createdAt=new Date();data.createdBy=curUser();
   // Номер, договор, предоплата, операция кассы и баланс счёта пишутся одной транзакцией: либо всё, либо ничего
   const ref=doc(collection(db,'clients')),now=new Date();
@@ -2961,15 +3098,41 @@ if(!(mo>=1&&mo<=120)){toast('Срок договора — от 1 до 120 ме�
   await logA('Новый договор','№'+data.contractId+' — '+name);toast('№'+data.contractId+' создан!','tok');}closeM('mClient');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;btn.classList.remove('saving');btn.textContent='Сохранить';}}
 
 // ---------- PAY / DISCOUNT ----------
-function openPay(id){_cid=id;{const n=document.getElementById('mpNote');if(n)n.value='';payDateSetup(id);}const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mpName').innerHTML=esc(c?.name||'')+'<div style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mpAmt').value='';document.getElementById('mpAmt').max=s.balance;updPt('mpPt');openM('mPay');}
+function openPay(id,month){
+  const c=S.clients.find(item=>item.id===id);
+  if(!c)return;
+  _cid=id;
+  document.getElementById('mpNote').value='';
+  payDateSetup(id);
+  const stats=getStats(c);
+  const payment=month ? stats.schedule.find(item=>item.month===month) : null;
+  const due=payment ? deferOf(c,month)?.date : null;
+  const left=payment?R2(payment.size-payment.paid):0;
+  const number=c.contractId?' · Договор №'+esc(c.contractId):'';
+  const paymentLine=payment&&left>0
+    ? '<div class="pay-context">Платёж '+month+' из '+c.months+' · '+esc(due ? fmtD(safeDateFromInput(due)) : payment.date)+'<br>К оплате по графику <b>'+fmt(left)+' ₽</b> <button type="button" class="btn bgh bsm" id="mpFill">Подставить сумму</button></div>' : '';
+  document.getElementById('mpName').innerHTML=esc(c.name)+number+
+    '<div class="pay-context">Всего осталось: '+fmt(stats.balance)+' ₽</div>'+paymentLine;
+  const amount=document.getElementById('mpAmt');
+  amount.value='';
+  amount.max=stats.balance;
+  const fill=document.getElementById('mpFill');
+  if(fill)fill.onclick=()=>{
+    amount.value=fmt(left);
+    amount.dispatchEvent(new Event('input',{bubbles:true}));
+    amount.focus();
+  };
+  updPt('mpPt');
+  openM('mPay');
+}
 // Самая ранняя дата оплаты: день договора и первый день первого месяца, ещё не закрытого у инвесторов
 function payDateMin(c){let m=dealDate(c)||null;if(S.invMonths&&S.invMonths.length){const M=invModel();if(M.lastClosed){const f=mStart(Number(M.lastClosed.slice(0,4)),Number(M.lastClosed.slice(5)));if(!m||f>m)m=f;}}return m;}
 function payDateSetup(id){const c=S.clients.find(x=>x.id===id),i=document.getElementById('mpDate');if(!i)return;const t=dayKey(new Date()),m=c?payDateMin(c):null;
   i.value=t;i.max=t;i.min=m?dayKey(m):'';document.getElementById('mpDateHint').textContent='Можно поставить дату не раньше '+(m?fmtD(m):'дня договора')+' — закрытые у инвесторов месяцы не меняются';}
-function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){toast('Введите сумму числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Сумма больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const ptv=document.getElementById('mpPt').value;const wsel=walletByVal(ptv);if(!wsel){toast('Выберите кассу','ter');return;}const note=(document.getElementById('mpNote').value||'').trim(),dv=document.getElementById('mpDate').value||dayKey(new Date());
-  if(dv>dayKey(new Date())){toast('Дата оплаты не может быть в будущем','ter');return;}
-  {const m=payDateMin(c);if(m&&dv<dayKey(m)){toast('Дата оплаты не может быть раньше '+fmtD(m)+(closedMk(safeDateFromInput(dv))?': этот месяц уже закрыт у инвесторов':': это раньше дня договора'),'ter');return;}}
-  showConfirm('Подтвердить?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽ · '+esc(wsel.name)+(dv!==dayKey(new Date())?' · '+fmtD(safeDateFromInput(dv)):'')+(note?'<br><span style="color:var(--t2)">'+esc(note)+'</span>':''),()=>savePay(a,wsel.id,note,dv));}
+function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){markFieldError('mpAmt','Введите сумму больше нуля.');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){markFieldError('mpAmt','Сумма больше остатка долга ('+fmt(s.balance)+' ₽).');return;}const ptv=document.getElementById('mpPt').value;const wsel=walletByVal(ptv);if(!wsel){markFieldError('mpPt','Выберите счёт.');return;}const note=(document.getElementById('mpNote').value||'').trim(),dv=document.getElementById('mpDate').value||dayKey(new Date());
+  if(dv>dayKey(new Date())){markFieldError('mpDate','Дата оплаты не может быть в будущем.');return;}
+  {const m=payDateMin(c);if(m&&dv<dayKey(m)){markFieldError('mpDate','Введите дату не раньше '+fmtD(m)+'.');return;}}
+  showConfirm('Записать оплату?','<strong>'+esc(c?.name)+'</strong>'+(c.contractId?' · договор №'+esc(c.contractId):'')+'<br>'+fmt(a)+' ₽ · '+esc(wsel.name)+' · '+fmtD(safeDateFromInput(dv))+(note?'<br><span style="color:var(--t2)">'+esc(note)+'</span>':''),()=>savePay(a,wsel.id,note,dv));}
 async function savePay(a,pt,note,dv){note=(note||'').trim();
   if(_saving)return;
   const{db,collection,doc,writeBatch}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;
@@ -2995,7 +3158,7 @@ async function savePay(a,pt,note,dv){note=(note||'').trim();
   finally{_saving=false;}
 }
 function openDisc(id){_cid=id;const c=S.clients.find(x=>x.id===id);const s=getStats(c);document.getElementById('mdName').innerHTML=esc(c?.name||'')+'<div style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-top:3px">Остаток долга: '+fmt(s.balance)+' ₽</div>';document.getElementById('mdAmt').value='';document.getElementById('mdAmt').max=s.balance;document.getElementById('mdReason').value='';openM('mDisc');}
-function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){toast('Введите сумму скидки числом, больше нуля','ter');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){toast('Скидка больше остатка долга ('+fmt(s.balance)+' ₽)','ter');return;}const r=document.getElementById('mdReason').value;showConfirm('Подтвердить скидку?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
+function confirmDisc(){const a=parseNum(document.getElementById('mdAmt').value);if(!a||a<=0){markFieldError('mdAmt','Введите сумму скидки больше нуля.');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){markFieldError('mdAmt','Скидка больше остатка долга ('+fmt(s.balance)+' ₽).');return;}const r=document.getElementById('mdReason').value;showConfirm('Применить скидку?','<strong>'+esc(c?.name)+'</strong><br>'+fmt(a)+' ₽',()=>saveDisc(a,r));}
 async function saveDisc(a,r){if(_saving)return;const{db,collection,addDoc}=window.DB,c=S.clients.find(x=>x.id===_cid);if(!c)return;_saving=true;try{const{doc,writeBatch}=window.DB,bt=writeBatch(db);bt.set(doc(collection(db,'payments')),{clientId:_cid,contractId:c.contractId,name:c.name,amount:a,type:'discount',typeLabel:'Скидка'+(r?' ('+r+')':''),payType:'—',date:new Date(),dateStr:fmtD(new Date())});await bt.commit({deal:{id:_cid,seq:c.paySeq||0}});await logA('Скидка','№'+c.contractId+' — '+fmt(a)+' ₽');closeM('mDisc');toast('Применена!','tok');}catch(e){toast('Ошибка: '+e.message,'ter');}finally{_saving=false;}}
 // Закупки по договору: можно платить поставщику частями, пока не оплачена вся себестоимость
 // Сделка, к которой относится операция кассы (оплата, предоплата, закупка): по ссылке, а у старых записей — по «(№…)» в описании
@@ -3102,6 +3265,7 @@ async function ensureCashWallet(){
 }
 function renderSettings(){
   renderRecon();renderWaTpl();renderRenum();renderSellerSettings();
+  labelFields(document.getElementById('page-settings'));
   document.getElementById('partList').innerHTML=S.partners.map((p,i)=>{
     const locked=p==='Сторонний';
     return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:var(--fs-sm);font-weight:600">'+esc(p)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(fmtPhone(S.partnerPhones[p]||''))+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
@@ -3149,7 +3313,7 @@ const myPerms=()=>{const p=window.AUTH&&window.AUTH.perms;return typeof p==='str
 const can=p=>{const x=myPerms();return x==='*'||x.indexOf(','+p+',')>=0;};
 function applyPerms(){
   const b=document.body;PERM_KEYS.forEach(k=>b.classList.toggle('no-'+k,!can(k)));
-  if(!can('v_fin')&&(pageOn('dashboard')||pageOn('finance')))goBase();
+  if(!can('v_fin')&&(pageOn('dashboard')||pageOn('finance'))&&renderedRoute)goBase();
   if(!can('v_kassa')&&pageOn('kassa'))goBase();
   if(!can('v_inv')&&(pageOn('investors')||pageOn('investor')))goBase();
   if(!can('v_journal')&&pageOn('journal'))goBase();
@@ -3506,9 +3670,9 @@ function goBase(p){
 }
 function syncBaseNav(p){
   const isBase=BASE_PAGES.includes(p)||p==='client';
-  const nb=document.getElementById('nav-clients');if(nb)nb.classList.toggle('on',isBase);
+  const nb=document.getElementById('nav-clients');if(nb){nb.classList.toggle('on',isBase);if(isBase)nb.setAttribute('aria-current','page');else nb.removeAttribute('aria-current');}
   const cur=p==='person'?'people':(p==='client'?'clients':p);
-  document.querySelectorAll('.subtabs .stb').forEach(b=>{const on=b.dataset.p===cur;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false');});
+  document.querySelectorAll('.subtabs .stb').forEach(b=>{const on=b.dataset.p===cur;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false');});
 }
 
 // ---------- Клиенты ----------
@@ -3652,7 +3816,7 @@ function openPplFilter(){
     Object.keys(PCOLS).filter(k=>PCOLS[k].num).map(k=>'<div class="mf-sec"><label class="lbl">'+esc(PCOLS[k].n)+' от–до</label><div class="mf-range"><input class="inp" id="pflt_'+k+'_from" type="number" inputmode="numeric" placeholder="от" value="'+r(k,'from')+'"/><input class="inp" id="pflt_'+k+'_to" type="number" inputmode="numeric" placeholder="до" value="'+r(k,'to')+'"/></div></div>').join('')+
     '</div><div class="mft"><button class="btn bgh" onclick="S.PF={};closeMobileFilter();renderPeople()">Сбросить</button><button class="btn bg" onclick="applyPplFilter()">Применить</button></div></div>';
   const mov=document.createElement('div');mov.className='mover on';mov.id='mfOver';mov.onclick=e=>{if(e.target===mov)closeMobileFilter();};
-  mov.innerHTML=html;document.body.appendChild(mov);
+  mov.innerHTML=html;document.body.appendChild(mov);enterDialog(mov);
   window._pplSortOpts=sortOpts;
 }
 function applyPplFilter(){
@@ -3672,6 +3836,8 @@ function renderPeople(more){
   let list=groupPeople();
   const all=list.length;
   list=list.filter(pplPass);
+  const search=document.getElementById("peopleFind").value;
+  list=quickFindRows(list,search,g=>[g.no,g.oldNo,...g.deals.flatMap(({c})=>[c.contractId,c.oldContractId])]);
   const nf=Object.keys(S.PF).filter(pplIsF).length,bd=document.getElementById('pplFBadge');if(bd){bd.textContent=nf||'';bd.style.display=nf?'inline-block':'none';}
   if(_pplTab==='debt')list=list.filter(g=>g.debt>0.004);
   else if(_pplTab==='over')list=list.filter(g=>g.over>0.004);
@@ -3692,8 +3858,10 @@ function renderPeople(more){
       // выбранная в «Колонках» строка видна всегда, даже без данных; длинный текст — под подписью на всю ширину
       return'<div class="mcard-row'+(t.length>34?' stack':'')+'"><span class="mcard-label">'+PCOLS[c].n+'</span><span class="mcard-val">'+(t?v:'—')+'</span></div>';}).join('')+'</div>').join('');
   // ничего не найдено — заголовки с фильтрами остаются на месте, рядом кнопка «Сбросить фильтры»
+  const empty=all?'Нет совпадений':'Клиентов пока нет. Нажмите «+ Клиент», чтобы добавить первого.';
+  const clear=search.trim()?'<button class="btn bgh bsm" onclick="clearListSearch(\'peopleFind\')">Очистить поиск</button>':'';
   const reset=nf?'<button class="btn bgh bsm" style="margin-left:10px" onclick="S.PF={};renderPeople()">Сбросить фильтры</button>':'';
-  el.innerHTML='<div class="ppl-desk"><table class="ptbl"><thead>'+head+'</thead><tbody>'+(list.length?rows:'<tr><td colspan="'+(cols.length+1)+'" style="text-align:center;padding:32px;color:var(--t3)">Никого не найдено'+reset+'</td></tr>')+'</tbody></table></div><div class="ppl-mob">'+(list.length?cards:'<div class="empty">Никого не найдено'+(reset?'<div style="margin-top:12px">'+reset+'</div>':'')+'</div>')+'</div>'+(view.length<list.length?'<div class="scroll-sentinel" data-target="people"></div>':'');
+  el.innerHTML='<div class="ppl-desk"><table class="ptbl"><thead>'+head+'</thead><tbody>'+(list.length?rows:'<tr><td colspan="'+(cols.length+1)+'" style="text-align:center;padding:32px;color:var(--t3)">'+empty+clear+reset+'</td></tr>')+'</tbody></table></div><div class="ppl-mob">'+(list.length?cards:'<div class="empty">'+empty+clear+(reset?'<div style="margin-top:12px">'+reset+'</div>':'')+'</div>')+'</div>'+(view.length<list.length?'<div class="scroll-sentinel" data-target="people"></div>':'');
   setupInfiniteScroll();
 }
 // Удалить карточку клиента можно, только если у него нет сделок и он нигде не поручитель
@@ -3710,8 +3878,8 @@ function renderPerson(){
   if(!g){el.innerHTML='<div class="card"><div class="empty">Клиент не найден</div></div>';return;}
   const phones=g.phones.map(ph=>esc(fmtPhone(ph))).join(', ')||'—';
   const K=encodeURIComponent(g.key);
-  let h='<button class="btn bgh bsm" style="margin-bottom:12px" onclick="goBase(\'people\')">← Все клиенты</button>'+
-    '<div class="ph"><div><div class="pt">'+esc(g.name)+(g.no?' <span class="badge bd" style="vertical-align:middle">'+g.no+'</span>':'')+(g.oldNo&&g.oldNo!==g.no?' <span class="inv-muted" style="font-size:var(--fs-xs);font-weight:400">было '+esc(g.oldNo)+'</span>':'')+'</div><div class="cd-tels" style="margin-top:6px">'+(g.phones.length?g.phones.map(p=>{const t=waPhone(p);return t?'<a class="cd-tel" href="tel:+'+t+'">'+esc(fmtPhone(p))+'</a>':'<span class="cd-tel">'+esc(fmtPhone(p))+'</span>';}).join(''):'<span class="ps">телефон не указан</span>')+'</div>'+(g.actualAddr?'<div class="ps">Фактический адрес: '+esc(g.actualAddr)+'</div>':'')+(personWhatsApp(g)?'<div class="ps">Номер WhatsApp — '+esc(fmtPhone(personWhatsApp(g)))+'</div>':'')+(g.addr?'<div class="ps">Адрес по прописке: '+esc(g.addr)+'</div>':'')+(g.note?'<div class="ps" style="color:var(--t2)">'+esc(g.note)+'</div>':'')+'</div>'+
+  let h='<button class="btn bgh bsm" style="margin-bottom:12px" onclick="goBackTo(\'people\')">← Все клиенты</button>'+
+    '<div class="ph"><div><h1 class="pt" tabindex="-1">'+esc(g.name)+(g.no?' <span class="badge bd" style="vertical-align:middle">'+g.no+'</span>':'')+(g.oldNo&&g.oldNo!==g.no?' <span class="inv-muted" style="font-size:var(--fs-xs);font-weight:400">было '+esc(g.oldNo)+'</span>':'')+'</h1><div class="cd-tels" style="margin-top:6px">'+(g.phones.length?g.phones.map(p=>{const t=waPhone(p);return t?'<a class="cd-tel" href="tel:+'+t+'">'+esc(fmtPhone(p))+'</a>':'<span class="cd-tel">'+esc(fmtPhone(p))+'</span>';}).join(''):'<span class="ps">телефон не указан</span>')+'</div>'+(g.actualAddr?'<div class="ps">Фактический адрес: '+esc(g.actualAddr)+'</div>':'')+(personWhatsApp(g)?'<div class="ps">Номер WhatsApp — '+esc(fmtPhone(personWhatsApp(g)))+'</div>':'')+(g.addr?'<div class="ps">Адрес по прописке: '+esc(g.addr)+'</div>':'')+(g.note?'<div class="ps" style="color:var(--t2)">'+esc(g.note)+'</div>':'')+'</div>'+
     '<div class="pa">'+(!g.deals.length&&!g.guar.length&&g.id?'<button class="btn br" onclick="delPerson(\''+g.id+'\')">Удалить</button>':'')+'<button class="btn bgh" onclick="openPersonForm(decodeURIComponent(\''+K+'\'))">Изменить</button><button class="btn bg" onclick="openNew(decodeURIComponent(\''+K+'\'))">+ Сделка</button></div></div>'+
     '<div class="sg4">'+
       '<div class="sc"><div class="sl">Сделок</div><div class="sv">'+g.deals.length+'</div><div class="ss">активных '+g.active+' · завершённых '+g.done+'</div></div>'+
@@ -3754,7 +3922,7 @@ function openPersonForm(key,prefill,cb){
   document.getElementById('pf_wa').value=wa?'+'+fmtPhone(wa):'';
   document.getElementById('pf_note').value=p?p.note:'';
   const ph=p&&p.phones.length?p.phones:[''];
-  document.getElementById('pfPhones').innerHTML=ph.map((x,i)=>'<div class="phr"><input class="inp" type="tel" placeholder="8 900 123 45 67" value="'+esc(fmtPhone(x))+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'pfPhones\')">+</button>':'<button class="ib ir" onclick="this.parentElement.remove()">×</button>')+'</div>').join('');
+  document.getElementById('pfPhones').innerHTML=ph.map((x,i)=>'<div class="phr"><input class="inp" type="tel" aria-label="Телефон '+(i+1)+'" placeholder="8 900 123 45 67" value="'+esc(fmtPhone(x))+'"/>'+(i===0?'<button class="ib ig" onclick="addPh(\'pfPhones\')">+</button>':'<button class="ib ir" onclick="markFormDirty(this.closest(\'.mover\'));this.parentElement.remove()">×</button>')+'</div>').join('');
   document.getElementById('pfWarn').innerHTML='';document.getElementById('pfSave').textContent='Сохранить';
   openM('mPerson');
   {const f=document.getElementById(p||!prefill?'pf_name':'pfPhones');const i=f.tagName==='INPUT'?f:f.querySelector('input');if(i)i.focus();}
@@ -3768,8 +3936,8 @@ async function savePerson(){
   const waInput=document.getElementById('pf_wa').value.trim();
   const whatsapp=waInput.startsWith('+')?waInput.replace(/\D/g,''):waPhone(waInput);
   const warn=t=>{document.getElementById('pfWarn').innerHTML=t;};
-  if(waInput&&(!/^[+\d()\s-]+$/.test(waInput)||!/^([1-9]\d{6,14})$/.test(whatsapp))){warn('Проверьте номер WhatsApp');return;}
-  if(name.split(' ').length<2){warn('Укажите фамилию и имя');return;}
+  if(waInput&&(!/^[+\d()\s-]+$/.test(waInput)||!/^([1-9]\d{6,14})$/.test(whatsapp))){markFieldError('pf_wa','Проверьте номер WhatsApp.');return;}
+  if(name.split(' ').length<2){markFieldError('pf_name','Укажите фамилию и имя.');return;}
   const idx=personIndex(),old=_pf.key?idx.get(_pf.key):null;
   // Тёзки: ФИО может повторяться, но переспрашиваем, что это другой человек
   const twins=[...idx.values()].filter(p=>personKey(p.name)===nk&&(!old||p.key!==old.key));
@@ -3811,23 +3979,73 @@ async function savePerson(){
 // Выбранный человек хранится в data-pid поля; при правке текста выбор сбрасывается.
 // Сначала две кнопки: «Выбрать существующего» (поиск по базе) и «Новый клиент»; поле поиска появляется по первой
 function pickHtml(id,val,key,newLbl){const has=!!val;return '<div class="pick'+(has?' pick-has':'')+'" id="'+id+'_w"><div class="pick-btns"><button type="button" class="btn bgh" onclick="pickChoose(\''+id+'\')">Выбрать существующего</button><button type="button" class="btn bg" onclick="pickCreate(\''+id+'\')">'+(newLbl||'+ Новый клиент')+'</button></div>'+
-  '<div class="pick-box"><input class="inp pick-in" id="'+id+'" data-key="'+esc(key||'')+'" autocomplete="off" placeholder="Поиск: ФИО, телефон или № клиента" value="'+esc(val||'')+'" oninput="this.dataset.key=\'\';pickOpen(this)" onfocus="pickOpen(this)" onblur="setTimeout(()=>pickClose(\''+id+'\'),200)"/><div class="pick-list" id="'+id+'_l"></div></div></div><div class="pick-info" id="'+id+'_i"></div>';}
-function pickReset(id){const i=document.getElementById(id),w=document.getElementById(id+'_w');if(i){i.value='';i.dataset.key='';}if(w)w.classList.remove('pick-has');pickInfo(id);}
+  '<div class="pick-box"><input class="inp pick-in" id="'+id+'" role="combobox" aria-label="'+(id==='f_name'?'Поиск клиента':'Поиск поручителя')+'" aria-autocomplete="list" aria-expanded="false" aria-controls="'+id+'_l" data-key="'+esc(key||'')+'" autocomplete="off" placeholder="Поиск: ФИО, телефон или № клиента" value="'+esc(val||'')+'" oninput="this.dataset.key=\'\';pickOpen(this)" onfocus="pickOpen(this)" onkeydown="pickKey(event,this)" onblur="setTimeout(()=>pickClose(\''+id+'\'),200)"/><div class="pick-list" role="listbox" aria-label="Найденные клиенты" id="'+id+'_l"></div></div></div><div class="pick-info" id="'+id+'_i"></div>';}
+function pickReset(id){markFormDirty(document.querySelector('#mClient.on'));const i=document.getElementById(id),w=document.getElementById(id+'_w');if(i){i.value='';i.dataset.key='';}if(w)w.classList.remove('pick-has');pickInfo(id);}
 function pickChoose(id){const w=document.getElementById(id+'_w');if(w)w.classList.add('pick-has');const i=document.getElementById(id);if(i){i.focus();pickOpen(i);}}
 function pickOpen(inp){
   const id=inp.id,q=personKey(inp.value),qd=inp.value.replace(/\D/g,''),idx=personIndex(),all=[...idx.values()];
   let m=q?all.filter(p=>personKey(p.name).includes(q)||(p.no&&p.no.toLowerCase().includes(q))||(qd.length>=3&&p.phones.some(ph=>String(ph).replace(/\D/g,'').includes(qd)))):all;
   m=m.sort((a,b)=>a.name.localeCompare(b.name,'ru')).slice(0,10);
-  let h=m.map(p=>'<div class="pick-it" onmousedown="pickSet(\''+id+'\',\''+encodeURIComponent(p.key)+'\')"><b>'+esc(p.name)+(p.no?' <i>'+p.no+'</i>':'')+'</b><span>'+esc([p.phones[0]?fmtPhone(p.phones[0]):'',p.addr].filter(Boolean).join(' · '))+'</span></div>').join('');
+  let h=m.map((p,i)=>'<div class="pick-it" role="option" aria-selected="false" id="'+id+'_opt_'+i+'" data-person-key="'+esc(p.key)+'"><b>'+esc(p.name)+(p.no?' <i>'+esc(p.no)+'</i>':'')+'</b><span>'+esc([p.phones[0]?fmtPhone(p.phones[0]):'',p.addr].filter(Boolean).join(' · '))+'</span></div>').join('');
   const nm=cleanName(inp.value.replace(/[\d+()\-]/g,''));
   if(!m.length)h='<div class="pick-it" style="color:var(--t3);cursor:default">Никого не найдено</div>';
-  if(nm&&!m.some(p=>personKey(p.name)===personKey(nm)))h='<div class="pick-it pick-new" onmousedown="pickCreate(\''+id+'\')">+ Новый клиент «'+esc(nm)+'»</div>'+h;
-  const l=document.getElementById(id+'_l');l.innerHTML=h;l.classList.add('on');
+  if(nm&&!m.some(p=>personKey(p.name)===q))h+='<div class="pick-it pick-new" role="option" aria-selected="false" id="'+id+'_opt_new">+ Новый клиент «'+esc(nm)+'»</div>';
+  const l=document.getElementById(id+'_l');
+  l.innerHTML=h;
+  l.classList.add('on');
+  l.onmousedown=event=>{
+    const option=event.target.closest('[role=option]');
+    if(!option)return;
+    event.preventDefault();
+    pickOption(inp,option);
+  };
+  inp.setAttribute('aria-expanded','true');
+  inp.removeAttribute('aria-activedescendant');
   pickInfo(id);
 }
-function pickClose(id){const l=document.getElementById(id+'_l');if(l)l.classList.remove('on');const i=document.getElementById(id),w=document.getElementById(id+'_w');if(i&&w&&!i.value.trim()&&document.activeElement!==i)w.classList.remove('pick-has');pickInfo(id);}
-function pickSet(id,key){key=decodeURIComponent(key);const p=personIndex().get(key);const inp=document.getElementById(id);if(p&&inp){inp.value=p.name;inp.dataset.key=key;const w=document.getElementById(id+'_w');if(w)w.classList.add('pick-has');}pickClose(id);}
-function pickCreate(id){const inp=document.getElementById(id),n=inp.value.replace(/[\d+()\-]/g,'').trim();pickClose(id);openPersonForm(null,cleanName(n),p=>{const i=document.getElementById(id);if(i){i.value=p.name;i.dataset.key=p.key;const w=document.getElementById(id+'_w');if(w)w.classList.add('pick-has');pickInfo(id);}});}
+function pickClose(id){const l=document.getElementById(id+'_l');if(l)l.classList.remove('on');const i=document.getElementById(id);if(i){i.setAttribute('aria-expanded','false');i.removeAttribute('aria-activedescendant');}const w=document.getElementById(id+'_w');if(i&&w&&!i.value.trim()&&document.activeElement!==i)w.classList.remove('pick-has');pickInfo(id);}
+function pickSet(id,key){markFormDirty(document.querySelector('#mClient.on'));key=decodeURIComponent(key);const p=personIndex().get(key);const inp=document.getElementById(id);if(p&&inp){clearFieldError(inp);inp.value=p.name;inp.dataset.key=key;const w=document.getElementById(id+'_w');if(w)w.classList.add('pick-has');}pickClose(id);}
+function pickOption(field,option){
+  if(option.dataset.personKey)pickSet(field.id,encodeURIComponent(option.dataset.personKey));
+  else pickCreate(field.id);
+  clearFieldError(field);
+}
+function pickKey(event,field){
+  if(!['ArrowDown','ArrowUp','Enter','Escape'].includes(event.key))return;
+  const list=document.getElementById(field.id+'_l');
+  if(event.key==='Escape'){
+    if(list.classList.contains('on')){
+      event.preventDefault();
+      event.stopPropagation();
+      pickClose(field.id);
+    }
+    return;
+  }
+  if(!list.classList.contains('on')){
+    if(event.key==='Enter')return;
+    pickOpen(field);
+  }
+  const options=[...list.querySelectorAll('[role=option]')];
+  if(!options.length)return;
+  const current=options.findIndex(o=>o.id===field.getAttribute('aria-activedescendant'));
+  if(event.key==='Enter'){
+    if(current<0)return;
+    event.preventDefault();
+    event.stopPropagation();
+    pickOption(field,options[current]);
+    return;
+  }
+  event.preventDefault();
+  const next=current<0?(event.key==='ArrowDown'?0:options.length-1):
+    (current+(event.key==='ArrowDown'?1:options.length-1))%options.length;
+  options.forEach((option,i)=>{
+    option.classList.toggle('is-active',i===next);
+    option.setAttribute('aria-selected',String(i===next));
+  });
+  field.setAttribute('aria-activedescendant',options[next].id);
+  options[next].scrollIntoView({block:'nearest'});
+}
+function pickCreate(id){const inp=document.getElementById(id),n=inp.value.replace(/[\d+()\-]/g,'').trim();pickClose(id);openPersonForm(null,cleanName(n),p=>{const i=document.getElementById(id);if(i){markFormDirty(i.closest('.mover'));clearFieldError(i);i.value=p.name;i.dataset.key=p.key;const w=document.getElementById(id+'_w');if(w)w.classList.add('pick-has');pickInfo(id);}});}
 // Кого выбрали в поле: явно из списка или единственного человека с таким ФИО
 function pickResolve(inp){
   const idx=personIndex(),v=cleanName(inp.value);if(!v)return{none:true};
@@ -3845,8 +4063,9 @@ function pickInfo(id){
 }
 let _gSeq=0;
 function addGuarRow(val,key){
+  markFormDirty(document.querySelector('#mClient.on'));
   const id='g_pick_'+(++_gSeq),row=document.createElement('div');row.className='guar-row';
-  row.innerHTML='<div style="flex:1;min-width:0">'+pickHtml(id,val,key,'+ Новый человек')+'</div><button class="ib ir" title="Убрать" onclick="this.parentElement.remove()">×</button>';
+  row.innerHTML='<div style="flex:1;min-width:0">'+pickHtml(id,val,key,'+ Новый человек')+'</div><button class="ib ir" title="Убрать" onclick="markFormDirty(this.closest(\'.mover\'));this.parentElement.remove()">×</button>';
   document.getElementById('guarRows').appendChild(row);
   pickInfo(id);
 }
@@ -3868,9 +4087,9 @@ async function dealPeopleData(){
   const cp=r.p,gs=[],seen=new Set([cp.key]);
   for(const i of document.querySelectorAll('#guarRows .pick-in')){
     const g=pickResolve(i);if(g.none)continue;
-    if(g.many)return{err:'Поручителей с ФИО «'+cleanName(i.value)+'» несколько — выберите нужного из списка'};
-    if(g.missing)return{err:'Поручителя «'+g.missing+'» нет в базе. Выберите из списка или создайте'};
-    if(seen.has(g.p.key))return{err:g.p.key===cp.key?'Клиент не может быть своим поручителем':'Поручитель «'+g.p.name+'» указан дважды'};
+    if(g.many)return{field:i,err:'Поручителей с ФИО «'+cleanName(i.value)+'» несколько — выберите нужного из списка'};
+    if(g.missing)return{field:i,err:'Поручителя «'+g.missing+'» нет в базе. Выберите из списка или создайте'};
+    if(seen.has(g.p.key))return{field:i,err:g.p.key===cp.key?'Клиент не может быть своим поручителем':'Поручитель «'+g.p.name+'» указан дважды'};
     seen.add(g.p.key);gs.push(g.p);
   }
   return{data:{name:cp.name,clientPid:cp.id,phones:cp.phones,addr:cp.addr,guarantors:gs.map(p=>({name:p.name,pid:p.id}))}};
@@ -3906,8 +4125,8 @@ async function writeDefer(val){
 }
 async function saveDefer(){
   const v=document.getElementById('dfDate').value;
-  if(!v){toast('Укажите новую дату','ter');return;}
-  if(v<dayKey(new Date())){toast('Дата отсрочки не может быть в прошлом','ter');return;}
+  if(!v){markFieldError('dfDate','Укажите новую дату.');return;}
+  if(v<dayKey(new Date())){markFieldError('dfDate','Дата отсрочки не может быть в прошлом.');return;}
   try{
     const note=document.getElementById('dfNote').value.trim();
     const c=await writeDefer({date:v,note,at:fmtD(new Date())});
@@ -3958,15 +4177,20 @@ function renderReminders(more){
   const list=rows.filter(f);
   const sum=R2(list.reduce((t,r)=>t+r.left,0));
   document.getElementById('remCount').textContent=list.length?list.length+' '+invPlural(list.length,'платёж','платежа','платежей')+' на '+fmt(sum)+' ₽':'Нет платежей';
-  if(!list.length){el.innerHTML='<div class="empty" style="padding:40px">В этом списке пусто</div>';return;}
+  if(!list.length){
+    const message=!S.clients.length?'Договоров пока нет. Добавьте договор в разделе «Сделки», чтобы увидеть график оплаты.':
+      cfActive(S.RF)?'Нет платежей по этим условиям. Попробуйте сбросить фильтры.':
+      _remTab==='all'?'Неоплаченных платежей нет.':'В этой категории платежей нет. Выберите «Все», чтобы увидеть остальные.';
+    el.innerHTML='<div class="empty" style="padding:40px">'+message+'</div>';return;
+  }
   const due=r=>{
     let b=r.over?'<span class="badge bo">просрочка '+r.days+' '+invPlural(r.days,'день','дня','дней')+'</span>':(r.todayDue?'<span class="badge ba">сегодня</span>':'<span class="inv-muted">через '+(-r.days)+' '+invPlural(-r.days,'день','дня','дней')+'</span>');
     if(r.df)b+='<div class="rem-mark rem-df">отсрочка до '+fmtD(r.eff)+(r.df.note?' · '+esc(r.df.note):'')+'</div>'+(r.origOver&&!r.over?'<div class="rem-mark cr">по договору — просрочка</div>':'');
     if(r.partial)b+='<div class="rem-mark rem-pt">оплачено '+fmt(r.paid)+' из '+fmt(r.size)+' ₽</div>';
     return b;
   };
-  const btnsM=r=>waBtn(r.c.id,r.month)+'<button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">+ Оплата</button>'+(can('deal_edit')?'<button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>':'');
-  const btns=r=>waBtn(r.c.id,r.month,true)+' <button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.left+')">+ Оплата</button>'+(can('deal_edit')?' <button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>':'');
+  const btnsM=r=>waBtn(r.c.id,r.month)+'<button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.month+')">+ Оплата</button>'+(can('deal_edit')?'<button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>':'');
+  const btns=r=>waBtn(r.c.id,r.month,true)+' <button class="btn bg bsm" onclick="event.stopPropagation();openPay(\''+r.c.id+'\','+r.month+')">+ Оплата</button>'+(can('deal_edit')?' <button class="btn bb bsm" onclick="event.stopPropagation();openDefer(\''+r.c.id+'\','+r.month+')">'+(r.df?'Отсрочка':'Отсрочить')+'</button>':'');
   const view=list.slice(0,_remShown);
   const rowsH=view.map(r=>'<tr class="'+(r.partial?'rem-partial':'')+'"><td class="crow" onclick="openC(\''+r.c.id+'\')" style="white-space:nowrap">'+(r.df?'<div>'+fmtD(r.eff)+'</div><div class="inv-muted" style="text-decoration:line-through">'+esc(r.date)+'</div>':esc(r.date))+'</td>'+
     '<td class="crow" onclick="openC(\''+r.c.id+'\')"><div style="font-weight:600">'+esc(r.c.name)+'</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+esc(fmtPhone((r.c.phones||[])[0]))+'</div></td>'+
@@ -3982,7 +4206,7 @@ function renderReminders(more){
     '<div class="mcard-row"><span class="mcard-label">Статус</span><span style="text-align:right">'+due(r)+'</span></div>'+
     (r.c.comment?'<div class="mcard-row stack"><span class="mcard-label">Комментарий</span><span class="mcard-val" style="font-weight:400">'+esc(r.c.comment)+'</span></div>':'')+
     '<div class="rem-btns">'+btnsM(r)+'</div></div>').join('');
-  el.innerHTML='<div class="rem-desk"><table class="tbl"><thead><tr><th class="plain">Дата оплаты</th><th class="plain">Клиент</th><th class="plain">Сделка</th><th class="plain num">К оплате</th><th class="plain">Срок</th><th class="plain">Комментарий</th><th></th></tr></thead><tbody>'+rowsH+'</tbody></table></div><div class="rem-mob">'+cards+'</div>'+(view.length<list.length?'<div class="scroll-sentinel" data-target="rem"></div>':'');
+  el.innerHTML='<div class="rem-desk"><table class="tbl"><thead><tr><th class="plain">Дата оплаты</th><th class="plain">Клиент</th><th class="plain">Сделка</th><th class="plain num">К оплате</th><th class="plain">Срок</th><th class="plain">Комментарий</th><th aria-label="Действия"></th></tr></thead><tbody>'+rowsH+'</tbody></table></div><div class="rem-mob">'+cards+'</div>'+(view.length<list.length?'<div class="scroll-sentinel" data-target="rem"></div>':'');
   setupInfiniteScroll();
 }
 
@@ -4256,26 +4480,26 @@ async function saveKassaOp(){
   const desc=document.getElementById('koDesc').value.trim();
   const clientId=document.getElementById('koClientId').value;
   const dv=document.getElementById('koDate').value;
-  if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
-  if(!wid){toast('Выберите кошелёк','ter');return;}
+  if(!amt||amt<=0){markFieldError('koAmt','Укажите сумму больше нуля.');return;}
+  if(!wid){markFieldError('koWallet','Выберите счёт.');return;}
   const w=S.wallets.find(x=>x.id===wid);
   if(!w){toast('Кошелёк не найден','ter');return;}
   // дата: сегодня — текущее время, другой день — полдень этого дня
   let d=new Date();if(dv&&dv!==dayKey(d)){d=safeDateFromInput(dv);d.setHours(12,0,0,0);}
-  if(dayKey(d)>dayKey(new Date())){toast('Дата не может быть в будущем','ter');return;}
+  if(dayKey(d)>dayKey(new Date())){markFieldError('koDate','Дата не может быть в будущем.');return;}
   const old=_koEdit?S.kassaOps.find(x=>x.id===_koEdit):null;
   const cm=kassaClosedMonth(type,d)||(old&&kassaClosedMonth(old.type,opDate(old)));
   if(cm){toast(mkLabel(cm)+' уже закрыт у инвесторов — расход этого месяца менять нельзя','ter');return;}
   const meta=kMeta(type);
   // Проверки
   if(type==='purchase'){
-    if(!clientId||clientId==='__blocked__'){toast('Выберите договор, по которому товар оплачен не полностью','ter');return;}
+    if(!clientId||clientId==='__blocked__'){markFieldError('koClientSearch','Выберите договор, по которому товар оплачен не полностью.');return;}
     const c=S.clients.find(x=>x.id===clientId),co=c?R2(c.cost):0,left=R2(co-purchasePaid(clientId,_koEdit));
     if(co>0&&amt>left+0.004){walletBlockT('Больше себестоимости','По договору №'+esc(c.contractId||'')+' осталось оплатить поставщику <strong>'+fmt(Math.max(0,left))+' ₽</strong> из '+fmt(co)+' ₽.');return;}
   }
   if(type==='transfer'){
-    if(!wtid){toast('Выберите кошелёк назначения','ter');return;}
-    if(wid===wtid){toast('Нельзя перевести на тот же кошелёк','ter');return;}
+    if(!wtid){markFieldError('koWalletTo','Выберите счёт назначения.');return;}
+    if(wid===wtid){markFieldError('koWalletTo','Выберите другой счёт назначения.');return;}
   }
   await doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old);
 }
@@ -4321,7 +4545,11 @@ function delKassaOp(id){
   {const cm=kassaClosedMonth(op.type,opDate(op));if(cm){walletBlockT('Месяц закрыт','<strong>'+mkLabel(cm)+'</strong> уже закрыт у инвесторов — расход этого месяца удалить нельзя.');return;}}
   if(op.wallet){const oe=kassaEffect(op.type,R2(op.amount),op.wallet,op.walletTo),back={};Object.keys(oe).forEach(k=>back[k]=-oe[k]);
     const short=walletShort(back);if(short){walletBlock('Удаление вернёт деньги обратно. '+short);return;}}
-  showConfirm('Удалить операцию?','<strong>'+meta.name+' '+fmt(op.amount)+' ₽</strong><br>Остаток счёта будет скорректирован',async()=>{
+  const account=S.wallets.find(w=>w.id===op.wallet)?.name || op.walletName || '—';
+  const destination=op.type==='transfer'?S.wallets.find(w=>w.id===op.walletTo)?.name || op.walletToName || '':'';
+  showConfirm('Удалить операцию?','<strong>'+esc(meta.name)+' '+fmt(op.amount)+' ₽</strong><br>'+
+    esc(op.dateStr||fmtD(opDate(op)))+' · '+esc(account)+(destination?' → '+esc(destination):'')+
+    (op.desc?'<br>'+esc(op.desc):'')+'<br>Остаток счёта будет скорректирован.',async()=>{
     if(_saving)return;_saving=true;
     try{
       const{db,doc,writeBatch}=window.DB;
@@ -4355,7 +4583,7 @@ function closeContract(){
   const modal=document.getElementById('mContract');
   if(contractDraft&&contractDraft.url)URL.revokeObjectURL(contractDraft.url);
   contractDraft=null;
-  if(modal)modal.remove();
+  if(modal){modal.remove();leaveDialog(modal);}
 }
 function contractPerson(name,person,role){
   return {name:name||'',role,addr:person&&person.addr||'',phone:person?personWhatsApp(person):'',sendPhone:person?personWhatsApp(person):'',passportSeries:'',passportNumber:'',issuer:'',issued:''};
@@ -4370,19 +4598,20 @@ function openContract(id){
   for(let i=1;i<=(parseInt(c.months)||0);i++)schedule.push({date:c['дата'+i]||'',amount:parseFloat(c['размер'+i])||0});
   const prepayRecord=paysOf(c.id).find(p=>p.type==='prepay');
   contractDraft={prepayDate:prepayRecord&&prepayRecord.dateStr||'',id:c.id,number:c.contractId||'',date:c.date||'',product:c.product||'',price:parseFloat(c.price)||0,prepay:parseFloat(c.prepay)||0,months:parseInt(c.months)||0,schedule,persons,saleType:'goods',sellerName:sellerDetails.name,sellerPhone:sellerDetails.phone,addSignatures:false,showPaid:false,blob:null,url:null};
-  const el=document.createElement('div');el.id='mContract';el.className='mover on';el.addEventListener('click',e=>{if(e.target===el)closeContract();});document.body.appendChild(el);
+  const el=document.createElement('div');el.id='mContract';el.className='mover on';el.addEventListener('click',e=>{if(e.target===el)requestDialogClose('mContract');});document.body.appendChild(el);
   renderContractForm();
 }
 function renderContractForm(){
   const d=contractDraft;if(!d)return;
   const fields=d.persons.map((p,i)=>'<div class="contract-person"><div class="contract-person-name">'+esc(contractParticipantRole(d,p.role))+' · '+esc(p.name)+'</div><div class="contract-fields"><label>Серия паспорта<input class="inp" inputmode="numeric" maxlength="4" autocomplete="off" data-person="'+i+'" data-field="passportSeries" value="'+esc(p.passportSeries)+'" placeholder="4 цифры"/></label><label>Номер паспорта<input class="inp" inputmode="numeric" maxlength="6" autocomplete="off" data-person="'+i+'" data-field="passportNumber" value="'+esc(p.passportNumber)+'" placeholder="6 цифр"/></label><label>Кем выдан<input class="inp" autocomplete="off" data-person="'+i+'" data-field="issuer" value="'+esc(p.issuer)+'" placeholder="Орган выдачи"/></label><label>Дата выдачи<input class="inp" type="date" data-person="'+i+'" data-field="issued" value="'+esc(p.issued)+'"/></label><label>WhatsApp в договоре<input class="inp" type="tel" autocomplete="off" data-person="'+i+'" data-field="phone" value="'+esc(p.phone)+'" placeholder="Номер WhatsApp"/></label></div></div>').join('');
-  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Подготовить договор</div><label class="contract-sign-option">Тип продажи<select class="inp sel" id="contractSaleType" style="width:auto"><option value="goods" '+(d.saleType!=='service'?'selected':'')+'>Товар</option><option value="service" '+(d.saleType==='service'?'selected':'')+'>Услуга</option></select></label><div class="contract-sub">Сделка № '+esc(d.number||'—')+'</div><div class="contract-person">'+(d.saleType==='service'?'Услуга':'Товар')+', суммы и график платежей — из сделки</div><div class="contract-person"><label>'+(d.saleType==='service'?'ФИО исполнителя':'ФИО продавца')+'<input class="inp" id="contractSellerName" autocomplete="off" value="'+esc(d.sellerName)+'" placeholder="Фамилия Имя Отчество"/></label><label>Телефон продавца / исполнителя<input class="inp" type="tel" id="contractSellerPhone" autocomplete="off" value="'+esc(d.sellerPhone||'')+'" placeholder="Телефон"/></label></div>'+fields+'<label class="contract-sign-option"><input type="checkbox" id="contractAddSignatures" '+(d.addSignatures?'checked':'')+'> Добавить строку для подписи</label><label class="contract-sign-option"><input type="checkbox" id="contractShowPaid" '+(d.showPaid?'checked':'')+'> Добавить столбец «Оплачено» в график</label><div class="contract-sub">Паспортные данные используются только при подготовке договора.</div><div class="mft"><button class="btn bgh" onclick="closeContract()">Отмена</button><button class="btn bg" onclick="previewContract()">Предпросмотр договора</button></div></div>';
+  document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Подготовить договор</div><label class="contract-sign-option">Тип продажи<select class="inp sel" id="contractSaleType" style="width:auto"><option value="goods" '+(d.saleType!=='service'?'selected':'')+'>Товар</option><option value="service" '+(d.saleType==='service'?'selected':'')+'>Услуга</option></select></label><div class="contract-sub">Сделка № '+esc(d.number||'—')+'</div><div class="contract-person">'+(d.saleType==='service'?'Услуга':'Товар')+', суммы и график платежей — из сделки</div><div class="contract-person"><label>'+(d.saleType==='service'?'ФИО исполнителя':'ФИО продавца')+'<input class="inp" id="contractSellerName" autocomplete="off" value="'+esc(d.sellerName)+'" placeholder="Фамилия Имя Отчество"/></label><label>Телефон продавца / исполнителя<input class="inp" type="tel" id="contractSellerPhone" autocomplete="off" value="'+esc(d.sellerPhone||'')+'" placeholder="Телефон"/></label></div>'+fields+'<label class="contract-sign-option"><input type="checkbox" id="contractAddSignatures" '+(d.addSignatures?'checked':'')+'> Добавить строку для подписи</label><label class="contract-sign-option"><input type="checkbox" id="contractShowPaid" '+(d.showPaid?'checked':'')+'> Добавить столбец «Оплачено» в график</label><div class="contract-sub">Паспортные данные используются только при подготовке договора.</div><div class="mft"><button class="btn bgh" onclick="requestDialogClose(\'mContract\')">Отмена</button><button class="btn bg" onclick="previewContract()">Предпросмотр договора</button></div></div>';
   document.getElementById('contractSaleType').addEventListener('change',event=>{if(contractDraft){contractDraft.saleType=event.target.value==='service'?'service':'goods';renderContractForm();}});
   document.getElementById('contractShowPaid').addEventListener('change',event=>{if(contractDraft)contractDraft.showPaid=event.target.checked;});
   document.getElementById('contractAddSignatures').addEventListener('change',event=>{if(contractDraft)contractDraft.addSignatures=event.target.checked;});
   document.getElementById('contractSellerPhone').addEventListener('input',event=>{if(contractDraft)contractDraft.sellerPhone=event.target.value;});
   document.getElementById('contractSellerName').addEventListener('input',event=>{if(contractDraft)contractDraft.sellerName=event.target.value;});
   document.querySelectorAll('#mContract [data-person]').forEach(input=>input.addEventListener('input',()=>{const p=contractDraft&&contractDraft.persons[+input.dataset.person];if(p){p[input.dataset.field]=input.value;if(input.dataset.field==='phone')p.sendPhone=input.value;}}));
+  const layer=document.getElementById('mContract');wrapDialogTitle(layer);enterDialog(layer);
 }
 const CONTRACT_TEMPLATE=["ДОГОВОР КУПЛИ-ПРОДАЖИ ТОВАРА С УСЛОВИЕМ РАССРОЧКИ","«____» ____________ 2026 г.","Гражданин Российской Федерации , именуемый в дальнейшем «Продавец», с одной стороны, и гражданин Российской Федерации","___________________________________________________________________________________________","именуемый в дальнейшем «Покупатель», с другой стороны, руководствуясь нормами Ислама и действуя в соответствии с законодательством Российской Федерации, заключили настоящий договор о нижеследующем:","1. Предмет договора","1.1. Продавец обязуется передать в собственность Покупателю, а Покупатель обязуется принять и оплатить товар по цене, указанной в настоящем договоре.","1.2. Наименование товара: ____________________________________________________________________","1.3. Общая стоимость товара: _______________ руб.","1.4. Общая стоимость товара является окончательной, зафиксирована в момент заключения договора и не подлежит изменению ни при каких обстоятельствах, в том числе при просрочке платежей или досрочном погашении. Проценты, пени и штрафы на сумму долга не начисляются.","2. Поручительство","2.1. Покупатель предоставляет поручителя, данные которого указаны в разделе 9 настоящего договора.","2.2. Поручитель гарантирует своевременное исполнение обязательств Покупателя и несёт с ним солидарную ответственность: в случае неисполнения Покупателем обязательств Продавец вправе требовать оплату как с Покупателя, так и с Поручителя.","3. Обязанности сторон","3.1. Продавец обязуется передать товар Покупателю в согласованные сроки.","3.2. Покупатель обязуется принять товар и производить оплату в порядке и сроки, установленные разделом 5 настоящего договора.","4. Особые условия","4.1. Настоящий договор составлен с учётом норм Ислама, исключающих начисление процентов на сумму долга.","4.2. С момента передачи товара Покупателю право собственности на товар переходит к Покупателю в полном объёме.","4.3. При просрочке Покупателем двух и более платежей подряд Продавец вправе потребовать досрочной оплаты всей оставшейся суммы долга. Сумма долга при этом не увеличивается.","4.4. Покупатель вправе погасить рассрочку досрочно. Сумма долга при досрочном погашении не изменяется.","5. Условия рассрочки","5.1. Предоплата в размере _______________ руб. внесена «____» ____________ 2026 г.","5.2. Срок рассрочки составляет _______ месяцев. Остаток стоимости оплачивается ежемесячными платежами согласно графику:","","","6. Ответственность сторон","6.1. За неисполнение или ненадлежащее исполнение обязательств стороны несут ответственность в соответствии с нормами Ислама.","7. Расчёты","7.1. Расчёты производятся наличными в кассу Продавца либо переводом на счёт, указанный Продавцом. Факт оплаты каждого платежа подтверждается подписью Продавца в графе «Оплачено» графика платежей.","8. Прочие условия","8.1. Договор вступает в силу с момента подписания обеими сторонами и передачи товара Покупателю.","8.2. Договор составлен в двух экземплярах, имеющих равную силу, — по одному для каждой из сторон.","9. Подписи, адреса и реквизиты сторон","Дата подписания: «____» ____________ 2026 г."];
 // Текст взят из предоставленного образца договора, кроме подставляемых значений.
@@ -4468,8 +4697,19 @@ function contractDefinition(d){
 
 async function previewContract(){
   const d=contractDraft;if(!d)return;
-  const missing=d.persons.find(p=>!/^\d{4}$/.test(p.passportSeries.trim())||!/^\d{6}$/.test(p.passportNumber.trim())||!p.issuer.trim()||!p.issued);
-  if(missing){toast('Заполните паспортные данные: '+missing.role,'ter');return;}
+  for(const [i,person] of d.persons.entries()){
+    const errors=[
+      ['passportSeries',/^\d{4}$/.test(person.passportSeries.trim()),'Введите 4 цифры серии.'],
+      ['passportNumber',/^\d{6}$/.test(person.passportNumber.trim()),'Введите 6 цифр номера.'],
+      ['issuer',!!person.issuer.trim(),'Укажите, кем выдан паспорт.'],
+      ['issued',!!person.issued,'Укажите дату выдачи.']
+    ];
+    const first=errors.find(([,valid])=>!valid);
+    if(first){
+      markFieldError(document.querySelector('#mContract [data-person="'+i+'"][data-field="'+first[0]+'"]'),first[2]);
+      return;
+    }
+  }
   const total=R2(d.schedule.reduce((sum,p)=>sum+p.amount,0)+d.prepay);
   if(!d.product||!d.date||!d.months||d.schedule.some(p=>!p.date||p.date==='—'||p.amount<=0)){toast(d.saleType==='service'?'Проверьте дату, услугу и график платежей в сделке':'Проверьте дату, товар и график платежей в сделке','ter');return;}
   if(Math.abs(total-d.price)>0.01){toast('Сумма графика и предоплаты не совпадает с ценой сделки','ter');return;}
@@ -4487,6 +4727,7 @@ function contractFile(){const d=contractDraft;return new File([d.blob],contractF
 function renderContractPreview(){
   const d=contractDraft;if(!d||!d.url)return;
   document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Предпросмотр договора</div><div class="contract-sub">Проверьте данные сторон и график перед отправкой.</div><iframe class="contract-preview" title="Предпросмотр договора" src="'+d.url+'"></iframe><div class="mft"><button class="btn bgh" onclick="renderContractForm()">Назад</button><button class="btn bgh" onclick="openContractPdf()">Открыть PDF</button><button class="btn bg" onclick="renderContractSend()">Продолжить</button></div></div>';
+  const layer=document.getElementById('mContract');wrapDialogTitle(layer);enterDialog(layer);
 }
 function openContractPdf(){if(contractDraft&&contractDraft.url)window.open(contractDraft.url,'_blank','noopener');}
 function downloadContract(){
@@ -4498,6 +4739,7 @@ function renderContractSend(){
   const recipients=d.persons.map((p,i)=>'<div class="contract-recipient"><div><b>'+esc(contractParticipantRole(d,p.role))+' · '+esc(p.name)+'</b><label>Номер WhatsApp для отправки<input class="inp" type="tel" autocomplete="off" data-phone="'+i+'" value="'+esc(fmtPhone(p.sendPhone)||p.sendPhone||'')+'" placeholder="Укажите номер WhatsApp"/></label></div><button class="btn bwa" onclick="contractOpenWhatsApp('+i+')">Открыть WhatsApp</button></div>').join('');
   document.getElementById('mContract').innerHTML='<div class="modal contract-modal"><div class="mtitle">Отправить договор</div><div class="contract-sub">Один PDF для '+(d.saleType==='service'?'заказчика':'покупателя')+' и всех поручителей.</div><div class="contract-person"><b>'+esc(contractFileName(d))+'</b><div class="contract-actions"><button class="btn bgh" onclick="openContractPdf()">Открыть PDF</button><button class="btn bgh" onclick="downloadContract()">Скачать PDF</button><button class="btn bgh" onclick="shareContract()">Поделиться PDF</button></div></div>'+recipients+'<div class="contract-sub">При открытии чата прикрепите скачанный PDF. На телефоне можно выбрать «Поделиться PDF», WhatsApp и получателя. Изменение номера на этом шаге не меняет готовый PDF.</div><div class="mft"><button class="btn bgh" onclick="renderContractPreview()">Назад</button><button class="btn bg" onclick="closeContract()">Готово</button></div></div>';
   document.querySelectorAll('#mContract [data-phone]').forEach(input=>input.addEventListener('input',()=>{const p=contractDraft&&contractDraft.persons[+input.dataset.phone];if(p)p.sendPhone=input.value;}));
+  const layer=document.getElementById('mContract');wrapDialogTitle(layer);enterDialog(layer);
 }
 function contractOpenWhatsApp(index){
   const p=contractDraft&&contractDraft.persons[index];if(!p)return;
@@ -4516,13 +4758,53 @@ async function shareContract(){
 let _xlsxP=null;
 function loadXlsx(){if(window.XLSX)return Promise.resolve();if(!_xlsxP)_xlsxP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='./vendor/xlsx-0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=()=>{_xlsxP=null;no(new Error('не загрузилась библиотека Excel'));};document.head.appendChild(s);});return _xlsxP;}
 async function exportExcel(){try{await loadXlsx();}catch(e){toast('Ошибка: '+e.message,'ter');return;}const r=[['№','Дата','ФИО','Телефоны','Товар','Поставщик','Цена','Предоплата','Месяцев','Ежем. платеж','Статус','Остаток','Просрочка']];S.clients.forEach(c=>{if(c.archived)return;const s=getStats(c),mi=getMonthlyInfo(c);const monthStr=mi.uniform?(mi.value||'—'):mi.uniqueSizes.join('/');r.push([c.contractId,c.date,c.name,(c.phones||[]).map(fmtPhone).join(', '),c.product,c.partner,c.price,c.prepay,c.months,monthStr,effStatus(c),s.balance,s.overdue]);});const ws=XLSX.utils.aoa_to_sheet(r),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Клиенты');const pr=[['Дата','Договор','Клиент','Сумма','Тип','Способ']];S.payments.filter(p=>p.type!=='discount').forEach(p=>pr.push([p.dateStr,p.contractId,p.name,p.amount,p.typeLabel,p.payType]));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pr),'Платежи');XLSX.writeFile(wb,'Amana_CRM_'+fmtD(new Date()).replace(/\./g,'-')+'.xlsx');toast('Скачан!','tok');}
-function openM(id){const el=document.getElementById(id);delete el.dataset.pendingWrite;el.classList.add('on');applyFmtToInputs(el);}
-function closeM(id){document.getElementById(id).classList.remove('on');}
+function openM(id){
+  const el=document.getElementById(id);
+  delete el.dataset.pendingWrite;
+  dirtyForms.delete(el);
+  el.querySelectorAll('[aria-invalid=true]').forEach(clearFieldError);
+  el.querySelector('.form-error')?.remove();
+  el.classList.add('on');
+  el.querySelector('.modal').scrollTop=0;
+  applyFmtToInputs(el);
+  enterDialog(el);
+}
+function closeM(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  dirtyForms.delete(el);
+  el.classList.remove('on');
+  leaveDialog(el);
+  setTimeout(iosTouchFix,60);
+}
 // Непредвиденная ошибка в действии (кнопка «молчит») — показываем сообщение, а не обрываемся молча
-window.addEventListener('unhandledrejection',e=>{const m=(e.reason&&e.reason.message)||String(e.reason||'');if(/ResizeObserver|AbortError/.test(m))return;try{toast('Что-то пошло не так: '+m+'. Обновите страницу и попробуйте ещё раз','ter');}catch(_){}});
-window.addEventListener('error',e=>{const m=e.message||'';if(!m||/ResizeObserver|Script error/.test(m))return;try{toast('Что-то пошло не так: '+m+'. Обновите страницу и попробуйте ещё раз','ter');}catch(_){}});
-function toast(m,c){m=String(m).replace(/^Ошибка: (Нет интернета|Связь пропала|Недостаточно средств|Договор изменился|CRM переехала)/,'$1');const t=document.getElementById('toast');t.textContent=m;if(/^(Нет интернета|Связь пропала|Недостаточно средств|Договор изменился|CRM переехала)/.test(m)){t.className='toast ter';t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),6000);return;}t.className='toast '+(c||'');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
-document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+window.addEventListener('unhandledrejection',e=>{const m=(e.reason&&e.reason.message)||String(e.reason||'');if(/ResizeObserver|AbortError/.test(m))return;try{toast('Ошибка: '+m,'ter');}catch(_){}});
+window.addEventListener('error',e=>{const m=e.message||'';if(!m||/ResizeObserver|Script error/.test(m))return;try{toast('Ошибка: '+m,'ter');}catch(_){}});
+function toast(m,c){
+  m=String(m).replace(/^Ошибка: (Нет интернета|Связь пропала|Недостаточно средств|Договор изменился|CRM переехала)/,'$1');
+  const active=dialogStack.at(-1)?.layer;
+  const modal=active?.querySelector('.modal,.confirm-box');
+  if(c==='ter' && document.getElementById('writeStatus')?.classList.contains('on') && window.DB?.writeState().pending)return;
+  if(c==='ter' && modal){
+    let message=modal.querySelector('.form-error');
+    if(!message){
+      message=document.createElement('p');
+      message.className='form-error';
+      message.setAttribute('role','alert');
+      (modal.querySelector('.mft,.confirm-actions') || modal.lastElementChild)?.before(message);
+    }
+    message.textContent=m;
+    message.scrollIntoView({block:'nearest'});
+    return;
+  }
+  const t=document.getElementById('toast');
+  t.textContent=m;
+  t.className='toast '+(c||'');
+  t.classList.add('on');
+  clearTimeout(t._h);
+  t._h=setTimeout(()=>t.classList.remove('on'),c==='ter'?6000:3000);
+}
+document.querySelectorAll('.mover').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)requestDialogClose(m.id);}));
 </script>
 <script>
 // =====================================================================
@@ -4556,7 +4838,7 @@ const INV_OP={
   withdraw:{name:'Вывод капитала',sign:-1,cap:-1,pay:0,cls:'cr',badge:'bo'},
   profit:{name:'Прибыль за месяц',sign:1,cap:0,pay:1,cls:'cg',badge:'ba'},
   loss:{name:'Минус за месяц',sign:-1,cap:-1,pay:0,cls:'cr',badge:'bo'},
-  reinvest:{name:'Реинвест',sign:1,cap:1,pay:-1,cls:'cb',badge:'bd'},
+  reinvest:{name:'Прибыль во вклад',sign:1,cap:1,pay:-1,cls:'cb',badge:'bd'},
   payout:{name:'Выплата прибыли',sign:-1,cap:0,pay:-1,cls:'cy',badge:'by2'}
 };
 const invEsc=esc; // одна функция экранирования на всю CRM
@@ -4660,7 +4942,7 @@ function invOpsRows(M,invId,ops){
 }
 
 // ---------- КАРТОЧКА УЧАСТНИКА ----------
-function openInv(id){S.curInv=id;S.invOpsTab='all';goTo('investor');window.scrollTo(0,0);}
+function openInv(id){S.curInv=id;S.invOpsTab='all';goTo('investor');}
 // ---------- МЕСЯЦ (разбивка / закрытие) ----------
 let _imMk=null;
 function invReopenMonth(mk){
@@ -4704,7 +4986,7 @@ function invFormSync(){
 }
 async function saveInvForm(){
   if(_saving)return;
-  const name=document.getElementById('ifName').value.trim();if(!name){toast('Укажите имя','ter');return;}
+  const name=document.getElementById('ifName').value.trim();if(!name){markFieldError('ifName','Укажите имя.');return;}
   const role=document.getElementById('ifRole').value;
   const data={name,phone:document.getElementById('ifPhone').value.trim(),note:document.getElementById('ifNote').value.trim()};
   const{db,collection,addDoc,doc,updateDoc}=window.DB;_saving=true;
@@ -4763,7 +5045,9 @@ function invMonthData(M,mk){
 function invRowRent(r){const base=r.startedCap!==undefined?r.startedCap:r.capEnd;return base>0?r.total/base:null;}
 // Учредитель: рентабельность с прибылью от капитала инвесторов / только со своего капитала (без «От компании»). Только показ — расчёт тот же
 function invRentShow(r){const all=invRentFmt(invRowRent(r));if(r.role!=='founder'||!(Math.abs(r.fromComp||0)>0.004))return all;
-  const base=r.startedCap!==undefined?r.startedCap:r.capEnd;return all+' / '+invRentFmt(base>0?(r.total-(r.fromComp||0))/base:null);}
+  const base=r.startedCap!==undefined?r.startedCap:r.capEnd;const own=invRentFmt(base>0?(r.total-(r.fromComp||0))/base:null);
+  return '<span class="rent-values"><span>С долей от компании <b>'+all+'</b></span>'+
+    '<span>Только свой капитал <b>'+own+'</b></span></span>';}
 
 // ---------- ДОХОД ПО ВКЛАДАМ ЗА ПЕРИОД ----------
 function renderInvestors(){
@@ -4852,7 +5136,7 @@ function invPoolStatsHtml(M,years){
   let byYear='';
   if(ys.length>1){
     const rows=ys.slice().reverse().map(y=>{const t=invPoolStats(M,[y]);return'<tr><td style="font-weight:700">'+y+'</td><td class="num"><span class="amt '+(t.net<0?'cr':'cg')+'">'+invMoney(t.net)+'</span></td><td class="num">'+invRentFmt(t.avg)+'</td><td class="num">'+t.closedCount+'</td><td class="num">'+invMoney(t.earned)+'</td><td class="num">'+fmt(t.paid)+' ₽</td><td class="num">'+fmt(t.reinvested)+' ₽</td><td class="num">'+fmt(t.deposited)+' ₽</td><td class="num">'+fmt(t.withdrawn)+' ₽</td></tr>';}).join('');
-    byYear='<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px" id="invByYear"><div class="ct" style="padding:14px 16px 0">По годам</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Год</th><th class="plain num">Прибыль пула</th><th class="plain num">Рент. в мес.</th><th class="plain num">Закрыто мес.</th><th class="plain num">Начислено</th><th class="plain num">Выплачено</th><th class="plain num">Реинвест</th><th class="plain num">Вложено</th><th class="plain num">Выведено</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    byYear='<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px" id="invByYear"><div class="ct" style="padding:14px 16px 0">По годам</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Год</th><th class="plain num">Прибыль пула</th><th class="plain num">Рент. в мес.</th><th class="plain num">Закрыто мес.</th><th class="plain num">Начислено</th><th class="plain num">Выплачено</th><th class="plain num">Вложить прибыль</th><th class="plain num">Вложено</th><th class="plain num">Выведено</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
   }
   return'<div class="dsh-h"><div class="dsh-ht">Итоги пула '+per+'</div></div><div class="dsh-g4" id="invPoolStats">'+cards+'</div>'+byYear+invChartHtml(M,{months:st.months},true,{all:true});
 }
@@ -4912,9 +5196,9 @@ function openInvMonth(mk,refresh){
     }
   });
   const sum='<div class="sg4" style="margin-bottom:14px"><div class="sc"><div class="sl">Прибыль с оплат</div><div class="sv">'+fmt(d.gross)+' ₽</div></div><div class="sc"><div class="sl">Расходы</div><div class="sv cr">'+(d.exp?'−'+fmt(d.exp):'0')+' ₽</div></div><div class="sc"><div class="sl">Чистая прибыль</div><div class="sv '+(d.net<0?'cr':'cg')+'">'+invMoney(d.net)+'</div></div><div class="sc"><div class="sl">Рентабельность пула</div><div class="sv">'+invRentFmt(d.poolRent)+'</div><div class="ss">капитал '+fmt(d.poolCap||0)+' ₽</div></div></div>';
-  document.getElementById('imBody').innerHTML=note+sum+(rows?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain num">Капитал на конец</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">Компании</th><th class="plain num">От компании</th><th class="plain num">Итого</th><th class="plain num">Рент.</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="im-cards">'+cards+'</div><div class="inv-muted" style="margin-top:8px">«Компании» — часть прибыли инвестора, которая остаётся компании. «От компании» — эта часть, распределённая между учредителями по их капиталу. «Рент.» — итог участника / его работающий капитал на конец месяца. У учредителя две цифры: с прибылью от капитала инвесторов / только со своего капитала.</div>':'<div class="empty">В этом месяце нет движений</div>');
-  let ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Закрыть окно</button>';
-  if(s.st==='open'&&s.canClose)ft='<button class="btn bgh" onclick="closeM(\'mInvMonth\')">Отмена</button><button class="btn bg" id="imBtn" onclick="invCloseMonth(\''+mk+'\')">Закрыть месяц</button>';
+  document.getElementById('imBody').innerHTML=note+sum+(rows?'<div class="tbl-wrap" tabindex="0" role="region" aria-label="Расчёт по участникам за месяц"><table class="tbl"><thead><tr><th class="plain">Участник</th><th class="plain num">Капитал на конец</th><th class="plain num">Доля на конец</th><th class="plain num">С прибыли</th><th class="plain num">Расходы</th><th class="plain num">Чистыми</th><th class="plain num">Компании</th><th class="plain num">От компании</th><th class="plain num">Итого</th><th class="plain num">Рент.</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="im-cards">'+cards+'</div><div class="inv-muted" style="margin-top:8px">«Компании» — часть прибыли инвестора, которая остаётся компании. «От компании» — эта часть, распределённая между учредителями по их капиталу. «Рент.» — итог участника / его работающий капитал на конец месяца. Строка «С долей от компании» включает часть прибыли от вкладов инвесторов. Строка «Только свой капитал» учитывает прибыль от собственных средств.</div>':'<div class="empty">В этом месяце нет движений</div>');
+  let ft='<button class="btn bgh" onclick="requestDialogClose(\'mInvMonth\')">Закрыть окно</button>';
+  if(s.st==='open'&&s.canClose)ft='<button class="btn bgh" onclick="requestDialogClose(\'mInvMonth\')">Отмена</button><button class="btn bg" id="imBtn" onclick="invCloseMonth(\''+mk+'\')">Закрыть месяц</button>';
   if(s.st==='closed'&&s.canReopen)ft='<button class="btn br bsm" style="margin-right:auto" onclick="invReopenMonth(\''+mk+'\')">Отменить закрытие</button>'+ft;
   document.getElementById('imFt').innerHTML=ft;
   if(!refresh)openM('mInvMonth');
@@ -5013,7 +5297,7 @@ async function saveInvOp(){
   const t=_io.type,meta=IO_META[t],i=S.inv.find(x=>x.id===_io.invId);if(!i)return;
   const isF=i.role==='founder';
   const amt=invR(parseNum(document.getElementById('ioAmt').value));
-  if(!amt||amt<=0){toast('Укажите сумму','ter');return;}
+  if(!amt||amt<=0){markFieldError('ioAmt','Укажите сумму больше нуля.');return;}
   const{M,b,w,wb,tr,depId,depCap,depPay}=invOpLimits();
   if(meta.wallet&&!w){toast('Выберите кошелёк','ter');return;}
   let d=new Date();
@@ -5026,7 +5310,7 @@ async function saveInvOp(){
   const extra={};
   if(meta.terms&&!isF){
     const pct=parseFloat(String(document.getElementById('ioPct').value).replace(',','.'));
-    if(isNaN(pct)||pct<0||pct>100){toast('Доля инвестору — от 0 до 100%','ter');return;}
+    if(isNaN(pct)||pct<0||pct>100){markFieldError('ioPct','Укажите долю от 0 до 100%.');return;}
     extra.pct=pct;extra.endDate=null;
     if(document.getElementById('ioTermSw').dataset.mode==='term'){
       const ev=document.getElementById('ioEnd').value;const e=ev?safeDateFromInput(ev):null;
@@ -5067,7 +5351,7 @@ async function saveInvOp(){
     finally{_saving=false;btn.classList.remove('saving');}
   };
   if(t==='withdraw'&&tr&&tr.termEnd&&tr.termEnd>M.now){
-    showConfirm('Срок вклада не вышел','Вклад от '+fmtD(tr.date)+' рассчитан до <strong>'+fmtD(tr.termEnd)+'</strong>. Всё равно вывести '+fmt(amt)+' ₽?',commit);
+    showConfirm('Срок вклада не вышел','Вклад от '+fmtD(tr.date)+' рассчитан до <strong>'+fmtD(tr.termEnd)+'</strong>. Всё равно вывести '+fmt(amt)+' ₽?',commit,{label:'Вывести капитал'});
     return;
   }
   await commit();
@@ -5182,8 +5466,8 @@ function renderInvDetail(){
   if(!i){el.innerHTML='<div class="card"><div class="empty">Участник не найден</div></div>';return;}
   const M=invModel(),b=M.bal[i.id],share=M.poolCap>0?Math.max(0,b.capital)/M.poolCap:0;
   const st=invPersonStats(M,i.id);const id=i.id;
-  let h='<div class="inv-hd"><div><div class="inv-name">'+invEsc(i.name)+invRoleBadge(i)+(i.archived?'<span class="badge by2">Архив</span>':'')+'</div><div class="inv-sub">'+invTermsText(i,M)+'</div></div>'+
-    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgt" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bb" onclick="openInvOp(\'reinvest\',\''+id+'\')">Реинвест</button><button class="btn by" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
+  let h='<div class="inv-hd"><div><h1 tabindex="-1" class="inv-name">'+invEsc(i.name)+invRoleBadge(i)+(i.archived?'<span class="badge by2">Архив</span>':'')+'</h1><div class="inv-sub">'+invTermsText(i,M)+'</div></div>'+
+    '<div class="inv-acts">'+(i.archived?'':'<button class="btn bg" onclick="openInvOp(\'deposit\',\''+id+'\')">Пополнить</button><button class="btn bgt" onclick="openInvOp(\'payout\',\''+id+'\')">Выплатить прибыль</button><button class="btn bb" onclick="openInvOp(\'reinvest\',\''+id+'\')">Вложить прибыль</button><button class="btn by" onclick="openInvOp(\'withdraw\',\''+id+'\')">Вывести капитал</button>')+'<button class="btn bgh" onclick="openInvForm(\''+id+'\')">Изменить</button></div></div>';
   const pre=st.prelim?' (предв.)':'';
   h+='<div class="sg4">'+
     '<div class="sc"><div class="sl">Капитал</div><div class="sv">'+fmt(b.capital)+' ₽</div><div class="ss">доля пула '+invPctFmt(share)+'</div></div>'+
@@ -5432,7 +5716,7 @@ function clTableHtml(visible,list=visible){
   const cells=keys.map(k=>'<td>'+(selected.has(k)?clTotals(list,k):k===labelKey?'Итого':'')+'</td>').join('');
   const footer=selected.size?'<tfoot><tr class="sum-row">'+cells+'</tr></tfoot>':'';
   const thead='<thead><tr>'+cols.map(c=>c.f?thF(c.f,c.h||c.n,'clients'):'<th><div class="th-cell"><span class="th-name">'+(c.h||c.n)+'</span></div></th>').join('')+'</tr></thead>';
-  const tb=visible.length?'<tbody>'+visible.map(c=>'<tr>'+cols.map(col=>col.td(c)).join('')+'</tr>').join('')+'</tbody>':'<tbody><tr><td colspan="'+cols.length+'" style="text-align:center;padding:32px;color:var(--t3)">Ничего не найдено'+(cfActive(S.CF)?'<button class="btn bgh bsm" style="margin-left:10px" onclick="resetMobileFilter(\'clients\')">Сбросить фильтры</button>':'')+'</td></tr></tbody>';
+  const tb=visible.length?'<tbody>'+visible.map(c=>'<tr>'+cols.map(col=>col.td(c)).join('')+'</tr>').join('')+'</tbody>':'<tbody><tr><td colspan="'+cols.length+'" style="text-align:center;padding:32px;color:var(--t3)">'+dealListEmpty()+(cfActive(S.CF)?'<button class="btn bgh bsm" style="margin-left:10px" onclick="resetMobileFilter(\'clients\')">Сбросить фильтры</button>':'')+'</td></tr></tbody>';
   return'<table class="tbl">'+thead+tb+footer+'</table>';
 }
 // ---------- Модалка ----------
@@ -5538,20 +5822,299 @@ async function vwSave(){
   window.chxHide=hide;
 })();
 // ---------- iPhone (иконка «Домой»): касания не должны пропадать после окон и клавиатуры ----------
-// Шапка окна: заголовок и крестик «закрыть» в одной строке, закреплена сверху при прокрутке длинной формы
-document.querySelectorAll('.mover').forEach(m=>{const t=m.querySelector('.modal>.mtitle');if(!t||!m.id)return;
-  const head=document.createElement('div');head.className='m-head';t.parentNode.insertBefore(head,t);head.appendChild(t);
-  head.insertAdjacentHTML('beforeend','<button type="button" class="m-x" aria-label="Закрыть" title="Закрыть">×</button>');
-  head.lastChild.onclick=()=>closeM(m.id);});
+// ---------- Окна, фокус и заполненные формы ----------
+const dialogStack = [];
+const dirtyForms = new WeakSet();
+let dialogTrigger=null;
+document.addEventListener('click',event=>{
+  dialogTrigger=event.target.closest('button,a[href],[role=button],[role=link]');
+  queueMicrotask(()=>{dialogTrigger=null;});
+},true);
+const draftForms = new Set(['mClient','mPerson','mPay','mDisc','mComment','mDefer','mKassa','mInvForm','mInvOp','mInvDep','mStaff','mContract']);
+let newDealDraft = null;
+
+function dialogTitle(modal) {
+  const title = modal.querySelector('.mtitle,.confirm-title');
+  if (title) {
+    if (!title.id) title.id = 'dialog-title-' + (modal.closest('[id]')?.id || 'confirm');
+    modal.setAttribute('aria-labelledby', title.id);
+  }
+  modal.setAttribute('role','dialog');
+  modal.setAttribute('aria-modal','true');
+  modal.tabIndex = -1;
+}
+function wrapDialogTitle(layer) {
+  const title = layer.querySelector('.modal>.mtitle');
+  if (!title) return;
+  const head = document.createElement('div');
+  head.className = 'm-head';
+  title.before(head);
+  head.append(title);
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'm-x';
+  close.setAttribute('aria-label','Закрыть');
+  close.title = 'Закрыть';
+  close.textContent = '×';
+  close.onclick = () => requestDialogClose(layer.id);
+  head.append(close);
+}
+function syncDialogs() {
+  for(let i=dialogStack.length-1;i>=0;i--){
+    const {layer}=dialogStack[i];
+    if(!layer.isConnected || !(layer.id==='confirmLayer'?layer.firstElementChild:layer.classList.contains('on'))){
+      layer.inert=false;
+      dialogStack.splice(i,1);
+    }
+  }
+  const top = dialogStack.at(-1)?.layer;
+  ['app','loginWrap'].forEach(id => { document.getElementById(id).inert = !!top; });
+  dialogStack.forEach(({layer}) => { layer.inert = layer !== top; });
+}
+function enterDialog(layer) {
+  const modal = layer.querySelector('.modal,.confirm-box');
+  if (!modal) return;
+  dialogTitle(modal);
+  labelFields(layer);
+  const index=dialogStack.findIndex(item=>item.layer===layer);
+  if(index<0)dialogStack.push({layer,trigger:dialogTrigger || document.activeElement});
+  else if(index!==dialogStack.length-1)dialogStack.push(dialogStack.splice(index,1)[0]);
+  syncDialogs();
+  modal.focus({preventScroll:true});
+}
+function leaveDialog(layer) {
+  if (!layer) return;
+  const index = dialogStack.findIndex(item => item.layer === layer);
+  const entry = index >= 0 ? dialogStack.splice(index,1)[0] : null;
+  const wasTop = index === dialogStack.length;
+  syncDialogs();
+  layer.inert = false;
+  if (entry && wasTop) {
+    if (entry.trigger?.isConnected && entry.trigger.getClientRects().length && !entry.trigger.closest('[inert]')) {
+      entry.trigger.focus({preventScroll:true});
+    } else {
+      const fallback = dialogStack.at(-1)?.layer.querySelector('[role=dialog]') || document.querySelector('.page:not([style*="display: none"]) h1');
+      fallback?.focus({preventScroll:true});
+    }
+  }
+}
+function closeConfirmation() {
+  const layer = document.getElementById('confirmLayer');
+  layer.replaceChildren();
+  leaveDialog(layer);
+}
+function discardDialog(layer) {
+  if (layer.id === 'mContract') closeContract();
+  else if (layer.id === 'mfOver') closeMobileFilter();
+  else closeM(layer.id);
+}
+function requestDialogClose(id) {
+  const layer = document.getElementById(id);
+  if (!layer || window.DB?.writeState().writing) return;
+  if (!dirtyForms.has(layer)) return discardDialog(layer);
+  const canKeep = id === 'mClient' && !_cid;
+  showConfirm('Закрыть заполненную форму?',
+    canKeep ? 'Черновик можно продолжить из «Новый договор», пока эта вкладка открыта.' : 'При закрытии введённые изменения будут потеряны.',
+    () => discardDialog(layer), {label:'Не сохранять',danger:true,cancel:'Продолжить заполнение',
+      alternate:canKeep ? {label:'Оставить черновик',run:() => {newDealDraft = captureNewDeal();discardDialog(layer);}} : null});
+}
+function markFormDirty(layer) {
+  if (layer && draftForms.has(layer.id)) dirtyForms.add(layer);
+}
+function captureNewDeal() {
+  const form = document.getElementById('mClient');
+  const values = [...form.querySelectorAll('input[id^=f_],select[id^=f_]')].map(field => [field.id,field.value,field.dataset.key]);
+  return {
+    values,
+    guarantors:[...form.querySelectorAll('#guarRows .pick-in')].map(field => [field.value,field.dataset.key]),
+    schedule:[...form.querySelectorAll('#schedBody tr')].map(row => [row.querySelector('.sz').value,row.querySelector('.dt').value]),
+    manual:{..._schedManual},partnerPhone:_ppManual
+  };
+}
+function restoreNewDeal(clientKey) {
+  if (!newDealDraft || clientKey) return false;
+  const draft = newDealDraft;
+  newDealDraft = null;
+  draft.values.forEach(([id,value,key]) => {
+    const field = document.getElementById(id);
+    field.value = value;
+    if (key !== undefined) field.dataset.key = key;
+  });
+  document.getElementById('f_name_w').classList.toggle('pick-has',!!document.getElementById('f_name').value);
+  pickInfo('f_name');
+  document.getElementById('guarRows').replaceChildren();
+  draft.guarantors.forEach(([value,key]) => addGuarRow(value,key));
+  const phone=document.getElementById('f_partnerPhone');
+  _ppManual=draft.partnerPhone;
+  phone.readOnly=true;
+  partPhoneSync();
+  _schedManual = {size:false,dates:false};
+  calcSched();
+  document.querySelectorAll('#schedBody tr').forEach((row,i) => {
+    if (draft.schedule[i]) [row.querySelector('.sz').value,row.querySelector('.dt').value] = draft.schedule[i];
+  });
+  _schedManual = draft.manual;
+  schedWarn();
+  return true;
+}
+function markFieldError(target,message) {
+  const field = typeof target === 'string' ? document.getElementById(target) : target;
+  if (!field) return toast(message,'ter');
+  clearFieldError(field);
+  const hint = document.createElement('div');
+  hint.className = 'field-error';
+  hint.id = 'field-error-' + (field.id || ++fieldErrorId);
+  hint.setAttribute('role','alert');
+  hint.textContent = message;
+  const wrapper=field.closest('label') || (field.parentElement.style.display==='flex'?field.parentElement:field);
+  wrapper.after(hint);
+  field.setAttribute('aria-invalid','true');
+  field.setAttribute('aria-describedby',[field.getAttribute('aria-describedby'),hint.id].filter(Boolean).join(' '));
+  field.focus({preventScroll:true});
+  field.scrollIntoView({block:'nearest'});
+}
+let fieldErrorId = 0;
+function clearFieldError(field) {
+  if (!field || !field.matches('[aria-invalid=true]')) return;
+  const ids = (field.getAttribute('aria-describedby') || '').split(' ');
+  const remaining = ids.filter(id => {
+    if (!id.startsWith('field-error-')) return !!id;
+    document.getElementById(id)?.remove();
+    return false;
+  });
+  field.removeAttribute('aria-invalid');
+  if (remaining.length) field.setAttribute('aria-describedby',remaining.join(' '));
+  else field.removeAttribute('aria-describedby');
+}
+function labelFields(root) {
+  root.querySelectorAll('label:not([for])').forEach(label => {
+    const field = label.nextElementSibling;
+    if (field?.id && field.matches('input:not([type=hidden]),textarea,select')) label.htmlFor = field.id;
+  });
+  (root.id==='schedBody'?root.querySelectorAll('tr'):root.querySelectorAll('#schedBody tr')).forEach((row,i) => {
+    row.querySelector('.sz').setAttribute('aria-label','Сумма платежа ' + (i+1));
+    row.querySelector('.dt').setAttribute('aria-label','Дата платежа ' + (i+1));
+  });
+}
+function editedField(event) {
+  clearFieldError(event.target);
+  const layer = event.target.closest('.mover.on');
+  if (layer) {
+    markFormDirty(layer);
+    layer.querySelector('.form-error')?.remove();
+  }
+}
+document.addEventListener('input',editedField,true);
+document.addEventListener('change',editedField,true);
+window.addEventListener('beforeunload',event => {
+  if (!newDealDraft && ![...document.querySelectorAll('.mover.on')].some(layer => dirtyForms.has(layer)) && !window.DB?.writeState().writing) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+document.addEventListener('keydown',event => {
+  const entry = dialogStack.at(-1);
+  if (event.key === 'Escape' && entry) {
+    if (event.target.matches('.pick-in') && document.getElementById(event.target.id+'_l')?.classList.contains('on')) return;
+    if (document.querySelector('#fdOverlay.on')) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (entry.layer.id === 'confirmLayer') closeConfirmation();
+    else requestDialogClose(entry.layer.id);
+    return;
+  }
+  if (event.key === 'Tab' && entry) {
+    const items = [...entry.layer.querySelectorAll('button,input,select,textarea,a[href],summary,[tabindex],iframe')]
+      .filter(item => item.tabIndex >= 0 && !item.disabled && item.getClientRects().length && getComputedStyle(item).visibility !== 'hidden');
+    const first = items[0], last = items.at(-1);
+    if (!first) { event.preventDefault(); return; }
+    if (!items.includes(document.activeElement) || (event.shiftKey ? document.activeElement === first : document.activeElement === last)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
+  }
+  if (['Enter',' '].includes(event.key) && event.target.matches('div[role=button][onclick],div[role=link][onclick]')) {
+    event.preventDefault();
+    event.target.click();
+  }
+},true);
+
+// ---------- Адреса разделов и возврат к предыдущему экрану ----------
+const routeScroll = new Map();
+let renderedRoute = '';
+let restoringRoute = false;
+const recordRoutes = {client:'curClient',person:'curPerson',investor:'curInv'};
+const routeId = p => {
+  const id = recordRoutes[p] ? String(S[recordRoutes[p]] || '') : '';
+  return /^[\w:-]{1,110}$/.test(id) ? id : '';
+};
+function saveRoutePosition() {
+  if (!renderedRoute) return;
+  const page = document.querySelector('.page:not([style*="display: none"])');
+  const list = page?.querySelector('.tbl-wrap,#pplList');
+  routeScroll.set(renderedRoute,{
+    y:window.scrollY,top:list?.scrollTop || 0,left:list?.scrollLeft || 0,
+    ...(renderedRoute==='#clients'?{clients:_clientsShown}:{}),
+    ...(renderedRoute==='#people'?{people:_pplShown}:{})
+  });
+}
+function setRoute(p) {
+  const id = routeId(p);
+  const route = id ? '#' + p + '/' + encodeURIComponent(id) : '#' + p;
+  if (renderedRoute === route && history.state?.amanaRoute === route) return;
+  saveRoutePosition();
+  const from = renderedRoute;
+  renderedRoute = route;
+  if (location.hash !== route || !history.state?.amanaRoute) {
+    const state = {amanaRoute:route,from:from || history.state?.from || ''};
+    if (restoringRoute || !from) history.replaceState(state,'',route);
+    else history.pushState(state,'',route);
+  }
+  return routeScroll.get(route) || {y:0,top:0,left:0};
+}
+function readRoute() {
+  const [page, encoded] = location.hash.slice(1).split('/');
+  const valid = /^[a-z]+$/.test(page) && document.getElementById('page-'+page) && pageAllowed(page);
+  let id = '';
+  try { id = encoded ? decodeURIComponent(encoded) : ''; } catch {}
+  const p = valid && (!recordRoutes[page] || /^[\w:-]{1,110}$/.test(id))
+    ? page : (pageAllowed('dashboard') ? 'dashboard' : 'people');
+  return {p,id};
+}
+function restoreRoute() {
+  const {p,id} = readRoute();
+  restoringRoute = true;
+  try {
+    if (recordRoutes[p]) S[recordRoutes[p]] = id;
+    if (p === 'client') S.prevPage = 'clients';
+    goTo(p);
+  } finally { restoringRoute = false; }
+}
+function goBackTo(fallback) {
+  if (history.state?.from) history.back();
+  else goTo(fallback);
+}
+window.addEventListener('popstate',() => {
+  if (!_inited) return;
+  const layer = dialogStack.at(-1)?.layer;
+  if (layer) {
+    if (renderedRoute && location.hash !== renderedRoute) history.pushState({amanaRoute:renderedRoute},'',renderedRoute);
+    if (layer.id === 'confirmLayer') closeConfirmation();
+    else requestDialogClose(layer.id);
+    return;
+  }
+  restoreRoute();
+});
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+document.querySelectorAll('.mover[id]').forEach(wrapDialogTitle);
+labelFields(document);
 function iosTouchFix(){try{const x=window.scrollX||0,y=window.scrollY||0;window.scrollTo(x,y+1);window.scrollTo(x,y);}catch(e){}}
 function blurInside(el){const a=document.activeElement;if(a&&a!==document.body&&(!el||el.contains(a))&&typeof a.blur==='function')a.blur();}
 (function(){
-  const _closeM=closeM;
-  closeM=function(id){const el=document.getElementById(id);if(el)blurInside(el);_closeM(id);setTimeout(iosTouchFix,60);};
   closeMobileFilter=function(){
     const m=document.getElementById('mfOver');if(!m)return;
     blurInside(m);m.removeAttribute('id');m.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));
-    m.style.display='none';m.style.pointerEvents='none';
+    m.style.display='none';m.style.pointerEvents='none';leaveDialog(m);
     setTimeout(()=>{m.remove();iosTouchFix();},350);
   };
   const _closeDrops=closeDrops;

@@ -65,7 +65,7 @@ export async function device(o={}){
 }
 export async function login(p,{again=false}={}){
   await p.goto(URL_CRM);await p.waitForTimeout(800);
-  if(!again&&await p.$('#lemail:visible')){await p.fill('#lemail','a@test.ru');await p.fill('#lpass','test12345');await p.click('#loginFields button');}
+  if(!again&&await p.$('#lemail:visible')){await p.fill('#lemail','a@test.ru');await p.fill('#lpass','test12345');await p.click('#loginSubmit');}
   // после очистки базы CRM сама перезагружает страницу — ожидание переживает эту перезагрузку
   for(let i=0;;i++){
     try{await p.waitForFunction(()=>typeof S!=='undefined'&&S.clients.length>0&&S.payments.length>0&&S.wallets.length>0,null,{timeout:90000});break;}

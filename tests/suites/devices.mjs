@@ -17,7 +17,7 @@ export default async function(){
   check('без интернета комментарий тоже не сохраняется',off.comment!=='Обещал завтра'&&/Нет интернета/.test(off.msg2),off);
   check('без интернета данные можно смотреть, видна плашка «только просмотр»',off.view&&/Нет интернета/.test(off.badge)&&/только просмотр/.test(off.badge),off);
   const nd=await A.p.evaluate(async()=>{openNew('p:P9');await new Promise(r=>setTimeout(r,100));document.getElementById('f_product').value='Офлайн';document.getElementById('f_cost').value='1000';document.getElementById('f_price').value='3000';calcSched();
-    await Promise.race([saveClient(),new Promise(r=>setTimeout(r,15000))]);const t=document.getElementById('toast').textContent;closeM('mClient');return t;});
+    await Promise.race([saveClient(),new Promise(r=>setTimeout(r,15000))]);const t=document.querySelector('#mClient .form-error')?.textContent || '';closeM('mClient');return t;});
   check('новый договор без интернета — понятное сообщение',/интернет/i.test(nd),nd);
   await A.ctx.setOffline(false);await wait(A.p,3000);
   const on=await A.p.evaluate(async()=>{_cid='c4';await savePay(1112,'w1');await new Promise(r=>setTimeout(r,800));return{pay:S.payments.some(p=>p.amount===1112&&p.clientId==='c4'),badge:document.getElementById('netBadge').classList.contains('on')};});
@@ -87,7 +87,7 @@ export default async function(){
   // расход в закрытом у инвесторов месяце нельзя провести
   const cl=await A.p.evaluate(async()=>{const M=invModel();const mk=M.months.find(x=>invMonthStatus(M,x).canClose);await invCloseMonth(mk);await new Promise(r=>setTimeout(r,1500));
     openKassaOp();const t=document.getElementById('koType');t.value='salary';kassaTypeChanged();document.getElementById('koAmt').value='100';document.getElementById('koWallet').value='w1';document.getElementById('koDate').value=mk+'-15';
-    const n0=S.kassaOps.length;await saveKassaOp();await new Promise(r=>setTimeout(r,500));closeM('mKassa');return{mk,toast:document.getElementById('toast').textContent,added:S.kassaOps.length-n0};});
+    const n0=S.kassaOps.length;await saveKassaOp();await new Promise(r=>setTimeout(r,500));const toast=document.querySelector('#mKassa .form-error')?.textContent || '';closeM('mKassa');return{mk,toast,added:S.kassaOps.length-n0};});
   check('расход в закрытом у инвесторов месяце не проводится',cl.added===0&&/закрыт/.test(cl.toast),cl);
   noErrors('устройства A',A.errs);noErrors('устройства B',B.errs);
   await A.ctx.close();await B.ctx.close();

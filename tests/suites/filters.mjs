@@ -58,7 +58,9 @@ export default async function(){
   // 8. Касса: по описанию оплаты клиента открывается его сделка, «Назад» возвращает в кассу
   const kd=await p.evaluate(async()=>{goTo('kassa');renderKassa();await new Promise(r=>setTimeout(r,200));
     const el=document.querySelector('#kList tbody .k-deal');if(!el)return{none:true};const tr=el.closest('tr'),op=S.kassaOps.find(o=>tr.textContent.includes(o.desc));
-    el.click();const r={client:pageOn('client'),cur:S.curClient,want:op&&op.refId};document.querySelector('#page-client .bback').click();r.back=pageOn('kassa');
+    el.click();const r={client:pageOn('client'),cur:S.curClient,want:op&&op.refId};document.querySelector('#page-client .bback').click();
+    for(let i=0;i<20&&!pageOn('kassa');i++)await new Promise(r=>setTimeout(r,50));
+    r.back=pageOn('kassa');
     const c=S.clients[5],fake={desc:'Оплата от '+c.name+' (№'+c.contractId+')'};r.byDesc=kOpClient(fake)===c.id;r.other=kOpClient({desc:'Аренда',refType:''})==='';
     r.plain=[...document.querySelectorAll('#kList tbody tr')].some(x=>!x.querySelector('.k-deal')&&x.children.length>5);return r;});
   check('касса: нажатие на «Оплата от …» открывает сделку клиента, «Назад» — обратно в кассу',kd.client&&kd.cur&&kd.cur===kd.want&&kd.back,kd);
