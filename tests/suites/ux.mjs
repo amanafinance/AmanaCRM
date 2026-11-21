@@ -49,6 +49,8 @@ export default async function(){
   const address=p.url();
   await p.goBack();
   check('браузер возвращает в список и сохраняет фильтр',await p.isVisible('#page-people') && await p.inputValue('#peopleFind')==='00001');
+  check('при возврате заголовок получает фокус без рамки',await p.locator('#page-people h1').evaluate(heading=>
+    document.activeElement===heading && getComputedStyle(heading).outlineStyle==='none'));
   await p.goto(address);
   await p.reload();
   await p.waitForFunction(()=>document.querySelector('#personBody h1')?.textContent.includes('Клиент 0'));
