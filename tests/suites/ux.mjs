@@ -5,7 +5,7 @@ export default async function(){
   const admin=await pbAdmin();
   const logs=Array.from({length:162},(_,i)=>({
     c:'journal',id:'uxjournal'+i,
-    data:{type:'Учебная запись',description:i===161?'Редкая запись КИРИЛЛИЦА':'Событие '+i,
+    data:{type:i===161?'Редкое действие':i===160?'Редкое действие отменено':'Учебная запись',description:i===161?'Редкая запись КИРИЛЛИЦА':'Событие '+i,
       date:{$date:new Date(Date.now()-i*60000).toISOString()},dateStr:'01.11.2026',time:'12:00'}
   }));
   const seed=await fetch(PB_URL+'/api/amana/test/seed',{method:'POST',
@@ -80,6 +80,17 @@ export default async function(){
 
   await p.setViewportSize({width:320,height:844});
   await p.evaluate(()=>goBase('reminders'));
+  const reminderScroll=await p.evaluate(async()=>{
+    const page=document.getElementById('page-reminders');
+    const list=page.querySelector('.tbl-wrap');
+    window.scrollTo(0,list.getBoundingClientRect().top+window.scrollY+100);
+    await new Promise(requestAnimationFrame);
+    const result={y:window.scrollY,heading:page.querySelector('h1').getBoundingClientRect().bottom,overflow:getComputedStyle(list).overflowY};
+    window.scrollTo(0,0);
+    return result;
+  });
+  check('на телефоне контроль платежей прокручивается всей страницей',
+    reminderScroll.y>100 && reminderScroll.heading<0 && reminderScroll.overflow==='visible',reminderScroll);
   const card=p.locator('.rem-mob .mcard').first();
   check('на 320 все действия платежа помещаются в карточку',await card.evaluate(el=>{
     const end=el.getBoundingClientRect().right;
@@ -95,10 +106,11 @@ export default async function(){
   await p.evaluate(()=>closeM('mPay'));
 
   await p.evaluate(()=>openContract('c0'));
-  check('договор на узком экране с общей шапкой и широким полем выдачи',await p.evaluate(()=>{
-    const r=k=>document.querySelector('#mContract [data-person="0"][data-field="'+k+'"]').getBoundingClientRect();
-    return r('passportSeries').y===r('passportNumber').y && r('issuer').width>r('passportNumber').width &&
-      !!document.querySelector('#mContract .m-x');
+  await p.evaluate(()=>previewContract());
+  check('серия и номер остаются на одной строке на узком экране даже при ошибке ввода',await p.evaluate(()=>{
+    const field=k=>document.querySelector('#mContract [data-person="0"][data-field="'+k+'"]');
+    const series=field('passportSeries'),number=field('passportNumber');
+    return series.getAttribute('aria-invalid')==='true' && Math.abs(series.getBoundingClientRect().y-number.getBoundingClientRect().y)<1;
   }));
   await p.evaluate(()=>closeContract());
 
@@ -113,7 +125,25 @@ export default async function(){
   check('Escape закрывает окно и возвращает фокус на график',!(await p.isVisible('#mInvMonth')) &&
     await month.evaluate(el=>el===document.activeElement));
 
+  await p.setViewportSize({width:390,height:844});
   await p.evaluate(()=>goTo('journal'));
+  await p.waitForFunction(()=>!journalBusy && _jd.length>=100);
+  check('редкого действия нет в первой загруженной странице истории',
+    await p.evaluate(()=>!_jd.some(row=>row.type==='Редкое действие')));
+  await p.locator('.j-filters').getByRole('button',{name:'Действие',exact:true}).click();
+  const actions=p.locator('#fdOverlay select#fdi_v');
+  await p.waitForFunction(()=>document.querySelector('#fdOverlay select#fdi_v:enabled'));
+  check('список действий содержит редкие варианты из всей истории',
+    await actions.locator('option').evaluateAll(options=>['','Редкое действие','Редкое действие отменено'].every(value=>options.some(o=>o.value===value))));
+  await actions.selectOption('Редкое действие');
+  await p.click('#fdo_apply');
+  await p.waitForFunction(()=>!journalBusy);
+  check('выбор действия показывает только точные совпадения',
+    await p.evaluate(()=>_jd.length===1 && _jd[0].type==='Редкое действие'));
+  await p.locator('.j-filters').getByRole('button',{name:'Действие',exact:true}).click();
+  await p.waitForFunction(()=>document.querySelector('#fdOverlay select#fdi_v:enabled'));
+  await actions.selectOption('');
+  await p.click('#fdo_apply');
   await p.waitForFunction(()=>!journalBusy && _jd.length>=100);
   check('история снова показывает компактные записи без раздела «Что изменилось»',
     !(await p.getByText('Что изменилось',{exact:true}).count()));

@@ -1228,17 +1228,20 @@ body.light .chx-b.b-est::after,body.light .chx-leg i.b-est::after{background:rep
 .contract-sub{color:var(--t2);font-size:var(--fs-xs);margin:8px 0;line-height:1.5}
 .contract-person{padding:12px;margin:10px 0;border:1px solid var(--brd2);border-radius:var(--r2);background:var(--bg2)}
 .contract-person-name{font-weight:700;margin-bottom:10px}
-.contract-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:var(--sp-3)}
+.contract-fields{display:grid;gap:var(--sp-3)}
+.passport-number-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:var(--sp-3)}
+.passport-number-row>.field-control{grid-row:1;align-content:space-between}
+.passport-number-row>.field-error{grid-column:1/-1;margin:0}
 .field-stack{display:grid;gap:var(--sp-3)}
 .field-control{display:grid;gap:6px;min-width:0}
 .field-control>.lbl{margin:0}
 .field-control>.inp{margin:0}
 .contract-fields label,.contract-recipient label{font-size:var(--fs-sm);color:var(--t2)}
-.contract-fields>.field-control{align-content:space-between}
-.contract-fields .field-wide,.contract-fields>.field-error{grid-column:1/-1}
 #sellerSettings .field-stack{margin:var(--sp-3) 0}
 #bkBody .field-control+.bk-s,#bkRs .field-control+.bk-row{margin-top:var(--sp-2)}
 #fdo_body .field-control .fdo-lbl{margin:0;font-size:var(--fs-sm)}
+#fdo_apply:disabled{opacity:.55;cursor:default}
+.journal-type-retry[hidden]{display:none}
 .contract-recipient{display:flex;align-items:end;gap:10px;justify-content:space-between;border-bottom:1px solid var(--brd2);padding:10px 0}
 .contract-recipient>div{flex:1;min-width:0}.contract-recipient label{margin-top:7px}
 .contract-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -1300,7 +1303,7 @@ details>summary::-webkit-details-marker{display:none}
   .pay-context,.contract-sub,.bk-t,.kcard-desc,.inv-muted,.mcard-label,.pt+.ps{font-size:14px}
   #kList .kcard-desc{font-size:14px}
   .mcard-label{line-height:1.35}
-  #page-clients > .card > .tbl-wrap,#pplList{
+  #page-clients > .card > .tbl-wrap,#page-reminders > .card > .tbl-wrap,#pplList{
     max-height:none;overflow:visible;scrollbar-gutter:auto;
   }
   #app::before{
@@ -1706,7 +1709,7 @@ function showConfirm(t,m,ok,options={}){
   document.getElementById('cfCancel').focus({preventScroll:true});
 }
 
-const CRM_VERSION='21.11.2026 · телефон и договоры';
+const CRM_VERSION='21.11.2026 · история и контроль платежей';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1763,7 +1766,10 @@ function goTo(p){
   }
   if(p==='investors')renderInvestors();
   if(p==='investor'){const ni=document.getElementById('nav-investors');if(ni)ni.classList.add('on');renderInvDetail();}
-  if(p==='reminders')renderReminders();
+  if(p==='reminders'){
+    if(position?.reminders)_remShown=position.reminders;
+    renderReminders(!!position?.reminders);
+  }
   if(p==='people'){
     if(position?.people)_pplShown=position.people;
     renderPeople(!!position?.people);
@@ -2468,7 +2474,11 @@ function mobileCardsHtml(list){
 // ---------- FILTERS ----------
 function thF(col,lbl,pg){const f=isF(col,pg);return'<th><div class="th-cell" onclick="toggleDrop(event,\''+col+'\',\''+pg+'\',this)"><span class="th-name'+(f?' filtered':'')+'">'+lbl+'</span></div></th>';}
 function isF(col,pg){if(pg==='clients'&&col.indexOf('x_')===0){const f=S.CF[col];return!!f&&!!(f.q||f.from||f.to);}if(pg==='clients'){const c=S.CF;if(col==='id')return!!c.id;if(col==='date')return!!(c.date_from||c.date_to||c.date_q);if(col==='name')return!!(c.name||c.phone);if(col==='product')return!!c.product;if(col==='partner')return!!c.partner;if(col==='firstpay')return!!(c.firstpay_q||c.firstpay_from||c.firstpay_to);if(col==='pricecost')return!!(c.price_q||c.price_from||c.price_to||c.prepay_q||c.prepay_from||c.prepay_to||c.cost_q||c.cost_from||c.cost_to);if(col==='months')return!!(c.months_q||c.months_from||c.months_to);if(col==='addr')return!!c.addr;if(col==='monthly')return!!(c.monthly||c.monthly_from||c.monthly_to);if(col==='bal')return!!(c.bal_q||c.bal_from||c.bal_to);if(col==='over')return!!(c.over_q||c.over_from||c.over_to);}if(pg==='journal'){const j=S.JF;if(col==='date')return!!(j.date_q||j.date_from||j.date_to);if(col==='type')return!!j.type;if(col==='desc')return!!j.desc;}return false;}
-function closeDrops(){document.getElementById('fdOverlay').classList.remove('on');_fdCol='';_fdPage='';}
+function closeDrops(){
+  document.getElementById('fdOverlay').classList.remove('on');
+  document.getElementById('fdo_apply').disabled=false;
+  _fdCol='';_fdPage='';
+}
 function openMobileFilter(pg){
   // Открывает модалку со всеми фильтрами сразу для мобильного
   // pg: 'clients' или 'payments'. У платежей — отдельный фильтр RF чтобы не конфликтовал
@@ -2553,10 +2563,34 @@ function updateMobileFilterBadge(){
   if(bp){if(rfCnt>0){bp.textContent=rfCnt;bp.style.display='inline-flex';}else bp.style.display='none';}
 }
 
+async function populateJournalTypes(select){
+  const retry=document.getElementById('fdi_type_retry');
+  const apply=document.getElementById('fdo_apply');
+  const isCurrent=()=>select.isConnected && _fdPage==='journal' && _fdCol==='type';
+  select.disabled=true;
+  apply.disabled=true;
+  retry.hidden=true;
+  select.replaceChildren(new Option('Загружаем действия…',''));
+  try{
+    const types=await window.DB.listJournalTypes();
+    if(!isCurrent())return;
+    types.sort((a,b)=>a.localeCompare(b,'ru'));
+    select.replaceChildren(new Option('Все действия',''),...types.map(type=>new Option(type,type)));
+    select.value=types.includes(S.JF.type)?S.JF.type:'';
+    select.disabled=false;
+    apply.disabled=false;
+  }catch(e){
+    if(!isCurrent())return;
+    select.replaceChildren(new Option('Не удалось загрузить действия',''));
+    retry.hidden=false;
+  }
+}
+
 function toggleDrop(ev,col,pg,el){
   ev.stopPropagation();
   if(_fdCol===col&&_fdPage===pg){closeDrops();return;}
   _fdCol=col;_fdPage=pg;
+  document.getElementById('fdo_apply').disabled=false;
   const titles={id:'№',date:'Дата',name:'Клиент',product:'Товар',partner:'Поставщик',pricecost:'Цена',prepay:'Предоплата',firstpay:'1-й взнос',months:'Месяцев',addr:'Адрес',monthly:'Ежем. платеж',bal:'Остаток',over:'Просрочка',type:'Действие',desc:'Описание'};
   document.getElementById('fdo_title').textContent=titles[col]||col;
   let body='',v=pg==='clients'?S.CF:S.JF;
@@ -2575,7 +2609,11 @@ function toggleDrop(ev,col,pg,el){
   else if(col==='monthly')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.monthly||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+esc(v.monthly_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+esc(v.monthly_to||'')+'"/></div>';
   else if(col==='bal')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.bal_q||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+esc(v.bal_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+esc(v.bal_to||'')+'"/></div>';
   else if(col==='over')body='<label class="fdo-lbl">Поиск</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.over_q||'')+'" placeholder="напр. 5000"/><label class="fdo-lbl">От–До</label><div class="fdo-row"><input class="fdo-inp" id="fdi_from" type="number" placeholder="От" value="'+esc(v.over_from||'')+'"/><input class="fdo-inp" id="fdi_to" type="number" placeholder="До" value="'+esc(v.over_to||'')+'"/></div>';
-  else if(col==='type')body='<div class="field-control"><label class="fdo-lbl" for="fdi_v">Название действия</label><input class="fdo-inp" id="fdi_v" value="'+esc(v.type||'')+'" placeholder="Например, оплата"/></div>';
+  else if(col==='type')body=`<div class="field-control">
+    <label class="fdo-lbl" for="fdi_v">Название действия</label>
+    <select class="inp fdo-inp" id="fdi_v" disabled><option>Загружаем действия…</option></select>
+    <button type="button" class="btn bgh bsm journal-type-retry" id="fdi_type_retry" hidden>Загрузить ещё раз</button>
+  </div>`;
   else if(col==='desc')body='<input class="fdo-inp" id="fdi_v" value="'+esc(v.desc||'')+'" placeholder="Описание..."/>';
   if(col.indexOf('x_')===0&&CL_XF[col.slice(2)]){const k=col.slice(2),d=CL_XF[k],f=S.CF[col]||{};
     document.getElementById('fdo_title').textContent=(CL_COLS[k]&&CL_COLS[k].n)||k;
@@ -2586,6 +2624,11 @@ function toggleDrop(ev,col,pg,el){
   document.getElementById('fdo_body').querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')applyF();}));
   document.getElementById('fdo_apply').onclick=()=>applyF();
   document.getElementById('fdo_reset').onclick=()=>resetF();
+  if(pg==='journal' && col==='type'){
+    const select=document.getElementById('fdi_v');
+    document.getElementById('fdi_type_retry').onclick=()=>populateJournalTypes(select);
+    populateJournalTypes(select);
+  }
   const ov=document.getElementById('fdOverlay'),rc=el.getBoundingClientRect();
   ov.classList.add('on');
   const vw=window.innerWidth,vh=window.innerHeight,ow=ov.offsetWidth,oh=ov.offsetHeight;
@@ -2597,6 +2640,7 @@ function toggleDrop(ev,col,pg,el){
   setTimeout(()=>{const fi=ov.querySelector('input,select');if(fi)fi.focus();},50);
 }
 function applyF(){
+  if(document.getElementById('fdo_apply').disabled)return;
   const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
   if(_fdPage==='clients'){
     const c=S.CF;
@@ -2638,7 +2682,11 @@ document.addEventListener('click',e=>{
   if(e.target.closest('.nb-sub')||e.target.closest('.nb-group'))return;
   closeAllSubMenus();
 });
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&_fdCol)applyF();if(e.key==='Escape')closeDrops();});
+document.addEventListener('keydown',e=>{
+  const journalSelect=_fdPage==='journal' && _fdCol==='type' && e.target.tagName==='SELECT';
+  if(e.key==='Enter' && _fdCol && !journalSelect)applyF();
+  if(e.key==='Escape')closeDrops();
+});
 
 // ---------- CLIENT DETAIL ----------
 function openC(id){S.prevPage=S.curPage||'clients';S.curClient=id;goTo('client');document.getElementById('nav-clients').classList.add('on');const c=S.clients.find(x=>x.id===id);if(c)renderDetail(c);}
@@ -4699,19 +4747,19 @@ function validPassportDate(text){
   return date.getUTCFullYear()===year && date.getUTCMonth()===month-1 && date.getUTCDate()===day;
 }
 function contractParticipantFields(d,person,index){
-  const fields=[
-    {key:'passportSeries',label:'Серия паспорта',attrs:'inputmode="numeric" maxlength="4" placeholder="4 цифры"'},
-    {key:'passportNumber',label:'Номер паспорта',attrs:'inputmode="numeric" maxlength="6" placeholder="6 цифр"'},
-    {key:'issuer',label:'Кем выдан',wide:true,attrs:'placeholder="Орган выдачи"'},
-    {key:'issued',label:'Дата выдачи',wide:true,attrs:'type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ"'},
-    {key:'phone',label:'Сотовый телефон в договоре',wide:true,attrs:'type="tel" placeholder="Номер сотового телефона"'}
-  ];
+  const field=(key,label,attrs)=>`<label class="field-control">${label}
+    <input class="inp" autocomplete="off" data-person="${index}" data-field="${key}" value="${esc(person[key])}" ${attrs}/>
+  </label>`;
   return `<div class="contract-person">
     <div class="contract-person-name">${esc(contractParticipantRole(d,person.role))} · ${esc(person.name)}</div>
-    <div class="contract-fields">${fields.map(({key,label,wide,attrs})=>`
-      <label class="field-control${wide?' field-wide':''}">${label}
-        <input class="inp" autocomplete="off" data-person="${index}" data-field="${key}" value="${esc(person[key])}" ${attrs}/>
-      </label>`).join('')}
+    <div class="contract-fields">
+      <div class="passport-number-row" role="group" aria-label="Серия и номер паспорта">
+        ${field('passportSeries','Серия паспорта','inputmode="numeric" maxlength="4" placeholder="4 цифры"')}
+        ${field('passportNumber','Номер паспорта','inputmode="numeric" maxlength="6" placeholder="6 цифр"')}
+      </div>
+      ${field('issuer','Кем выдан','placeholder="Орган выдачи"')}
+      ${field('issued','Дата выдачи','type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ"')}
+      ${field('phone','Сотовый телефон в договоре','type="tel" placeholder="Номер сотового телефона"')}
     </div>
   </div>`;
 }
@@ -4848,7 +4896,7 @@ function contractDefinition(d){
   d.persons.forEach(p=>{
     const issued=validPassportDate(p.issued)?' от '+p.issued:'';
     const role=p.role.startsWith('Поручитель')&&!multiple?'Поручитель':p.role;
-    parties.push([signer(contractParticipantRole(d,role),['ФИО: '+p.name,'Серия паспорта: '+p.passportSeries,'Номер паспорта: '+p.passportNumber,'Выдан: '+p.issuer+issued,'Адрес: '+(p.addr||blank),'Тел.: '+(p.phone?fmtPhone(p.phone):blank),...signature])]);
+    parties.push([signer(contractParticipantRole(d,role),['ФИО: '+p.name,'Серия паспорта: '+p.passportSeries+' · Номер паспорта: '+p.passportNumber,'Выдан: '+p.issuer+issued,'Адрес: '+(p.addr||blank),'Тел.: '+(p.phone?fmtPhone(p.phone):blank),...signature])]);
   });
   content.push({table:{dontBreakRows:true,widths:['*'],body:parties},layout:{hLineWidth:()=>0.5,vLineWidth:()=>0.5,paddingTop:()=>2,paddingBottom:()=>2,paddingLeft:()=>4,paddingRight:()=>4},margin:[0,0,0,4]},
     {text:date(d.date),style:'paragraph'});
@@ -6214,7 +6262,8 @@ function saveRoutePosition() {
   routeScroll.set(renderedRoute,{
     y:window.scrollY,top:list?.scrollTop || 0,left:list?.scrollLeft || 0,
     ...(renderedRoute==='#clients'?{clients:_clientsShown}:{}),
-    ...(renderedRoute==='#people'?{people:_pplShown}:{})
+    ...(renderedRoute==='#people'?{people:_pplShown}:{}),
+    ...(renderedRoute==='#reminders'?{reminders:_remShown}:{})
   });
 }
 function setRoute(p) {
