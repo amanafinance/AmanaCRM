@@ -78,7 +78,7 @@ export default async function(){
  // Бизнес-отказ: поля формы остаются, номер освобождается, запреты не обходятся.
  await D.ctx.route('**/api/amana/commit',r=>r.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'bad',message:'Тестовый отказ проверки'})}));
  await p.evaluate(()=>{openComment('c3');document.getElementById('mcText').value='Не теряй текст при отказе';});await p.evaluate(()=>saveComment());
- const refused=await p.evaluate(()=>({visible:!!document.querySelector('#mComment.on'),value:document.getElementById('mcText').value,toast:document.getElementById('toast').textContent,state:window.DB.writeState()}));
+ const refused=await p.evaluate(()=>({visible:!!document.querySelector('#mComment.on'),value:document.getElementById('mcText').value,toast:document.querySelector('#mComment .form-error')?.textContent,state:window.DB.writeState()}));
  check('отказ сервера оставляет поля и показывает причину',refused.visible&&refused.value==='Не теряй текст при отказе'&&refused.toast.includes('Тестовый отказ проверки')&&!refused.state.pending,refused);
  await D.ctx.unroute('**/api/amana/commit');
  // Двойное нажатие: второй вызов не должен послать новый номер, пока первый сохраняется.
@@ -110,7 +110,7 @@ export default async function(){
  await p.evaluate(()=>{openComment('c3');document.getElementById('mcText').value='Ожидание до 30 секунд';});
  const timed=p.evaluate(()=>saveComment());await p.waitForFunction(()=>window.DB.writeState().writing);
  await p.clock.fastForward(31000);await timed;
- check('после 30 секунд без ответа сохраняется неизвестный статус, а не ложный отказ',await p.evaluate(()=>!!window.DB.writeState().pending&&document.getElementById('mcText').value==='Ожидание до 30 секунд'&&document.getElementById('writeStatus').textContent.includes('Результат пока неизвестен')));
+ check('после 30 секунд без ответа сохраняется неизвестный статус, а не ложный отказ',await p.evaluate(()=>!!window.DB.writeState().pending&&document.getElementById('mcText').value==='Ожидание до 30 секунд'&&document.getElementById('writeStatus').textContent.includes('Не удалось подтвердить комментарий')));
  await p.evaluate(()=>window.DB.cancelWrite());if(held)await held.abort().catch(()=>{});await p.clock.resume();
  // Форма оплаты также остаётся открытой с суммой, если ответ не подтверждён.
  await D.ctx.unroute('**/api/amana/commit');await D.ctx.route('**/api/amana/commit',r=>r.abort('failed'));

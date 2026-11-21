@@ -188,9 +188,14 @@ function commit(e, app) {
           trash.set('data',{coll:s.c,docId:s.id,data:s.orig,deletedAt:{$date:nowIso},deletedBy:actor});trash.set('u',now);trash.set('d',now);tx.save(trash);
         });
         const journal=new Record(tx.findCollectionByNameOrId('journal'));
-        const labels={clients:'Договор',persons:'Клиент',kassaOps:'Операция кассы',wallets:'Счёт',investors:'Участник',invOps:'Операция инвестора',invMonths:'Месяц инвесторов',settings:'Настройки',payments:'Платёж'};
+        const summary=require(`${__hooks}/amana_journal.js`).describe(changes,load,req.mode);
         const businessTime=new Date(now+10800000).toISOString();
-        journal.set('data',{type:req.mode==='restore'?'Восстановление из резервной копии':'Изменение базы',description:changes.map(s=>{const d=s.exists?s.data:s.orig;return (s.del?'Удалено: ':s.existed?'Изменено: ':'Создано: ')+(labels[s.c]||s.c)+' '+(d.contractId||d.name||s.id);}).join('; '),changes:changes.map(s=>({collection:s.c,id:s.id,action:s.del?'delete':s.existed?'update':'create'})),user:actor,userId:e.auth&&e.auth.id,date:{$date:nowIso},dateStr:businessTime.slice(0,10).split('-').reverse().join('.'),time:businessTime.slice(11,16)});
+        journal.set('data',{
+          ...summary,
+          changes:changes.map(s=>({collection:s.c,id:s.id,action:s.del?'delete':s.existed?'update':'create'})),
+          user:actor,userId:e.auth&&e.auth.id,date:{$date:nowIso},
+          dateStr:businessTime.slice(0,10).split('-').reverse().join('.'),time:businessTime.slice(11,16)
+        });
         journal.set('u',now);journal.set('d',now);tx.save(journal);
       }
 

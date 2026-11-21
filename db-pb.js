@@ -99,16 +99,26 @@ function writeStatus(message,actions=false){
 }
 function responseError(e){const st=e&&e.status,d=e&&e.response||{},code=d.code||(d.data&&d.data.code);if(st===401){authLost();return Object.assign(new Error('Вход больше не действует — войдите заново.'),{code:'unauthenticated'});}return Object.assign(new Error(d.message&&d.message.includes('__amana_write_v1')?'Сервер применяет обновление. Подождите минуту и обновите страницу.':st===429?'Слишком много запросов. Подождите немного.':d.message||('Ошибка сервера '+st)),{code:ERR_CODE[code]||code||'unknown'});}
 async function sendOnce(path,options,ms){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);try{return await pb.send(path,{...options,signal:controller.signal,requestKey:null});}finally{clearTimeout(timer);}}
-function pendingError(){return Object.assign(new Error('Результат сохранения пока неизвестен. Нажмите «Проверить результат»; не создавайте оплату или расход повторно.'),{code:'pending'});}
+const actionLabels={
+  mPay:'оплату',mDisc:'скидку',mComment:'комментарий',mClient:'договор',
+  mPerson:'карточку клиента',mDefer:'отсрочку',mKassa:'операцию кассы',
+  mInvOp:'операцию инвестора',mInvDep:'вклад',mInvForm:'карточку участника',
+  mInvMonth:'закрытие месяца',mStaff:'настройки сотрудника'
+};
+function unknownWrite(p){
+  const action=actionLabels[p?.formId] || 'операцию';
+  return 'Не удалось подтвердить '+action+'. Проверьте результат перед повтором.';
+}
+function pendingError(p){return Object.assign(new Error(unknownWrite(p)),{code:'pending'});}
 function applyRecovered(p,result,notify){
  if(result&&result.docs)applyServerDocs(result.docs);const active=pendingRead();if(!active||active.id!==p.id)return;pendingClear(p.id);netDown=false;netBadge();writeStatus('');
- if(notify){window.dispatchEvent(new CustomEvent('amanaWriteRecovered',{detail:{formId:p.formId,requestId:p.id}}));if(typeof window.toast==='function')window.toast('Изменение уже сохранено. Повторная запись не создана.','tok');}
+ if(notify){window.dispatchEvent(new CustomEvent('amanaWriteRecovered',{detail:{formId:p.formId,requestId:p.id}}));if(typeof window.toast==='function')window.toast('Сохранение подтверждено.','tok');}
 }
 async function inspectPending(p,cancel,notify){
  const data=await sendOnce('/api/amana/requests/'+encodeURIComponent(p.id)+(cancel?'/cancel':''),{method:cancel?'POST':'GET'},10000);const active=pendingRead();if(!active||active.id!==p.id)return data;netDown=false;netBadge();
  if(data.state==='saved'){applyRecovered(p,data.result,notify);return{state:'saved',result:data.result};}
  if(data.state==='cancelled'){pendingClear(p.id);writeStatus('');if(notify&&typeof window.toast==='function')window.toast('Операция не была сохранена и отменена. Данные в форме можно исправить и отправить заново.','tok');return{state:'cancelled'};}
- writeStatus('Результат пока неизвестен. Не повторяйте оплату или расход.',true);return{state:'unknown'};
+ writeStatus(unknownWrite(p),true);return{state:'unknown'};
 }
 async function recoverPending(cancel=false,notify=true){
  if(recovery){const existing=await recovery;if(!cancel||!pendingRead())return existing;}
@@ -117,16 +127,16 @@ async function recoverPending(cancel=false,notify=true){
  if(!p)return;
  if(writing){writeStatus('Сохраняем… Дождитесь ответа сервера.');return{state:'unknown'};}
  writeStatus(cancel?'Проверяем, можно ли отменить несохранённую операцию…':'Проверяем результат сохранения…');
- recovery=inspectPending(p,cancel,notify).catch(e=>{if(e&&e.status===401)throw responseError(e);writeStatus('Не удалось проверить результат. Не повторяйте оплату или расход.',true);return{state:'unknown'};}).finally(()=>{recovery=null;});return recovery;
+ recovery=inspectPending(p,cancel,notify).catch(e=>{if(e&&e.status===401)throw responseError(e);writeStatus(unknownWrite(p),true);return{state:'unknown'};}).finally(()=>{recovery=null;});return recovery;
 }
 function freezeForm(){const form=[...document.querySelectorAll('.mover.on[id]')].at(-1);const items=form?[...form.querySelectorAll('input,select,textarea,button')].map(el=>({el,disabled:el.disabled})):[];items.forEach(x=>x.el.disabled=true);return()=>items.forEach(x=>{if(x.el.isConnected)x.el.disabled=x.disabled;});}
 async function writeRequest(path,body,ms,method='POST'){
  const execute=async()=>{
   if(writing)throw Object.assign(new Error('Изменение уже отправляется. Дождитесь результата.'),{code:'busy'});
-  const old=pendingRead();if(old){const checked=await recoverPending(false,true);if(checked&&checked.state==='saved')throw Object.assign(new Error('Предыдущее изменение уже сохранено. Проверьте данные перед новой операцией.'),{code:'already-saved'});if(checked&&checked.state==='cancelled')throw Object.assign(new Error('Предыдущее изменение отменено и не сохранено. Теперь можно отправить новое.'),{code:'cancelled'});throw pendingError();}
+  const old=pendingRead();if(old){const checked=await recoverPending(false,true);if(checked&&checked.state==='saved')throw Object.assign(new Error('Предыдущее изменение уже сохранено. Проверьте данные перед новой операцией.'),{code:'already-saved'});if(checked&&checked.state==='cancelled')throw Object.assign(new Error('Предыдущее изменение отменено и не сохранено. Теперь можно отправить новое.'),{code:'cancelled'});throw pendingError(old);}
   await netCheck();
   const p={id:autoId(),tab:tabId,at:Date.now(),formId:[...document.querySelectorAll('.mover.on[id]')].at(-1)?.id||''};
-  pendingPut(p);if(p.formId)document.getElementById(p.formId).dataset.pendingWrite=p.id;writing=true;const unfreeze=freezeForm();writeStatus('Сохраняем…');
+  pendingPut(p);if(p.formId)document.getElementById(p.formId).dataset.pendingWrite=p.id;writing=true;const unfreeze=freezeForm();writeStatus('Сохраняем '+(actionLabels[p.formId]||'изменение')+'…');
   try{
    const result=await sendOnce(path,{method,body:{...(body||{}),requestId:p.id}},ms||WRITE_MS);
    applyRecovered(p,result,false);return result;
@@ -136,7 +146,7 @@ async function writeRequest(path,body,ms,method='POST'){
    // Запрос мог дойти: не посылаем его снова, даже когда сеть вернётся.
    writeStatus('Ответ потерялся. Проверяем, сохранилось ли изменение…');
    let queried=false;try{const checked=await inspectPending(p,false,false);queried=true;if(checked.state==='saved')return checked.result;if(checked.state==='cancelled')throw Object.assign(new Error('Операция отменена и не сохранена'),{code:'cancelled'});}catch(x){if(x.code==='cancelled')throw x;}
-   netDown=!queried;netBadge();writeStatus('Результат пока неизвестен. Не повторяйте оплату или расход.',true);throw pendingError();
+   netDown=!queried;netBadge();writeStatus(unknownWrite(p),true);throw pendingError(p);
   }finally{writing=false;unfreeze();}
  };
  const key=pendingKey();
@@ -195,6 +205,15 @@ const limit = n => ({ kind: 'limit', n });
 const startAfter = s => ({ kind: 'startAfter', s });
 const query = (c, ...parts) => ({ type: 'query', c, parts });
 const msOf = v => v instanceof Date ? v.getTime() : v instanceof Timestamp ? v.toMillis() : Number(v) || 0;
+async function searchJournal(filters,cursor){
+  const query={
+    ...(filters.from?{from:filters.from.getTime()}:{}),
+    ...(filters.to?{to:filters.to.getTime()}:{}),
+    description:filters.desc||'',type:filters.type||'',day:filters.date_q||'',
+    ...(cursor||{})
+  };
+  return sendOnce('/api/amana/journal',{method:'GET',query},15000);
+}
 async function getDocs(q) {
   const c = q.type === 'query' ? q.c.id : q.id, parts = q.type === 'query' ? q.parts : [];
   try {
@@ -464,7 +483,7 @@ const staff = {
   remove: id => staffCall('DELETE', '/api/amana/staff/' + encodeURIComponent(id)),
 };
 
-window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, getDoc, query, orderBy, limit, startAfter, where,
+window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, searchJournal, getDoc, query, orderBy, limit, startAfter, where,
   setDoc: setDocU, writeBatch: writeBatchU, increment, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp, nextCounter, createOnce, live, liveTombs, resyncAll, checkEpoch,
   bkDump, bkRestore, bkCheck, staff, deviceId: devId, backend: 'pocketbase', pb };
 window.DB.writeState=()=>({writing,pending:pendingRead(),timeout:WRITE_MS});

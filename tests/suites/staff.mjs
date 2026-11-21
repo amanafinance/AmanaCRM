@@ -3,7 +3,7 @@
 import {reseed,device,login,check,noErrors,wait,autoConfirm,URL_CRM} from '../lib.mjs';
 async function loginAs(p,email,pw){
   try{await p.goto(URL_CRM);}catch(e){if(!/ERR_ABORTED/.test(String(e)))throw e;await p.waitForLoadState('domcontentloaded');}await p.waitForSelector('#lemail:visible');await wait(p,200);
-  await p.fill('#lemail',email);await p.fill('#lpass',pw);await p.click('#loginFields button');
+  await p.fill('#lemail',email);await p.fill('#lpass',pw);await p.click('#loginSubmit');
   await p.waitForFunction(()=>typeof S!=='undefined'&&S.clients.length>0&&S.wallets.length>0,null,{timeout:90000});await wait(p,1500);
 }
 const vis=(p,sel)=>p.evaluate(s=>{const e=document.querySelector(s);return!!e&&getComputedStyle(e).display!=='none'&&e.offsetParent!==null;},sel);
@@ -90,7 +90,7 @@ export default async function(){
   const off=await K.p.evaluate(async()=>{try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'clients','c3'),{comment:'x'});return'ok';}catch(e){return e.code||e.message;}});
   check('отключённый сотрудник больше ничего не сохраняет',off!=='ok',off);
   const K2=await device();await K2.p.goto(URL_CRM);await wait(K2.p,800);
-  await K2.p.fill('#lemail','kassa@test.ru');await K2.p.fill('#lpass','kassa12345');await K2.p.click('#loginFields button');await wait(K2.p,2500);
+  await K2.p.fill('#lemail','kassa@test.ru');await K2.p.fill('#lpass','kassa12345');await K2.p.click('#loginSubmit');await wait(K2.p,2500);
   check('отключённый сотрудник не может войти',await K2.p.isVisible('#lerr'));
   noErrors('владелец',O.errs);
   await O.ctx.close();await K.ctx.close();await K2.ctx.close();

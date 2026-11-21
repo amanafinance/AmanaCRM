@@ -1,7 +1,7 @@
 // Запуск всех проверок: npm test (скачивает PocketBase и запускает этот файл).
 // Один набор: node run.mjs money   (временная база запускается автоматически)
 import {start,stop,setSuite,failed,total,debugDevices} from './lib.mjs';
-const ALL=['reliability','hardening','contract','pages','money','investors','sync','people','filters','longtext','numbers','backup','staff','security','ui','interface','devices','design','speed'];
+const ALL=['ux','reliability','hardening','contract','pages','money','investors','sync','people','filters','longtext','numbers','backup','staff','security','ui','interface','devices','design','speed'];
 const want=process.argv.slice(2).length?process.argv.slice(2):ALL;
 await start();
 const t0=Date.now();
