@@ -6,6 +6,7 @@ routerAdd('POST', '/api/amana/commit', (e) => {
 routerAdd('POST','/api/amana/note',e=>require(`${__hooks}/amana_audit.js`).note(e,$app),$apis.requireAuth('users','_superusers'));
 
 routerAdd('GET','/api/amana/journal',e=>require(`${__hooks}/amana_journal.js`).search(e,$app),$apis.requireAuth('users','_superusers'));
+routerAdd('GET','/api/amana/journal/types',e=>require(`${__hooks}/amana_journal.js`).listTypes(e,$app),$apis.requireAuth('users','_superusers'));
 onRecordsListRequest(e=>require(`${__hooks}/amana_journal.js`).list(e),'journal');
 onRecordEnrich(e=>{require(`${__hooks}/amana_journal.js`).enrich(e);e.next();},'journal');
 

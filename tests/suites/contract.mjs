@@ -56,6 +56,8 @@ export default async function(){
  check('дата и сотовые номера попадают в PDF, номера WhatsApp открывают чаты',
    contacts.inPdf.includes('10.12.2003') && contacts.inPdf.includes('8 000 000 02 01') &&
    contacts.links.length===2 && contacts.links.every((url,i)=>url.startsWith('https://wa.me/'+waNumbers[i]+'?')),contacts.links);
+ check('PDF печатает серию и номер паспорта в одной строке',
+   pdfInfo.json.includes('Серия паспорта: 0000 · Номер паспорта: 000001'));
  check('при выключенной подписи в PDF нет строк подписи',!pdfInfo.json.includes('Подпись:'));
  if(process.env.AMANA_ARTIFACT_DIR){fs.mkdirSync(process.env.AMANA_ARTIFACT_DIR,{recursive:true});const data=await p.evaluate(async()=>Array.from(new Uint8Array(await contractDraft.blob.arrayBuffer())));fs.writeFileSync(path.join(process.env.AMANA_ARTIFACT_DIR,'contract-example.pdf'),Buffer.from(data));}
  await p.evaluate(()=>{closeContract();goTo('settings');});

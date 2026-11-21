@@ -214,6 +214,11 @@ async function searchJournal(filters,cursor){
   };
   return sendOnce('/api/amana/journal',{method:'GET',query},15000);
 }
+async function listJournalTypes(){
+  const result=await sendOnce('/api/amana/journal/types',{method:'GET'},15000);
+  if(!Array.isArray(result.types))throw new Error('Не удалось загрузить действия');
+  return result.types;
+}
 async function getDocs(q) {
   const c = q.type === 'query' ? q.c.id : q.id, parts = q.type === 'query' ? q.parts : [];
   try {
@@ -483,7 +488,7 @@ const staff = {
   remove: id => staffCall('DELETE', '/api/amana/staff/' + encodeURIComponent(id)),
 };
 
-window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, searchJournal, getDoc, query, orderBy, limit, startAfter, where,
+window.DB = { db, counterTx, collection, doc, addDoc: addDocU, updateDoc: updateDocU, deleteDoc: deleteDocU, getDocs, searchJournal, listJournalTypes, getDoc, query, orderBy, limit, startAfter, where,
   setDoc: setDocU, writeBatch: writeBatchU, increment, arrayUnion, arrayRemove, deleteField, serverTimestamp, Timestamp, nextCounter, createOnce, live, liveTombs, resyncAll, checkEpoch,
   bkDump, bkRestore, bkCheck, staff, deviceId: devId, backend: 'pocketbase', pb };
 window.DB.writeState=()=>({writing,pending:pendingRead(),timeout:WRITE_MS});

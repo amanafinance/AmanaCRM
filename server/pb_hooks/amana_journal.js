@@ -112,8 +112,24 @@ function enrich(e) {
   e.record.set('data',redact(JSON.parse(e.record.getString('data')||'{}'),auth.getString('perms')));
 }
 const fold = s => String(s || '').trim().toLowerCase().replace(/(\d)[ \u00a0\u202f](?=\d)/g,'$1');
+function journalPermissions(auth) {
+  return auth.collection().name === '_superusers' ? '*' : auth.getString('perms');
+}
+function listTypes(e,app) {
+  if (!has(journalPermissions(e.auth),'v_journal')) {
+    return e.json(403,{message:'Нет доступа к истории действий'});
+  }
+  const rows=arrayOf(new DynamicModel({label:''}));
+  app.db().newQuery(`
+    SELECT DISTINCT json_extract(data, '$.type') AS label
+    FROM journal
+    WHERE json_type(data, '$.type') = 'text'
+      AND trim(json_extract(data, '$.type')) <> ''
+  `).all(rows);
+  return e.json(200,{types:rows.map(row=>row.label)});
+}
 function search(e,app) {
-  const perms=e.auth.collection().name==='_superusers'?'*':e.auth.getString('perms');
+  const perms=journalPermissions(e.auth);
   if (!has(perms,'v_journal')) return e.json(403,{message:'Нет доступа к истории действий'});
   const q=e.requestInfo().query || {};
   const args={},filters=[];
@@ -125,10 +141,13 @@ function search(e,app) {
     filters.push('d '+operator+' {:'+key+'}');
   }
   const description=fold(q.description).slice(0,200);
-  const type=fold(q.type).slice(0,120);
+  if(q.type) {
+    args.type=String(q.type);
+    filters.push('data.type = {:type}');
+  }
   const day=fold(q.day).slice(0,32);
   const matching=data=>(!description||fold([data.description,...(data.details||[])].join(' ')).includes(description)) &&
-    (!type||fold(data.type).includes(type)) && (!day||fold(data.dateStr).includes(day));
+    (!day||fold(data.dateStr).includes(day));
   let cursor=null;
   if(q.id){
     const date=Number(q.date);
@@ -151,4 +170,4 @@ function search(e,app) {
   }
   return e.json(200,{rows,next:cursor});
 }
-module.exports = {describe,enrich,search,list};
+module.exports = {describe,enrich,search,list,listTypes};
