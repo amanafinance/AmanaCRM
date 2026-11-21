@@ -116,8 +116,8 @@ export default async function(){
   check('клавиатура закрыта — окна и меню на обычном месте',!kbOff);
   // касса: сверка и проверка базы свёрнуты в компактные карточки с кнопкой «Показать»
   const kc=await T.p.evaluate(async()=>{goTo('kassa');await new Promise(r=>setTimeout(r,300));const out={};for(const id of ['kRecon','kCheck']){const d=document.getElementById(id);d.open=false;
-      const h0=d.getBoundingClientRect().height,lbl=getComputedStyle(d.querySelector('summary'),'::after').content;d.querySelector('summary').click();await new Promise(r=>setTimeout(r,50));
-      out[id]={h0:Math.round(h0),lbl,opened:d.open,h1:Math.round(d.getBoundingClientRect().height),lbl1:getComputedStyle(d.querySelector('summary'),'::after').content};}return out;});
+      const h0=d.getBoundingClientRect().height,lbl=d.querySelector('.recon-toggle').innerText;d.querySelector('summary').click();await new Promise(r=>setTimeout(r,50));
+      out[id]={h0:Math.round(h0),lbl,opened:d.open,h1:Math.round(d.getBoundingClientRect().height),lbl1:d.querySelector('.recon-toggle').innerText};}return out;});
   check('касса: свёрнутые «Сверка касс» и «Проверка базы» без пустого места и с кнопкой «Показать»',Object.values(kc).every(x=>x.h0<90&&/Показать/.test(x.lbl)&&x.opened&&x.h1>x.h0&&/Скрыть/.test(x.lbl1)),kc);
   noErrors('телефон с клавиатурой',T.errs);
   await T.ctx.close();

@@ -5,7 +5,14 @@ import {reseed,device,login,check,noErrors,PB_URL,pbAdmin} from '../lib.mjs';
 export default async function(){
  await reseed();
  const A=await device({vp:{width:390,height:844},mobile:true});const p=A.p;await login(p);
- await p.evaluate(()=>{goTo('settings');openContract('c0');});
+ const waNumbers=['70000000101','70000000102'];
+ const mobiles=await p.evaluate(numbers=>{
+  goTo('settings');
+  S.persons=S.persons.map(person=>person.id==='P0'?{...person,whatsapp:numbers[0]}:
+    person.id==='P1'?{...person,whatsapp:numbers[1]}:person);
+  openContract('c0');
+  return [S.persons.find(person=>person.id==='P0').phones[0],S.persons.find(person=>person.id==='P1').phones[0]];
+ },waNumbers);
  const initial=await p.evaluate(()=>({name:document.getElementById('contractSellerName').value,phone:document.getElementById('contractSellerPhone').value,series:document.querySelectorAll('[data-field=passportSeries]').length,numbers:document.querySelectorAll('[data-field=passportNumber]').length,people:contractDraft.persons.length}));
  check('до заполнения настроек ФИО и телефон продавца пустые',initial.name===''&&initial.phone==='');
  check('у покупателя и поручителей серия и номер в отдельных полях',initial.series===initial.people&&initial.numbers===initial.people&&initial.people>1,initial);
@@ -15,10 +22,21 @@ export default async function(){
  const input=(field,i=0)=>`#mContract [data-person="${i}"][data-field="${field}"]`;
  for(let i=0;i<initial.people;i++){
   await p.fill(input('passportSeries',i),'0000');await p.fill(input('passportNumber',i),String(i+1).padStart(6,'0'));
-  await p.fill(input('issuer',i),'Тестовый орган выдачи');await p.fill(input('issued',i),'2020-01-01');
+  await p.fill(input('issuer',i),'Тестовый орган выдачи');await p.fill(input('issued',i),'10122003');
  }
  await p.selectOption('#contractSaleType','service');await p.selectOption('#contractSaleType','goods');
  check('смена типа продажи сохраняет раздельные паспортные поля',await p.inputValue(input('passportSeries'))==='0000'&&await p.inputValue(input('passportNumber'))==='000001');
+ check('вручную введённые цифры даты форматируются как ДД.ММ.ГГГГ',
+   await p.locator(input('issued')).getAttribute('type')==='text' && await p.inputValue(input('issued'))==='10.12.2003');
+ await p.fill(input('issued'),'31.02.2003');
+ await p.evaluate(()=>previewContract());
+ check('несуществующая дата выдачи останавливает подготовку договора',
+   await p.locator(input('issued')).getAttribute('aria-invalid')==='true');
+ await p.fill(input('issued'),'10.12.2003');
+ check('в договор подставляются сотовые номера покупателя и поручителя',
+   await p.inputValue(input('phone'))===mobiles[0] && await p.inputValue(input('phone',1))===mobiles[1]);
+ const editedMobile='80000000201';
+ await p.fill(input('phone'),editedMobile);
  const pdfInfo=await p.evaluate(async()=>{
   const d=contractDraft,def=contractDefinition(d),json=JSON.stringify(def),s=JSON.stringify(d.persons);
   await previewContract();const bytes=d.blob?new Uint8Array(await d.blob.arrayBuffer()):[];
@@ -26,6 +44,18 @@ export default async function(){
  });
  check('PDF создаётся и с пустым ФИО продавца',pdfInfo.pdf>1000&&pdfInfo.header==='%PDF-',pdfInfo.pdf);
  check('PDF содержит отдельные серию и номер и текст без подписания',pdfInfo.json.includes('Серия паспорта: 0000')&&pdfInfo.json.includes('Номер паспорта: 000001')&&pdfInfo.json.includes('с момента передачи товара Покупателю.')&&!pdfInfo.json.includes('с момента подписания'));
+ const contacts=await p.evaluate(()=>{
+   renderContractSend();
+   const links=[];
+   const open=window.open;
+   window.open=url=>links.push(url);
+   try{contractDraft.persons.forEach((_,i)=>contractOpenWhatsApp(i));}
+   finally{window.open=open;}
+   return {links,inPdf:JSON.stringify(contractDefinition(contractDraft))};
+ });
+ check('дата и сотовые номера попадают в PDF, номера WhatsApp открывают чаты',
+   contacts.inPdf.includes('10.12.2003') && contacts.inPdf.includes('8 000 000 02 01') &&
+   contacts.links.length===2 && contacts.links.every((url,i)=>url.startsWith('https://wa.me/'+waNumbers[i]+'?')),contacts.links);
  check('при выключенной подписи в PDF нет строк подписи',!pdfInfo.json.includes('Подпись:'));
  if(process.env.AMANA_ARTIFACT_DIR){fs.mkdirSync(process.env.AMANA_ARTIFACT_DIR,{recursive:true});const data=await p.evaluate(async()=>Array.from(new Uint8Array(await contractDraft.blob.arrayBuffer())));fs.writeFileSync(path.join(process.env.AMANA_ARTIFACT_DIR,'contract-example.pdf'),Buffer.from(data));}
  await p.evaluate(()=>{closeContract();goTo('settings');});
