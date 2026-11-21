@@ -1,4 +1,4 @@
-import {reseed,device,login,check,noErrors,PB_URL,pbAdmin,authToken} from '../lib.mjs';
+import {reseed,device,login,check,noErrors,PB_URL,pbAdmin,authToken,URL_CRM} from '../lib.mjs';
 
 export default async function(){
   await reseed();
@@ -13,7 +13,34 @@ export default async function(){
   check('тестовая история создана',seed.ok);
 
   const {p,ctx,errs}=await device({vp:{width:390,height:844},mobile:true});
+  await p.goto(URL_CRM);
+  await p.fill('#lpass','test-password');
+  await p.getByRole('button',{name:'Показать пароль'}).click();
+  const revealed=await p.locator('#lpass').getAttribute('type')==='text';
+  await p.getByRole('button',{name:'Скрыть пароль'}).click();
+  check('значок глаза переключает видимость пароля из его строки',
+    revealed && await p.locator('#lpass').getAttribute('type')==='password' &&
+    await p.locator('.login-password #show-password svg').count()===1 &&
+    !(await p.getByText('Забыли пароль?',{exact:true}).count()));
   await login(p);
+  for (const view of ['people','clients']){
+    const result=await p.evaluate(async page=>{
+      goBase(page);
+      const section=document.getElementById('page-'+page);
+      const search=section.querySelector('.quick-find');
+      const list=page==='people'?section.querySelector('#pplList'):section.querySelector('.tbl-wrap');
+      window.scrollTo(0,search.getBoundingClientRect().top+window.scrollY+100);
+      await new Promise(requestAnimationFrame);
+      return {
+        header:section.querySelector('h1').getBoundingClientRect().bottom,
+        search:search.getBoundingClientRect().top,
+        nestedScroll:getComputedStyle(list).overflowY,
+        viewport:window.scrollY
+      };
+    },view);
+    check('телефон: '+view+' прокручивает страницу целиком и оставляет поиск сверху',
+      result.header<0 && Math.abs(result.search)<2 && result.nestedScroll==='visible' && result.viewport>100,result);
+  }
   await p.evaluate(()=>goBase('people'));
   await p.fill('#peopleFind','00001');
   check('быстрый поиск клиента находит его по номеру договора',
@@ -88,6 +115,8 @@ export default async function(){
 
   await p.evaluate(()=>goTo('journal'));
   await p.waitForFunction(()=>!journalBusy && _jd.length>=100);
+  check('история снова показывает компактные записи без раздела «Что изменилось»',
+    !(await p.getByText('Что изменилось',{exact:true}).count()));
   await p.evaluate(()=>{S.JF.desc='кириллица';return loadJournal();});
   check('поиск по всей истории находит старое событие без учёта регистра',await p.evaluate(()=>_jd.length===1 && _jd[0].description==='Редкая запись КИРИЛЛИЦА'));
   await ctx.route('**/api/amana/journal*',r=>r.abort());
