@@ -181,6 +181,19 @@ export default async function(){
 
   // --- телефон: подсказка по нажатию, график не шире экрана
   const T=await device({vp:{width:390,height:844},mobile:true});await login(T.p);
+  const arrows=await T.p.evaluate(()=>{
+    const points=S.dsh.pts, original=points.vals;
+    points.vals=[100,150,90,...original.slice(3)];
+    const result=[1,2].map(index=>{
+      dshPoint(index);
+      const arrow=document.querySelector('#dshTip .dsh-d svg');
+      return {trend:arrow.parentElement.classList[1],width:arrow.getBoundingClientRect().width,position:getComputedStyle(arrow).position};
+    });
+    points.vals=original;
+    return result;
+  });
+  check('телефон: стрелки роста и падения стоят в строке сравнения графика',
+    arrows[0].trend==='up'&&arrows[1].trend==='dn'&&arrows.every(a=>a.width>0&&a.width<=16&&a.position==='static'),arrows);
   await T.p.evaluate(async()=>{S.finTab='sum';goTo('finance');await new Promise(r=>setTimeout(r,250));document.querySelector('#finBody .chx').scrollIntoView();});await wait(T.p,200);
   const box=await T.p.evaluate(()=>{const c=document.querySelectorAll('#finBody .chx-col')[3].getBoundingClientRect();return{x:c.left+c.width/2,y:c.top+c.height/2};});
   await T.p.touchscreen.tap(box.x,box.y);await wait(T.p,200);
