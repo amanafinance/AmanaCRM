@@ -637,8 +637,7 @@ body.light .confirm-ov{background:rgba(30,40,35,0.5)}
 .dsh-wl>div span{white-space:normal!important;overflow:visible!important}
 .dsh-pr .nm b{white-space:normal!important;overflow:visible!important;overflow-wrap:anywhere}
 .rem-desk{overflow-x:auto}.rem-desk .tbl td:last-child{position:sticky;right:0;background:var(--card);box-shadow:-8px 0 10px -8px rgba(0,0,0,.5)}
-.fin-tw{scroll-snap-type:x proximity;scroll-padding-left:190px}.fin-t th:not(.fin-l){scroll-snap-align:start}
-@media(max-width:768px){.fin-tw{scroll-padding-left:136px}
+@media(max-width:768px){.fin-tw{scroll-snap-type:x proximity;scroll-padding-left:136px}.fin-t th:not(.fin-l){scroll-snap-align:start}
   /* карточка сделки: данные клиента, поручителей и товара — списком «подпись — значение», без плиток в плитках */
   #cDetail .ig2{display:block}#cDetail .ii{background:none;border-radius:0;padding:9px 0;border-top:1px solid var(--brd2);display:flex;justify-content:space-between;align-items:baseline;gap:12px}
   #cDetail .ii:first-child{border-top:none}#cDetail .ii .il{flex-shrink:0;margin:0}#cDetail .ii .iv{text-align:right;margin:0;min-width:0}
@@ -1943,13 +1942,19 @@ function finFact(mk,ctx){if(!ctx.cache[mk])ctx.cache[mk]=finFactF(mk,ctx);return
 function finFactF(mk,ctx,lo,hi){
   const In=d=>!lo||(!!d&&d>=lo&&d<hi);
   const b=ctx.bk[mk]||{pays:[],deals:[],plan:[],due:[],ev:[],kassa:[],rem:[]};
-  const o={deals:0,sales:0,cost:0,plan:0,planGross:0,pay:0,payCnt:0,prepay:0,gross:0,disc:0,salary:0,opex:0,otherExp:0,invShare:0,purchase:0,invIn:0,invOut:0,invPay:0,kIn:0,kOut:0,expLeft:0,expGross:0,deferLeft:0,planDue:0,planPaid:0};
+  const o={deals:0,sales:0,cost:0,plan:0,planGross:0,pay:0,payCnt:0,prepay:0,gross:0,grossPrepay:0,disc:0,salary:0,opex:0,otherExp:0,invShare:0,purchase:0,invIn:0,invOut:0,invPay:0,kIn:0,kOut:0,expLeft:0,expGross:0,deferLeft:0,planDue:0,planPaid:0};
   b.pays.forEach(p=>{if(lo&&!In(dTs(p.date)))return;const a=parseFloat(p.amount)||0;if(p.type==='payment'){o.pay+=a;o.payCnt++;}else if(p.type==='prepay')o.prepay+=a;});
   b.deals.forEach(x=>{if(lo&&!In(dealDate(x.c)))return;o.deals++;o.sales+=parseFloat(x.c.price)||0;o.cost+=parseFloat(x.c.cost)||0;});
   b.plan.forEach(([s,g,d])=>{if(lo&&!In(d))return;o.plan+=s;o.planGross+=g;});
   b.due.forEach(([s,pd,d])=>{if(lo&&!In(d))return;o.planDue+=s;o.planPaid+=pd;});
   b.ev.forEach(e=>{if(lo&&!In(e.d))return;
-    if(e.kind==='profit'){if(e.src==='discount')o.disc-=e.amount;else o.gross+=e.amount;}
+    if(e.kind==='profit'){
+      if(e.src==='discount')o.disc-=e.amount;
+      else{
+        o.gross+=e.amount;
+        if(e.src==='prepay')o.grossPrepay+=e.amount;
+      }
+    }
     else if(e.kind==='fexpense')o.otherExp-=e.amount;else if(e.etype==='salary')o.salary-=e.amount;else o.opex-=e.amount;});
   b.kassa.forEach(k=>{if(lo&&!In(opDate(k)))return;const a=parseFloat(k.amount)||0,mt=kMeta(k.type);
     if(mt.dir==='in')o.kIn+=a;else if(mt.dir==='out')o.kOut+=a;
@@ -1964,6 +1969,7 @@ function finFactF(mk,ctx,lo,hi){
 function finDerive(o){
   const x={...o};
   x.margin=o.sales-o.cost;x.received=o.pay+o.prepay;
+  x.grossPay=o.gross-o.grossPrepay;
   x.grossNet=o.gross-o.disc;x.exp=o.salary+o.opex+o.otherExp;x.net=x.grossNet-x.exp;x.company=x.net-o.invShare;x.flow=o.kIn-o.kOut;
   x.planPct=o.plan>0?o.pay/o.plan:null;x.netPct=x.received>0?x.net/x.received:null;x.rate=o.planDue>0?o.planPaid/o.planDue:null;
   return x;
@@ -2216,6 +2222,9 @@ function renderFinance(){
   const el=document.getElementById('finBody');if(!el)return;
   const ctx=finCtx(),now=new Date(),curMk=monthKey(now);
   const P=perRange(S.perFin),multiY=P.from.getFullYear()!==new Date(P.to.getTime()-1).getFullYear();
+  const periodKey=P.from.getTime()+':'+P.to.getTime();
+  const previousTable=el.querySelector('.fin-tw');
+  const scrollLeft=previousTable?.dataset.period===periodKey?previousTable.scrollLeft:null;
   // Колонки: месяцы периода (части месяцев — по датам); период длиннее 3 лет — по годам
   const g=perGran(P.from,P.to)==='y'?'y':'m';
   // Средние расходы за 3 полных месяца до текущего — для прогноза
@@ -2269,6 +2278,7 @@ function renderFinance(){
     {l:'Итого поступило',k:'received',b:1},
     {h:'Прибыли и убытки'},
     {l:'Плановая наценка в платежах по графику',k:'planGross',plan:1,all:1},
+    {l:'Наценка в полученных деньгах (без предоплат)',k:'grossPay'},
     {l:'Наценка в полученных деньгах (с предоплатами)',k:'gross'},
     {l:'Скидки ниже себестоимости',k:'disc',neg:1},
     {l:'Валовая прибыль',k:'grossNet',b:1},
@@ -2286,7 +2296,7 @@ function renderFinance(){
     {l:'Чистый денежный поток',k:'flow',b:1}
   ];
   const estD=cols.map(c=>c.kind==='fut'?finDerive({...Object.fromEntries(Object.keys(c.f).map(k=>[k,0])),plan:c.f.plan,planGross:c.f.planGross,...c.est}):null);
-  const EST_KEYS=['pay','gross','grossNet','salary','opex','exp','net','received'];
+  const EST_KEYS=['pay','grossPay','gross','grossNet','salary','opex','exp','net','received'];
   // Расходные строки (neg) хранятся положительными и показываются со знаком «−»; прочие отрицательные — красным
   const cell=(v,r,cls)=>{
     cls=cls||'';
@@ -2359,8 +2369,13 @@ function renderFinance(){
     money:h.slice(P3,P4)+'<div class="dsh-h"><div class="dsh-ht">Деньги сейчас</div></div>'+moneyCard,
     deals:h.slice(P4)+dshPartners(ctx)}[T];
   el.innerHTML=h.slice(0,P0)+'<div class="dsh-tabs fin-tabs" role="navigation" aria-label="Разделы обзора">'+TABS.map(([k,l])=>'<button class="dsh-tab'+(k===T?' on':'')+'" aria-current="'+(k===T?'page':'false')+'" onclick="setFinanceTab(\''+k+'\')">'+l+'</button>').join('')+'</div>'+part;
-  // На узком экране сразу показываем текущий месяц
-  const tw=el.querySelector('.fin-tw'),cc=el.querySelector('.fin-t th.fin-cur');if(tw&&cc)tw.scrollLeft=Math.max(0,cc.offsetLeft-230);
+  // В новом периоде показываем текущий месяц, при обновлении сохраняем прокрутку.
+  const tw=el.querySelector('.fin-tw');
+  if(tw){
+    tw.dataset.period=periodKey;
+    const currentMonth=tw.querySelector('th.fin-cur');
+    tw.scrollLeft=scrollLeft??(currentMonth?Math.max(0,currentMonth.offsetLeft-230):0);
+  }
 }
 
 // ---------- CLIENTS LIST ----------

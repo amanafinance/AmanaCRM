@@ -145,6 +145,21 @@ export default async function(){
   const tc=await D.p.evaluate(()=>{applyTheme('light');const l=document.querySelector('meta[name="theme-color"]').content;applyTheme('dark');return[l,document.querySelector('meta[name="theme-color"]').content];});
   check('цвет верхней полосы меняется вместе с темой',tc[0]!==tc[1],tc);
 
+  const reportScroll=await D.p.evaluate(async()=>{
+    S.perFin.v='l24';S.finTab='opiu';goTo('finance');
+    const table=()=>document.querySelector('.fin-tw');
+    const settle=async()=>{await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);};
+    const initial=table().scrollLeft;
+    table().scrollLeft=0;
+    await settle();
+    const left=table().scrollLeft;
+    refreshAll();
+    await settle();
+    return {initial,left,refreshed:table().scrollLeft};
+  });
+  check('ОПИУ за 24 месяца: ползунок остаётся у левого края после обновления',
+    reportScroll.initial>0&&reportScroll.left===0&&reportScroll.refreshed===0,reportScroll);
+
   // --- графики: один вид на Дашборде, в Обзоре и у Инвесторов
   const ch=await D.p.evaluate(async()=>{const sl=ms=>new Promise(r=>setTimeout(r,ms)),out={};
     goTo('dashboard');await sl(200);const a=document.getElementById('dshArea'),tip=document.getElementById('dshTip');
