@@ -20,6 +20,27 @@ export default async function(){
   check('маржа в карточке сделки = прибыли у инвесторов',!pr.bad.length,pr.bad.slice(0,5));
   check('наценка в ОПИУ за все месяцы = прибыли у инвесторов',Math.abs(pr.opiu-pr.all)<0.05,pr);
 
+  const reportMargin=await p.evaluate(()=>{
+    S.perFin.v='l24';S.finTab='opiu';goTo('finance');
+    const {from,to}=perRange(S.perFin);
+    const events=invModel().events.filter(e=>e.kind==='profit'&&e.d>=from&&e.d<to);
+    const total=(list,...sources)=>fmt(R2(list.filter(e=>sources.includes(e.src)).reduce((sum,e)=>sum+e.amount,0)));
+    const labels=[...document.querySelectorAll('.fin-t tbody .fin-l')];
+    const without=labels.find(cell=>cell.textContent==='Наценка в полученных деньгах (без предоплат)')?.parentElement;
+    const withPrepay=without?.nextElementSibling;
+    const months=perUnits(from,to,'m');
+    const monthly=months.map(m=>events.filter(e=>e.d>=m.from&&e.d<m.to));
+    const index=monthly.findIndex(list=>list.some(e=>e.src==='prepay')&&list.some(e=>e.src==='payment'));
+    return {
+      nextLabel:withPrepay?.cells[0].textContent,
+      actual:without&&[without.cells[index+1].textContent,without.lastElementChild.textContent,withPrepay.lastElementChild.textContent],
+      expected:index>=0&&[total(monthly[index],'payment'),total(events,'payment'),total(events,'payment','prepay')]
+    };
+  });
+  check('ОПИУ: наценка без предоплат стоит над общей, суммы за месяц и период точны',
+    reportMargin.nextLabel==='Наценка в полученных деньгах (с предоплатами)'&&
+    JSON.stringify(reportMargin.actual)===JSON.stringify(reportMargin.expected),reportMargin);
+
   // Отсрочка: план — по новой дате, собираемость и просрочка — по договору
   const df=await p.evaluate(async()=>{const nxt=monthKey(new Date(new Date().getFullYear(),new Date().getMonth()+2,1));
     const c=S.clients.find(c=>!c.archived&&getStats(c).schedule.some(it=>it.st==='overdue'));const it=getStats(c).schedule.find(it=>it.st==='overdue'),om=monthKey(parseD(it.date));
