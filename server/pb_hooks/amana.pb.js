@@ -17,7 +17,7 @@ routerAdd('POST','/api/amana/requests/{id}/cancel',e=>require(`${__hooks}/amana_
 routerAdd('GET', '/api/amana/wallet-options', e => {
   const options = $app.findAllRecords('wallets').map(record => {
     const w = JSON.parse(record.getString('data'));
-    return { id: record.id, name: w.name || '', isDefault: !!w.isDefault };
+    return { id: record.id, name: w.name || '', isDefault: !!w.isDefault, archived: !!w.archived };
   });
   return e.json(200, options);
 }, $apis.requireAuth('users', '_superusers'));

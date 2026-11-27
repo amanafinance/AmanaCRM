@@ -27,13 +27,14 @@ const settingsTitles = {
 };
 function entity(s) {
   const d = s.del ? s.orig : s.data;
+  const walletStatusChanged = s.c==='wallets' && s.existed && !s.del && !!s.orig.archived!==!!d.archived;
   const title = s.c === 'kassaOps' ? cashTypes[d.type] : s.c === 'invOps' ? investorTypes[d.type]
     : s.c === 'payments' && d.type === 'discount' ? 'Скидка' : null;
   return {
     title:title || titles[s.c] || 'Запись',
     name:d.contractId ? 'Договор №'+d.contractId : d.name || d.invName ||
       (s.c === 'settings' ? settingsTitles[s.id] || '' : s.c === 'invMonths' ? s.id : ''),
-    verb:s.del ? 'Удалено' : s.existed ? 'Изменено' : 'Создано'
+    verb:walletStatusChanged ? (d.archived?'Закрыт':'Открыт снова') : s.del ? 'Удалено' : s.existed ? 'Изменено' : 'Создано'
   };
 }
 function describeChange(s, load) {

@@ -60,5 +60,51 @@ export default async function(){
  check('копия без пароля подходит для восстановления',await D.p.evaluate(b=>window.DB.bkCheck(b)==='',plainManual));
  await D.p.evaluate(()=>goTo('settings'));
  check('в настройках нет почтовой рассылки',await D.p.evaluate(()=>!document.getElementById('mailSettingsCard')&&!window.DB.mail&&typeof window.renderMailSettings==='undefined'));
+
+ const walletId='closingwallet',name='Тестовый счёт для закрытия';
+ const walletOp=(id,d)=>({t:'update',c:'wallets',id,d});
+ const move=(id,from,to)=>post({ops:[
+   {t:'set',c:'kassaOps',id,d:{type:'transfer',amount:100,wallet:from,walletTo:to,date:{$date:new Date().toISOString()}}},
+   walletOp(from,{balance:{$op:'inc',v:-100}}),walletOp(to,{balance:{$op:'inc',v:100}})
+ ]});
+ const created=await post({ops:[{t:'set',c:'wallets',id:walletId,d:{name,type:'card',balance:0}}]});
+ const inbound=await move('closetestin','w1',walletId);
+ const withBalance=await post({ops:[walletOp(walletId,{archived:true})]});
+ check('счёт можно закрыть только после перевода остатка',created.status===200&&inbound.status===200&&withBalance.status>=400,withBalance);
+ const outbound=await move('closetestout',walletId,'w1');
+ const deleted=await post({ops:[{t:'delete',c:'wallets',id:walletId}]});
+ check('нулевой счёт с двумя переводами сохраняет историю',outbound.status===200&&deleted.status>=400,deleted);
+ const deal=await post({ops:[{t:'update',c:'clients',id:'c0',d:{prepayWallet:walletId}}]});
+ if(deal.status!==200)throw new Error(deal.data.message);
+ const activeRow=D.p.locator('#walletList .sit').filter({hasText:name});
+ await activeRow.getByRole('button',{name:'Закрыть',exact:true}).click();
+ await D.p.locator('#cfOk').click();
+ await D.p.waitForFunction(id=>S.wallets.some(w=>w.id===id&&w.archived),walletId);
+ const blocked=await move('closetestblocked','w1',walletId);
+ const beforeReopen=await get('wallets',walletId);
+ const journalClose=await api('GET','/api/amana/journal?type='+encodeURIComponent('Счёт · закрыт'),null,token);
+ check('закрытие записано в истории и новые переводы на закрытый счёт отклоняются',
+   blocked.status>=400&&beforeReopen.data.data.balance===0&&journalClose.data.rows?.some(row=>row.description===name),
+   {blocked,journalClose:journalClose.status});
+ const options=await api('GET','/api/amana/wallet-options',null,opsOnly);
+ check('закрытый счёт из списка для оплаты передаётся без остатка',
+   options.data.some(w=>w.id===walletId&&w.archived&&!('balance' in w)));
+ const selection=await D.p.evaluate(id=>{
+   openKassaOp();
+   const excluded=['koWallet','koWalletTo'].every(key=>![...document.getElementById(key).options].some(o=>o.value===id));
+   closeM('mKassa');
+   openEdit('c0');
+   const previous=document.getElementById('f_prepayPt').selectedOptions[0];
+   const history=S.kassaOps.filter(o=>o.wallet===id||o.walletTo===id).length;
+   closeM('mClient');
+   return {excluded,previous:previous?.value,disabled:previous?.disabled,history,balanced:walletCalc()[id]===0};
+ },walletId);
+ check('старые переводы и счёт предоплаты видны, закрытый счёт исключён из новых операций',
+   selection.excluded&&selection.previous===walletId&&selection.disabled&&selection.history===2&&selection.balanced,selection);
+ await D.p.locator('#walletArchiveTitle').click();
+ await D.p.locator('#walletArchiveList .sit').filter({hasText:name}).getByRole('button',{name:'Открыть снова'}).click();
+ await D.p.locator('#cfOk').click();
+ await D.p.waitForFunction(id=>S.wallets.some(w=>w.id===id&&!w.archived),walletId);
+ check('счёт можно открыть снова и принять перевод',(await move('closetestreopened','w1',walletId)).status===200);
  noErrors('денежные проверки и доступ',D.errs);await D.ctx.close();
 }

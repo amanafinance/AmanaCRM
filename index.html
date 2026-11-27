@@ -1445,7 +1445,7 @@ details>summary::-webkit-details-marker{display:none}
   <div class="bk-row"><button class="btn bg bsm" id="sellerSave" onclick="saveSellerSettings()">Сохранить реквизиты</button></div>
 </div>
 <div class="card perm-settings"><div class="ct">Поставщики</div><div class="slist" id="partList"></div><div class="sadd"><input class="inp" type="text" id="newPart" placeholder="Название" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><input class="inp" type="tel" id="newPartPh" placeholder="Телефон" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addPart()"/><button class="btn bg bsm" onclick="addPart()">Добавить</button></div></div>
-<div class="card perm-settings"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">"Наличные" — стандартный, удалить нельзя. Остальное — переводы на карты/счета</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div></div>
+<div class="card perm-settings"><div class="ct">Счета (касса и карты)</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">Счёт с историей можно закрыть, когда остаток равен нулю.</div><div class="slist" id="walletList"></div><div class="sadd"><input class="inp" type="text" id="newWallet" placeholder="Название (напр. Сбер)" style="margin-bottom:0" onkeydown="if(event.key==='Enter')addWallet()"/><button class="btn bg bsm" onclick="addWallet()">Добавить</button></div><details id="walletArchive" hidden style="margin-top:var(--sp-3)"><summary class="btn bgh bsm" id="walletArchiveTitle"></summary><div class="slist" id="walletArchiveList" style="margin-top:var(--sp-2)"></div></details></div>
 <div class="card perm-settings" id="renumCard" style="display:none"><div class="ct">Номера в новом формате</div><div id="renumBody"></div></div>
 <div class="card perm-settings"><div class="ct">Шаблоны WhatsApp</div><div style="font-size:var(--fs-xs);color:var(--t3);margin-bottom:8px">Подстановки: {имя} {фио} {договор} {сумма} {дата} {дней} {просрочено} {остаток} {товар}</div><label class="lbl">Ближайшие 5 дней</label><textarea class="inp" id="waSoon" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Сегодня</label><textarea class="inp" id="waToday" rows="4" style="resize:vertical"></textarea><label class="lbl" style="margin-top:8px">Просрочка</label><textarea class="inp" id="waOverdue" rows="4" style="resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn bg bsm" onclick="saveWaTpl()">Сохранить</button><button class="btn bgh bsm" onclick="resetWaTpl()">По умолчанию</button></div></div>
 </div></div>
@@ -1709,7 +1709,7 @@ function showConfirm(t,m,ok,options={}){
   document.getElementById('cfCancel').focus({preventScroll:true});
 }
 
-const CRM_VERSION='21.11.2026 · заголовки страниц';
+const CRM_VERSION='27.11.2026 · закрытие счетов';
 // ---------- AUTH ----------
 let _inited=false;
 document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -1732,7 +1732,7 @@ window.addEventListener('dbReady',()=>{window.ON_AUTH(window.AUTH,u=>{if(u)enter
 
 function initApp(){if(_inited)return;_inited=true;installPermGuards();applyPerms();const vEl=document.getElementById('crmVer');if(vEl)vEl.textContent='версия '+CRM_VERSION;initMenuGroups();document.getElementById('dashDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});restoreRoute();if(window.DB)startAll();else window.addEventListener('dbReady',startAll);}
 async function startAll(){const{live,liveTombs,checkEpoch}=window.DB;await checkEpoch();loadSettings();await liveTombs();if(typeof startInv==='function')startInv();
-  live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();if(pageOn('client')&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
+  live('persons',{},s=>{S.persons=s.docs.map(d=>({id:d.id,...d.data()}));const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();if(pageOn('client')&&S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c)renderDetail(c);}});let c0=false,p0=false;live('clients',{},s=>{S.clients=s.docs.map(d=>({id:d.id,...d.data()}));c0=true;if(p0)refreshAll();},e=>toast('Err: '+e.message,'ter'));live('payments',{order:'date'},s=>{S.payments=s.docs.map(d=>({id:d.id,...d.data()}));p0=true;if(c0)refreshAll();},()=>{p0=true;if(c0)refreshAll();});live('wallets',{},s=>{S.wallets=s.docs.map(d=>({id:d.id,...d.data()}));ensureCashWallet();if(c0&&p0){renderKassa();renderDashIfVisible();}renderSettings();});live('kassaOps',{order:'date'},s=>{S.kassaOps=s.docs.map(d=>({id:d.id,...d.data()}));if(c0&&p0){renderKassa();renderDashIfVisible();}renderRecon();if(pageOn('settings'))renderWalletSettings();if(typeof renderInvIfVisible==='function')renderInvIfVisible();},()=>{});}
 // Открыта ли страница. Скрытые страницы не перерисовываются — их рисует переход на страницу (goTo)
 function pageOn(p){const e=document.getElementById('page-'+p);return!!e&&e.style.display!=='none';}
 function refreshAll(){if(pageOn('finance'))renderFinance();if(typeof renderInvIfVisible==='function')renderInvIfVisible();renderDash();renderClients();renderKassa();if(typeof renderReminders==='function')renderReminders();{const pp=document.getElementById('page-people');if(pp&&pp.style.display!=='none')renderPeople();const ps=document.getElementById('page-person');if(ps&&ps.style.display!=='none')renderPerson();}if(S.curClient){const c=S.clients.find(x=>x.id===S.curClient);if(c&&document.getElementById('page-client').style.display!=='none')renderDetail(c);}}
@@ -2195,8 +2195,8 @@ function renderDash(){
   h+=dTile({label:'Портфель (остаток долга)',value:dMoney(debt),cls:'cg',sub:active.length+' '+invPlural(active.length,'активный договор','активных договора','активных договоров'),onclick:"goBase('clients')",
     vis:'<div class="dsh-split"><div class="bar"><i style="flex:'+inTime+';background:var(--green)"></i><i style="flex:'+over+';background:var(--red)"></i></div><div class="lg"><span style="--c:var(--green)">в срок '+dPct(debt>0?inTime/debt:0)+'</span><span style="--c:var(--red)">просрочка '+dPct(debt>0?over/debt:0)+'</span></div></div>'});
   h+=dTile({label:'Просрочка',value:dMoney(over),cls:'cr',sub:overCl+' '+invPlural(overCl,'клиент','клиента','клиентов'),onclick:"goBase('reminders')",red:true,vis:dRing(debt>0?over/debt:0),foot:'<span>доля портфеля</span>'});
-  const ws=S.wallets.map(w=>({n:w.name,b:parseFloat(w.balance)||0})).sort((a,b)=>b.b-a.b),wmx=Math.max(...ws.map(w=>w.b),1);
-  h+=dTile({label:'Деньги в кассах',value:dMoney(cash),sub:S.wallets.length+' '+invPlural(S.wallets.length,'счёт','счёта','счетов'),onclick:"goTo('kassa')",
+  const ws=activeWallets().map(w=>({n:w.name,b:parseFloat(w.balance)||0})).sort((a,b)=>b.b-a.b),wmx=Math.max(...ws.map(w=>w.b),1);
+  h+=dTile({label:'Деньги в кассах',value:dMoney(cash),sub:ws.length+' '+invPlural(ws.length,'счёт','счёта','счетов'),onclick:"goTo('kassa')",
     vis:'<div class="dsh-wl">'+ws.slice(0,3).map(w=>'<div><span>'+esc(w.n)+'</span><b>'+dMoney(w.b)+'</b>'+dBar(w.b/wmx)+'</div>').join('')+'</div>'});
   h+=dTile({label:'Ожидаемая прибыль в портфеле',value:dMoney(M.profLeft||0),cls:'cb',sub:'ещё не получена',vis:'<span style="color:var(--blue);width:100%">'+dMiniBars(lastD.map(m=>m.grossNet),lastL)+'</span>',foot:'<span>получено наценки по месяцам</span>'});
   h+='</div><div class="dsh-h"><div class="dsh-ht">Показатели · '+esc(PD.label)+'</div><div class="dsh-ctl">'+perHtml('perDash','renderDash')+'</div></div><div class="dsh-g4">';
@@ -2360,7 +2360,7 @@ function renderFinance(){
   h+='<div class="dsh-h"><div class="dsh-ht">Экономика сделок</div></div><div class="dsh-2">';
   h+='<div class="card"><div class="ct">Средняя сделка · за период</div>'+dKv('Средний чек',dMoney(eco.length?sP/eco.length:0))+dKv('Средняя себестоимость',dMoney(eco.length?sC/eco.length:0))+dKv('Наценка к закупке',dPct(wC?(wP-wC)/wC:null))+dKv('Маржа в цене',dPct(wP?(wP-wC)/wP:null))+dKv('Средний срок',(eco.length?String(Math.round(sMo/eco.length*10)/10).replace('.',','):'—')+' мес.')+dKv('Средняя предоплата',dPct(sP?sPre/sP:null))+'</div>';
   h+='<div class="card"><div class="ct">За всё время</div>'+dKv('Договоров',String(ecoAll.length))+dKv('Продано на',dMoney(ecoAll.reduce((a,x)=>a+(parseFloat(x.c.price)||0),0)))+dKv('Поступило от клиентов',dMoney(all.received))+dKv('Валовая прибыль',dMoney(all.grossNet))+dKv('Расходы',dMoney(all.exp))+dKv('Чистая прибыль','<span class="'+(all.net<0?'cr':'cg')+'">'+dMoney(all.net)+'</span>')+'</div>';
-  const moneyCard='<div class="card"><div class="ct">Деньги сейчас</div>'+S.wallets.slice().sort((a,b)=>(parseFloat(b.balance)||0)-(parseFloat(a.balance)||0)).map(w=>dKv(esc(w.name),'<span class="'+((parseFloat(w.balance)||0)<0?'cr':'')+'">'+dMoney(parseFloat(w.balance)||0)+'</span>')).join('')+dKv('<b style="color:var(--text)">Итого в кассах</b>',dMoney(cash))+
+  const moneyCard='<div class="card"><div class="ct">Деньги сейчас</div>'+activeWallets().sort((a,b)=>(parseFloat(b.balance)||0)-(parseFloat(a.balance)||0)).map(w=>dKv(esc(w.name),'<span class="'+((parseFloat(w.balance)||0)<0?'cr':'')+'">'+dMoney(parseFloat(w.balance)||0)+'</span>')).join('')+dKv('<b style="color:var(--text)">Итого в кассах</b>',dMoney(cash))+
     (S.inv.length?dKv('Капитал инвесторов',dMoney(ctx.M.poolCap||0))+dKv('К выплате инвесторам','<span class="cy">'+dMoney(payable)+'</span>')+dKv('Свободно','<span class="'+(cash-payable<0?'cr':'cg')+'">'+dMoney(cash-payable)+'</span>'):'')+'</div>';
   h+='</div>';
   // Вкладки: каждая помещается в 1–1,5 экрана; период общий для всех
@@ -2789,6 +2789,7 @@ async function cancelPay(pid,cid,amt,pt){
   if(pt==='prepay'){toast('Предоплату нельзя удалить из истории. Измените её в договоре.','ter');return;}
   const p=S.payments.find(x=>x.id===pid);
   if(!p){toast('Платёж не найден','ter');return;}
+  if(closedWalletInOperation(p)){toast(closedWalletEditMessage,'ter');return;}
   const cm=closedMk(dTs(p.date));
   if(cm){walletBlockT('Месяц закрыт','<strong>'+mkLabel(cm)+'</strong> уже закрыт у инвесторов — '+(pt==='discount'?'скидку':'платёж')+' этого месяца отменить нельзя. Если это ошибка, проведите исправление в текущем месяце.');return;}
   const kOp=p.kassaOpId&&S.kassaOps.find(o=>o.id===p.kassaOpId)||paymentCashLink(p);
@@ -2877,7 +2878,7 @@ async function deleteComment(){const{db,doc,updateDoc}=window.DB;const c=S.clien
 
 // ---------- NEW / EDIT CLIENT ----------
 function openNew(clientKey){_cid=null;document.getElementById('mCTitle').textContent='Новый договор';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=dayKey(new Date());['f_product','f_cost','f_price','f_prepay'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_months').value='3';document.getElementById('f_payDay').value='';fillDealPeople(null,typeof clientKey==='string'?clientKey:null);_schedManual={size:false,dates:false};_costOk=false;document.getElementById('schedBody').innerHTML='';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value='';_ppManual='';}partPhoneSync();calcSched();schedWarn();const restored=restoreNewDeal(clientKey);openM('mClient');if(restored)markFormDirty(document.getElementById('mClient'));}
-function openEdit(id){_costOk=false;const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';updSels();{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value=c.partner==='Сторонний'?(c.partnerPhone||''):'';_ppManual=i.value;}setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;partPhoneSync();if(c.prepayWallet&&S.wallets.some(w=>w.id===c.prepayWallet))document.getElementById('f_prepayPt').value=c.prepayWallet;},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:var(--fs-xs);font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
+function openEdit(id){_costOk=false;const c=S.clients.find(x=>x.id===id);if(!c)return;_cid=id;document.getElementById('mCTitle').textContent='Редактировать';document.getElementById('mCBtn').textContent='Сохранить';document.getElementById('f_date').value=toInput(c.date)||'';fillDealPeople(c);document.getElementById('f_product').value=c.product||'';document.getElementById('f_cost').value=c.cost||'';document.getElementById('f_price').value=c.price||'';document.getElementById('f_prepay').value=c.prepay||'';document.getElementById('f_months').value=c.months||3;document.getElementById('f_payDay').value=c.payDay||'';const pw=walletByVal(c.prepayWallet||S.payments.find(p=>p.clientId===id&&p.type==='prepay')?.wallet);updSels(pw?.archived&&!R2(c.prepay)?null:pw?.id);{const i=document.getElementById('f_partnerPhone');i.readOnly=false;i.value=c.partner==='Сторонний'?(c.partnerPhone||''):'';_ppManual=i.value;}setTimeout(()=>{if(c.partner)document.getElementById('f_partner').value=c.partner;partPhoneSync();},50);const mo=parseInt(c.months)||3,tb=document.getElementById('schedBody');tb.innerHTML='';for(let m=0;m<mo;m++){tb.innerHTML+='<tr><td style="font-size:var(--fs-xs);font-weight:700;color:var(--t3)">'+(m+1)+'</td><td><input class="si sz num-fmt" type="text" inputmode="decimal" oninput="schedMarkManual(\'size\')" value="'+fmt(c['размер'+(m+1)]||0)+'"/></td><td><input class="si dt" type="date" oninput="schedMarkManual(\'dates\')" value="'+toInput(c['дата'+(m+1)]||'')+'"/></td></tr>';}openM('mClient');}
 function addPh(id){markFormDirty(document.getElementById(id)?.closest('.mover.on'));const d=document.getElementById(id),r=document.createElement('div');r.className='phr';r.innerHTML='<input class="inp" type="tel" aria-label="Телефон" placeholder="89001234567"/><button class="ib ir" onclick="markFormDirty(this.closest(\'.mover\'));this.parentElement.remove()">×</button>';d.appendChild(r);}
 // Вычисляет дату платежа для месяца m (0-based) от базовой даты cd с учётом payDay
 let _schedManual={size:false,dates:false};let _costOk=false;
@@ -3048,6 +3049,14 @@ function fixWallet(id){
 // Текущее название счёта по его id (после переименования везде новое); для удалённого счёта — сохранённое
 function wName(id,fallback){const w=id&&S.wallets.find(x=>x.id===id);return w?w.name:(fallback||'');}
 function walletByVal(v){if(!v)return null;return S.wallets.find(w=>w.id===v)||S.wallets.find(w=>w.name===v)||null;}
+function activeWallets(){return S.wallets.filter(w=>!w.archived);}
+function standardWallet(w){return w.isDefault||(w.name==='Наличные'&&w.type==='cash');}
+function walletHasHistory(id){
+  return S.kassaOps.some(o=>o.wallet===id||o.walletTo===id)||S.payments.some(p=>p.wallet===id)||
+    S.clients.some(c=>c.prepayWallet===id&&R2(c.prepay)>0)||S.invOps.some(o=>o.wallet===id);
+}
+function closedWalletInOperation(o){return walletByVal(o?.wallet)?.archived||walletByVal(o?.walletTo)?.archived;}
+const closedWalletEditMessage='Счёт закрыт. Откройте его в справочниках, чтобы изменить операцию.';
 function computePayDate(cd,m,payDay){
   const b=safeDateFromInput(cd);if(!b)return'';
   const a=new Date(b.getFullYear(),b.getMonth()+m+1,1);
@@ -3150,8 +3159,17 @@ function recalcDates(){
   _schedManual.dates=false;schedWarn();
   toast('Даты пересчитаны','tok');
 }
-function updSels(){const p=document.getElementById('f_partner');if(p)p.innerHTML=S.partners.map(x=>'<option>'+esc(x)+'</option>').join('');updPt('f_prepayPt');updPt('mpPt');}
-function updPt(id){const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML=S.wallets.map(w=>'<option value="'+w.id+'">'+esc(w.name)+'</option>').join('');const keep=S.wallets.find(w=>w.id===cur);if(keep)e.value=cur;else{const d=S.wallets.find(w=>w.isDefault)||S.wallets[0];if(d)e.value=d.id;}}
+function updSels(prepayWallet){const p=document.getElementById('f_partner');if(p)p.innerHTML=S.partners.map(x=>'<option>'+esc(x)+'</option>').join('');updPt('f_prepayPt',prepayWallet);updPt('mpPt');}
+function updPt(id,historicalId){
+  const e=document.getElementById(id);if(!e)return;
+  const active=activeWallets(),previous=e.value,old=walletByVal(historicalId);
+  e.innerHTML=active.map(w=>'<option value="'+esc(w.id)+'">'+esc(w.name)+'</option>').join('');
+  if(old?.archived){
+    const option=new Option(old.name+' · закрыт',old.id);option.disabled=true;e.add(option);
+  }
+  const selected=old||active.find(w=>w.id===previous)||active.find(w=>w.isDefault)||active[0];
+  if(selected)e.value=selected.id;
+}
 async function saveClient(){if(_saving)return;const{db,collection,addDoc,updateDoc,doc}=window.DB,name=document.getElementById('f_name').value.trim(),price=parseNum(document.getElementById('f_price').value),cost=parseNum(document.getElementById('f_cost').value);if(!name){pickChoose('f_name');markFieldError('f_name','Выберите клиента из списка или добавьте нового.');return;}if(!price){markFieldError('f_price','Укажите цену продажи.');return;}
 const _pp=await dealPeopleData();if(_pp.err){markFieldError(_pp.field || 'f_name',_pp.err);return;}
 if(!document.getElementById('f_product').value.trim()){markFieldError('f_product','Укажите товар.');return;}
@@ -3207,7 +3225,8 @@ if(!(mo>=1&&mo<=120)){markFieldError('f_months','Срок договора — �
   const npRef=doc(collection(db,'payments')),nkRef=doc(collection(db,'kassaOps')); // если предоплата появляется впервые — связываем платёж и операцию кассы
   let pe=null;
   if(prepayChanged){
-    if(newPrepay>0&&!newW){markFieldError('f_prepayPt','Выберите счёт предоплаты.');return;}
+    if(walletByVal(oldW)?.archived){toast(closedWalletEditMessage,'ter');return;}
+    if(newPrepay>0&&(!newW||ptW.archived)){markFieldError('f_prepayPt','Выберите открытый счёт предоплаты.');return;}
     pe={};if(prK&&oldW)pe[oldW]=-oldPrepay;if(newPrepay>0&&newW)pe[newW]=(pe[newW]||0)+newPrepay;
     const short=walletShort(pe);if(short){walletBlock('Предоплата уменьшится. '+short);return;}
     if(pr&&newPrepay>0)bt.update(doc(db,'payments',pr.id),{amount:newPrepay,payType:pt,wallet:newW});
@@ -3228,7 +3247,7 @@ if(!(mo>=1&&mo<=120)){markFieldError('f_months','Срок договора — �
   bt.update(doc(db,'clients',_cid),data);await bt.commit(pe?{wallets:pe}:undefined);
   if(prepayChanged){if(oldPrepay!==newPrepay)await logA('Изменение предоплаты','№'+(old&&old.contractId||'')+' — было '+fmt(oldPrepay)+' ₽, стало '+fmt(newPrepay)+' ₽');
     else await logA('Изменение кассы предоплаты','№'+(old&&old.contractId||'')+' — '+fmt(newPrepay)+' ₽ в «'+pt+'»');}
-  await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{if(data.prepay>0&&!ptW){markFieldError('f_prepayPt','Выберите счёт предоплаты.');return;}
+  await logA('Изменение','№'+(old?.contractId||'')+' — '+name);toast('Обновлён!','tok');}else{if(data.prepay>0&&(!ptW||ptW.archived)){markFieldError('f_prepayPt','Выберите открытый счёт предоплаты.');return;}
   data.createdAt=new Date();data.createdBy=curUser();
   // Номер, договор, предоплата, операция кассы и баланс счёта пишутся одной транзакцией: либо всё, либо ничего
   const ref=doc(collection(db,'clients')),now=new Date();
@@ -3276,7 +3295,7 @@ function openPay(id,month){
 function payDateMin(c){let m=dealDate(c)||null;if(S.invMonths&&S.invMonths.length){const M=invModel();if(M.lastClosed){const f=mStart(Number(M.lastClosed.slice(0,4)),Number(M.lastClosed.slice(5)));if(!m||f>m)m=f;}}return m;}
 function payDateSetup(id){const c=S.clients.find(x=>x.id===id),i=document.getElementById('mpDate');if(!i)return;const t=dayKey(new Date()),m=c?payDateMin(c):null;
   i.value=t;i.max=t;i.min=m?dayKey(m):'';document.getElementById('mpDateHint').textContent='Можно поставить дату не раньше '+(m?fmtD(m):'дня договора')+' — закрытые у инвесторов месяцы не меняются';}
-function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){markFieldError('mpAmt','Введите сумму больше нуля.');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){markFieldError('mpAmt','Сумма больше остатка долга ('+fmt(s.balance)+' ₽).');return;}const ptv=document.getElementById('mpPt').value;const wsel=walletByVal(ptv);if(!wsel){markFieldError('mpPt','Выберите счёт.');return;}const note=(document.getElementById('mpNote').value||'').trim(),dv=document.getElementById('mpDate').value||dayKey(new Date());
+function confirmPay(){const a=parseNum(document.getElementById('mpAmt').value);if(!a||a<=0){markFieldError('mpAmt','Введите сумму больше нуля.');return;}const c=S.clients.find(x=>x.id===_cid);const s=getStats(c);if(a>s.balance){markFieldError('mpAmt','Сумма больше остатка долга ('+fmt(s.balance)+' ₽).');return;}const ptv=document.getElementById('mpPt').value;const wsel=walletByVal(ptv);if(!wsel||wsel.archived){markFieldError('mpPt','Выберите открытый счёт.');return;}const note=(document.getElementById('mpNote').value||'').trim(),dv=document.getElementById('mpDate').value||dayKey(new Date());
   if(dv>dayKey(new Date())){markFieldError('mpDate','Дата оплаты не может быть в будущем.');return;}
   {const m=payDateMin(c);if(m&&dv<dayKey(m)){markFieldError('mpDate','Введите дату не раньше '+fmtD(m)+'.');return;}}
   showConfirm('Записать оплату?','<strong>'+esc(c?.name)+'</strong>'+(c.contractId?' · договор №'+esc(c.contractId):'')+'<br>'+fmt(a)+' ₽ · '+esc(wsel.name)+' · '+fmtD(safeDateFromInput(dv))+(note?'<br><span style="color:var(--t2)">'+esc(note)+'</span>':''),()=>savePay(a,wsel.id,note,dv));}
@@ -3288,7 +3307,7 @@ async function savePay(a,pt,note,dv){note=(note||'').trim();
   if(d>new Date()){toast('Дата оплаты не может быть в будущем','ter');return;}
   {const cm=closedMk(d);if(cm){toast(mkLabel(cm)+' уже закрыт у инвесторов — поставьте дату в открытом месяце, а настоящую дату напишите в комментарии','ter');return;}}
   const w=walletByVal(pt);
-  if(!w){toast('Касса не найдена','ter');return;}
+  if(!w||w.archived){toast('Выберите открытый счёт','ter');updPt('mpPt');return;}
   const st=getStats(c);
   if(a>R2(st.balance)+0.004){toast('Остаток долга уже '+fmt(st.balance)+' ₽ — обновите страницу','ter');return;}
   _saving=true;
@@ -3402,7 +3421,7 @@ function loadSettings(){
 let _ensuringCash=false;
 async function ensureCashWallet(){
   if(_ensuringCash||!can('settings')||!can('v_kassa'))return;
-  const has=S.wallets.some(w=>w.isDefault||(w.name==='Наличные'&&w.type==='cash'));
+  const has=activeWallets().some(standardWallet);
   if(!has&&_inited&&!_saving){ // во время восстановления из копии счета на миг пропадают — не создаём лишний
     _ensuringCash=true;
     try{await window.DB.addDoc(window.DB.collection(window.DB.db,'wallets'),{name:'Наличные',type:'cash',balance:0,isDefault:true});}
@@ -3417,10 +3436,20 @@ function renderSettings(){
     const locked=p==='Сторонний';
     return'<div class="sit'+(locked?' locked':'')+'"><div style="font-size:var(--fs-sm);font-weight:600">'+esc(p)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный · номер вводится в договоре)</span>':'')+'</div>'+(locked?'':'<input class="inp part-ph" type="tel" placeholder="Телефон" value="'+esc(fmtPhone(S.partnerPhones[p]||''))+'" onchange="setPartPhone('+i+',this.value)"/><button class="btn bgh bsm" onclick="renamePart('+i+')">Переименовать</button><button class="btn br bsm" onclick="removePart('+i+')">Удалить</button>')+'</div>';
   }).join('');
-  document.getElementById('walletList').innerHTML=S.wallets.map(w=>{
-    const locked=w.isDefault||(w.name==='Наличные'&&w.type==='cash');
-    return'<div class="sit'+(locked?' locked':'')+'"><div><div style="font-size:var(--fs-sm);font-weight:600">'+esc(w.name)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный)</span>':'')+'</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+(w.type==='cash'?'Наличные':'Карта / Счёт')+' · '+fmt(w.balance||0)+' ₽</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="renameWallet(\''+w.id+'\')">Переименовать</button>'+(locked?'':'<button class="btn br bsm" onclick="removeWallet(\''+w.id+'\','+((w.balance||0))+')">Удалить</button>')+'</div></div>';
+  renderWalletSettings();
+}
+function renderWalletSettings(){
+  document.getElementById('walletList').innerHTML=activeWallets().map(w=>{
+    const locked=standardWallet(w);
+    const action=!can('v_kassa')||walletHasHistory(w.id)?'Закрыть':'Удалить';
+    return'<div class="sit'+(locked?' locked':'')+'"><div><div style="font-size:var(--fs-sm);font-weight:600">'+esc(w.name)+(locked?' <span style="font-size:var(--fs-xs);color:var(--t3);font-weight:400;margin-left:4px">(стандартный)</span>':'')+'</div><div style="font-size:var(--fs-xs);color:var(--t3)">'+(w.type==='cash'?'Наличные':'Карта / Счёт')+' · '+fmt(w.balance||0)+' ₽</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bgh bsm" onclick="renameWallet(\''+w.id+'\')">Переименовать</button>'+(locked?'':'<button class="btn br bsm" onclick="removeWallet(\''+w.id+'\')">'+action+'</button>')+'</div></div>';
   }).join('');
+  const archived=S.wallets.filter(w=>w.archived);
+  document.getElementById('walletArchive').hidden=!archived.length;
+  document.getElementById('walletArchiveTitle').textContent='Закрытые счета ('+archived.length+')';
+  document.getElementById('walletArchiveList').innerHTML=archived.map(w=>
+    '<div class="sit"><div>'+esc(w.name)+'</div><button class="btn bgh bsm" onclick="reopenWallet(\''+w.id+'\')">Открыть снова</button></div>'
+  ).join('');
 }
 function renderSellerSettings(){
   const card=document.getElementById('sellerSettings');
@@ -3787,14 +3816,28 @@ async function addWallet(){
     console.error('addWallet error:',e);
   }
 }
-async function removeWallet(id,bal){
+function removeWallet(id){
   const w=S.wallets.find(x=>x.id===id);
-  if(w&&(w.isDefault||(w.name==='Наличные'&&w.type==='cash'))){toast('Основной наличный счёт удалить нельзя','ter');return;}
-  const b=R2(w?w.balance:bal);
-  if(Math.abs(b)>0.004){toast('На счёте '+fmt(b)+' ₽ — удалить нельзя. Сначала переведите деньги','ter');return;}
-  if(S.kassaOps.some(o=>o.wallet===id||o.walletTo===id)){toast('По этому счёту есть операции — удалить нельзя, чтобы не потерять историю','ter');return;}
-  showConfirm('Удалить счёт?','<strong>'+esc(w?w.name:'')+'</strong><br>Остаток 0 ₽, операций нет',async()=>{
-    try{const bt=window.DB.writeBatch(window.DB.db);trashPut(bt,'wallets',id,w);bt.delete(window.DB.doc(window.DB.db,'wallets',id));await bt.commit();await logA('Счёт удалён',(w?w.name:''));toast('Удалён','tok');}
+  if(!w||w.archived)return;
+  if(standardWallet(w)){toast('Основной наличный счёт закрыть нельзя','ter');return;}
+  if(R2(w.balance)>0){toast('Сначала переведите остаток '+fmt(w.balance)+' ₽ на другой счёт','ter');return;}
+  if(R2(w.balance)<0){toast('На счёте отрицательный остаток. Сначала сверьте операции и доведите остаток до нуля','ter');return;}
+  const archive=!can('v_kassa')||walletHasHistory(id);
+  showConfirm(archive?'Закрыть счёт?':'Удалить счёт?','<strong>'+esc(w.name)+'</strong><br>'+
+    (archive?'Счёт пропадёт из выбора для новых операций. История сохранится. Счёт можно открыть снова.':'Остаток 0 ₽, операций нет.'),async()=>{
+    try{
+      const {db,doc,updateDoc,deleteDoc}=window.DB,ref=doc(db,'wallets',id);
+      if(archive)await updateDoc(ref,{archived:true});
+      else await deleteDoc(ref);
+      toast(archive?'Счёт закрыт':'Счёт удалён','tok');
+    }
+    catch(e){toast('Ошибка: '+e.message,'ter');}
+  });
+}
+function reopenWallet(id){
+  const w=walletByVal(id);if(!w?.archived)return;
+  showConfirm('Открыть счёт снова?','<strong>'+esc(w.name)+'</strong><br>Счёт снова будет доступен для новых операций.',async()=>{
+    try{await window.DB.updateDoc(window.DB.doc(window.DB.db,'wallets',id),{archived:false});toast('Счёт снова открыт','tok');}
     catch(e){toast('Ошибка: '+e.message,'ter');}
   });
 }
@@ -4395,8 +4438,9 @@ function loadMoreKassa(){_kassaShown+=50;renderKassa();}
 function renderKassa(){
   const el=document.getElementById('kWallets');if(!el||!pageOn('kassa'))return;
   const totalBal=S.wallets.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
-  const cashBal=S.wallets.filter(w=>w.type==='cash').reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
-  const cards=S.wallets.filter(w=>w.type==='card');
+  const wallets=activeWallets();
+  const cashBal=wallets.filter(w=>w.type==='cash').reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
+  const cards=wallets.filter(w=>w.type==='card');
   const cardBal=cards.reduce((s,w)=>s+(parseFloat(w.balance)||0),0);
   const cardsExpanded=el.dataset.cardsExpanded==='1';
   const chevron='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:6px;transition:transform .2s;'+(cardsExpanded?'transform:rotate(180deg)':'')+'"><polyline points="6 9 12 15 18 9"/></svg>';
@@ -4516,9 +4560,9 @@ function koAmtHint(){
   el.innerHTML=a>have+0.004?'Недостаточно средств: на счёте «'+esc(w.name)+'» '+fmt(have)+' ₽, не хватает '+fmt(R2(a-have))+' ₽':'На счёте «'+esc(w.name)+'» '+fmt(have)+' ₽';
 }
 function fillKoWallets(){
-  const w=document.getElementById('koWallet'),wt=document.getElementById('koWalletTo');
-  w.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+esc(x.name)+' ('+fmt(x.balance||0)+' ₽)</option>').join('');
-  wt.innerHTML=S.wallets.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+  const w=document.getElementById('koWallet'),wt=document.getElementById('koWalletTo'),wallets=activeWallets();
+  w.innerHTML=wallets.map(x=>'<option value="'+x.id+'">'+esc(x.name)+' ('+fmt(x.balance||0)+' ₽)</option>').join('');
+  wt.innerHTML=wallets.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
   w.onchange=koAmtHint;koAmtHint();
 }
 
@@ -4584,7 +4628,7 @@ document.addEventListener('click',e=>{
 
 let _koEdit=null; // id операции, которую правим (null — новая)
 function openKassaOp(){
-  if(!S.wallets.length){toast('Сначала добавьте кошельки в настройках','ter');return;}
+  if(!activeWallets().length){toast('Сначала добавьте счёт в справочниках','ter');return;}
   _koEdit=null;document.getElementById('koType').disabled=false;document.getElementById('koTitle').textContent='Операция в кассе';
   document.getElementById('koDate').value=dayKey(new Date());
   document.getElementById('koType').value='purchase';
@@ -4601,6 +4645,7 @@ function openKassaOp(){
 // Правка ручной операции: тип не меняется, остальное — да
 function openKassaEdit(id){
   const o=S.kassaOps.find(x=>x.id===id);if(!o)return;const m=kMeta(o.type);
+  if(closedWalletInOperation(o)){toast(closedWalletEditMessage,'ter');return;}
   if(m.auto||o.auto){toast('Автоматические операции меняются через сделку или инвестора','ter');return;}
   openKassaOp();_koEdit=id;
   document.getElementById('koTitle').textContent='Изменить операцию';
@@ -4630,7 +4675,7 @@ async function saveKassaOp(){
   if(!amt||amt<=0){markFieldError('koAmt','Укажите сумму больше нуля.');return;}
   if(!wid){markFieldError('koWallet','Выберите счёт.');return;}
   const w=S.wallets.find(x=>x.id===wid);
-  if(!w){toast('Кошелёк не найден','ter');return;}
+  if(!w||w.archived){markFieldError('koWallet','Выберите открытый счёт.');return;}
   // дата: сегодня — текущее время, другой день — полдень этого дня
   let d=new Date();if(dv&&dv!==dayKey(d)){d=safeDateFromInput(dv);d.setHours(12,0,0,0);}
   if(dayKey(d)>dayKey(new Date())){markFieldError('koDate','Дата не может быть в будущем.');return;}
@@ -4645,7 +4690,7 @@ async function saveKassaOp(){
     if(co>0&&amt>left+0.004){walletBlockT('Больше себестоимости','По договору №'+esc(c.contractId||'')+' осталось оплатить поставщику <strong>'+fmt(Math.max(0,left))+' ₽</strong> из '+fmt(co)+' ₽.');return;}
   }
   if(type==='transfer'){
-    if(!wtid){markFieldError('koWalletTo','Выберите счёт назначения.');return;}
+    if(!wtid||walletByVal(wtid)?.archived){markFieldError('koWalletTo','Выберите открытый счёт назначения.');return;}
     if(wid===wtid){markFieldError('koWalletTo','Выберите другой счёт назначения.');return;}
   }
   await doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old);
@@ -4687,6 +4732,7 @@ async function doSaveKassa(type,amt,wid,wtid,desc,clientId,w,d,old){
 
 function delKassaOp(id){
   const op=S.kassaOps.find(x=>x.id===id);if(!op)return;
+  if(closedWalletInOperation(op)){toast(closedWalletEditMessage,'ter');return;}
   const meta=kMeta(op.type);
   if(meta.auto||op.auto){toast('Автоматические операции нельзя удалить. Их нужно отменять через исходную сущность.','ter');return;}
   {const cm=kassaClosedMonth(op.type,opDate(op));if(cm){walletBlockT('Месяц закрыт','<strong>'+mkLabel(cm)+'</strong> уже закрыт у инвесторов — расход этого месяца удалить нельзя.');return;}}
@@ -5455,7 +5501,7 @@ const IO_META={
 };
 function openInvOp(type,invId){
   const i=S.inv.find(x=>x.id===invId);if(!i)return;const meta=IO_META[type];const M=invModel();
-  if(meta.wallet&&!S.wallets.length){toast('Сначала добавьте кошельки в настройках','ter');return;}
+  if(meta.wallet&&!activeWallets().length){toast('Сначала добавьте счёт в справочниках','ter');return;}
   const isF=i.role==='founder';
   const depRow=document.getElementById('ioDepRow');
   if(meta.dep){
@@ -5473,7 +5519,7 @@ function openInvOp(type,invId){
   document.getElementById('ioBtn').textContent=meta.btn;
   document.getElementById('ioWalletRow').style.display=meta.wallet?'flex':'none';
   document.getElementById('ioWalletLbl').textContent=meta.walletLbl||'Счёт';
-  document.getElementById('ioWallet').innerHTML=S.wallets.map(w=>'<option value="'+w.id+'">'+invEsc(w.name)+' ('+fmt(w.balance||0)+' ₽)</option>').join('');
+  document.getElementById('ioWallet').innerHTML=activeWallets().map(w=>'<option value="'+w.id+'">'+invEsc(w.name)+' ('+fmt(w.balance||0)+' ₽)</option>').join('');
   document.getElementById('ioDateRow').style.display=meta.date?'flex':'none';
   const today0=dayKey(new Date());
   document.getElementById('ioDate').value=today0;
@@ -5523,7 +5569,7 @@ async function saveInvOp(){
   const amt=invR(parseNum(document.getElementById('ioAmt').value));
   if(!amt||amt<=0){markFieldError('ioAmt','Укажите сумму больше нуля.');return;}
   const{M,b,w,wb,tr,depId,depCap,depPay}=invOpLimits();
-  if(meta.wallet&&!w){toast('Выберите кошелёк','ter');return;}
+  if(meta.wallet&&(!w||w.archived)){toast('Выберите открытый счёт','ter');return;}
   let d=new Date();
   if(meta.date){
     const v=document.getElementById('ioDate').value;
