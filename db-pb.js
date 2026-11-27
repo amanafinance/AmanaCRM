@@ -308,7 +308,7 @@ async function live(name, opts, cb, onErr) {
     const update = async () => {
       try {
         const options = await pb.send('/api/amana/wallet-options', { method: 'GET', requestKey: null });
-        cb({ docs: options.map(w => ({ id: w.id, data: () => ({ name: w.name, isDefault: w.isDefault }) })) });
+        cb({ docs: options.map(w => ({ id: w.id, data: () => ({ name: w.name, isDefault: w.isDefault, archived: w.archived }) })) });
       } catch (e) { if (onErr) onErr(e); }
     };
     window.addEventListener('focus', update);

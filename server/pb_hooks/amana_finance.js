@@ -4,6 +4,7 @@ const day = v => { const ms = v && v.$date ? Date.parse(v.$date) : NaN; return N
 const isoDay = v => String(v || '').replace(/^(\d\d)\.(\d\d)\.(\d{4})$/, '$3-$2-$1');
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 const dirs = {payment_in:1,prepay_in:1,inv_in:1,purchase:-1,opex:-1,salary:-1,other_exp:-1,inv_out:-1,inv_pay:-1,transfer:0};
+const standardWallet = w => !!(w.isDefault||(w.name==='Наличные'&&w.type==='cash'));
 function validate(ctx) {
   const {tx,cache,load,Fail,now,mode} = ctx;
   const bad = m => { throw new Fail('bad',m,400); };
@@ -26,14 +27,23 @@ function validate(ctx) {
   }
   const financialKeys = (a,b,keys) => keys.some(k=>!equal(a[k],b[k]));
   const expected = {};
+  const bookedBalance = id => cash.reduce((n,o)=>n+(o.wallet===id?(o.type==='transfer'?-cents(o.amount):(dirs[o.type]||0)*cents(o.amount)):0)+(o.type==='transfer'&&o.walletTo===id?cents(o.amount):0),0);
+  const usedInCash = (o,id) => o.wallet===id||o.walletTo===id;
+  function requireOpenWallet(id) {
+    const wallet=load('wallets',id);
+    if(!wallet.exists)bad('Счёт операции не найден');
+    if(wallet.orig.archived||wallet.data.archived)bad('Счёт «'+(wallet.data.name||'')+'» закрыт. Откройте его в справочниках перед изменением операций.');
+  }
   function effect(o,mult) {
     if(!o||!o.type)return;
     if(!(o.type in dirs))bad('Неизвестный вид кассовой операции');
     amount(o.amount,'касса');
-    if(!o.wallet||!load('wallets',o.wallet).exists)bad('Счёт операции не найден');
+    if(!o.wallet)bad('Счёт операции не найден');
+    requireOpenWallet(o.wallet);
     const add=(id,n)=>expected[id]=(expected[id]||0)+mult*n;
     if(o.type==='transfer'){
-      if(!o.walletTo||o.walletTo===o.wallet||!load('wallets',o.walletTo).exists)bad('Проверьте счета перевода');
+      if(!o.walletTo||o.walletTo===o.wallet)bad('Проверьте счета перевода');
+      requireOpenWallet(o.walletTo);
       add(o.wallet,-cents(o.amount));add(o.walletTo,cents(o.amount));
     }else add(o.wallet,dirs[o.type]*cents(o.amount));
   }
@@ -58,10 +68,19 @@ function validate(ctx) {
     }
     if(s.c==='wallets'){
       if(s.existed&&!s.exists){
-        if(cents(s.orig.balance)!==0||s.orig.isDefault||cash.some(o=>o.wallet===s.id||o.walletTo===s.id))bad('Нельзя удалить счёт с деньгами или историей операций');
+        if(cents(s.orig.balance)!==0||standardWallet(s.orig))bad('Нельзя удалить стандартный счёт или счёт с остатком');
+        if(cash.some(o=>usedInCash(o,s.id))||rows('kassaOps',true).some(o=>usedInCash(o,s.id))||
+          payments.some(p=>p.wallet===s.id)||rows('invOps').some(o=>o.wallet===s.id)||
+          deals.some(d=>d.prepayWallet===s.id&&cents(d.prepay)>0))bad('У счёта есть история. Закройте его в справочниках.');
       }else if(s.exists){
         if(typeof s.data.balance!=='number'||!Number.isFinite(s.data.balance)||!Number.isSafeInteger(cents(s.data.balance))||Math.abs(s.data.balance*100-cents(s.data.balance))>0.000001)bad('Проверьте остаток счёта');
         if(!s.existed&&cents(s.data.balance)!==0)bad('Новый счёт создаётся с нулевым остатком');
+        if(s.data.archived!==undefined&&typeof s.data.archived!=='boolean')bad('Проверьте статус счёта');
+        if(s.data.archived){
+          if(standardWallet(s.orig)||standardWallet(s.data))bad('Основной наличный счёт закрыть нельзя');
+          if(cents(s.data.balance)!==0)bad('Закрыть можно только счёт с нулевым остатком. Сначала переведите остаток.');
+          if(!s.orig.archived&&bookedBalance(s.id)!==0)bad('Сначала сверьте остаток счёта с операциями кассы');
+        }
       }
     }
     if(s.c==='payments'){
@@ -104,8 +123,7 @@ function validate(ctx) {
   for(const id of new Set([...Object.keys(expected),...changed.filter(s=>s.c==='wallets'&&s.exists).map(s=>s.id)])){
     const w=load('wallets',id),delta=cents(w.data.balance)-cents(w.orig.balance);
     if(mode==='reconcile'){
-      const balance=cash.reduce((n,o)=>n+(o.wallet===id?(o.type==='transfer'?-cents(o.amount):(dirs[o.type]||0)*cents(o.amount)):0)+(o.type==='transfer'&&o.walletTo===id?cents(o.amount):0),0);
-      if(cents(w.data.balance)!==balance)bad('Остаток сверки не совпадает с операциями');
+      if(cents(w.data.balance)!==bookedBalance(id))bad('Остаток сверки не совпадает с операциями');
     }else if(delta!==(expected[id]||0))bad('Изменение остатка счёта не совпадает с кассой');
     if(expected[id]&&!w.dirty)bad('Изменение кассы должно менять остаток счёта');
   }
